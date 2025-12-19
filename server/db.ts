@@ -441,3 +441,317 @@ export async function updateUserSettings(userId: number, data: Partial<InsertUse
   if (!db) return;
   await db.update(userSettings).set(data).where(eq(userSettings.userId, userId));
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT CHECKPOINTS (Critical Gap CG-03)
+// ════════════════════════════════════════════════════════════════════════════
+
+import { 
+  agentCheckpoints, InsertAgentCheckpoint, AgentCheckpoint,
+  projectNotes, InsertProjectNote, ProjectNote,
+  metricsDaily, InsertMetricsDaily, MetricsDaily,
+  requirements, InsertRequirement, Requirement,
+  technicalDesigns, InsertTechnicalDesign, TechnicalDesign,
+  hooks, InsertHook, Hook,
+  hookExecutions, InsertHookExecution, HookExecution,
+} from "../drizzle/schema";
+
+export async function createCheckpoint(checkpoint: InsertAgentCheckpoint) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(agentCheckpoints).values(checkpoint);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getCheckpointsByExecutionId(executionId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agentCheckpoints)
+    .where(eq(agentCheckpoints.executionId, executionId))
+    .orderBy(desc(agentCheckpoints.createdAt))
+    .limit(limit);
+}
+
+export async function getCheckpointById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(agentCheckpoints)
+    .where(eq(agentCheckpoints.id, id))
+    .limit(1);
+  return result[0];
+}
+
+export async function getLatestCheckpoint(executionId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(agentCheckpoints)
+    .where(eq(agentCheckpoints.executionId, executionId))
+    .orderBy(desc(agentCheckpoints.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROJECT NOTES (Context Engineering)
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createProjectNote(note: InsertProjectNote) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(projectNotes).values(note);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getProjectNotes(projectId: number, category?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  if (category) {
+    return db.select().from(projectNotes)
+      .where(and(
+        eq(projectNotes.projectId, projectId),
+        eq(projectNotes.category, category as any)
+      ))
+      .orderBy(desc(projectNotes.updatedAt));
+  }
+  
+  return db.select().from(projectNotes)
+    .where(eq(projectNotes.projectId, projectId))
+    .orderBy(desc(projectNotes.updatedAt));
+}
+
+export async function getProjectNoteById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(projectNotes)
+    .where(and(eq(projectNotes.id, id), eq(projectNotes.userId, userId)))
+    .limit(1);
+  return result[0];
+}
+
+export async function updateProjectNote(id: number, userId: number, data: Partial<InsertProjectNote>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(projectNotes).set(data)
+    .where(and(eq(projectNotes.id, id), eq(projectNotes.userId, userId)));
+}
+
+export async function deleteProjectNote(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(projectNotes)
+    .where(and(eq(projectNotes.id, id), eq(projectNotes.userId, userId)));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// METRICS (MR-04 from Research)
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function upsertDailyMetrics(metrics: InsertMetricsDaily) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const existing = await db.select().from(metricsDaily)
+    .where(and(
+      eq(metricsDaily.userId, metrics.userId),
+      eq(metricsDaily.date, metrics.date)
+    ))
+    .limit(1);
+  
+  if (existing.length > 0) {
+    // Update existing record by adding to current values
+    await db.update(metricsDaily).set({
+      messagesCount: sql`${metricsDaily.messagesCount} + ${metrics.messagesCount || 0}`,
+      tokensUsed: sql`${metricsDaily.tokensUsed} + ${metrics.tokensUsed || 0}`,
+      costUsd: sql`CAST(${metricsDaily.costUsd} AS DECIMAL(10,4)) + ${metrics.costUsd || '0.00'}`,
+      agentExecutionsCount: sql`${metricsDaily.agentExecutionsCount} + ${metrics.agentExecutionsCount || 0}`,
+      agentTasksCompleted: sql`${metricsDaily.agentTasksCompleted} + ${metrics.agentTasksCompleted || 0}`,
+      agentTasksFailed: sql`${metricsDaily.agentTasksFailed} + ${metrics.agentTasksFailed || 0}`,
+      linesGenerated: sql`${metricsDaily.linesGenerated} + ${metrics.linesGenerated || 0}`,
+      filesModified: sql`${metricsDaily.filesModified} + ${metrics.filesModified || 0}`,
+      totalExecutionTimeMs: sql`${metricsDaily.totalExecutionTimeMs} + ${metrics.totalExecutionTimeMs || 0}`,
+    }).where(and(
+      eq(metricsDaily.userId, metrics.userId),
+      eq(metricsDaily.date, metrics.date)
+    ));
+    return { id: existing[0].id };
+  } else {
+    const result = await db.insert(metricsDaily).values(metrics);
+    return { id: Number(result[0].insertId) };
+  }
+}
+
+export async function getDailyMetrics(userId: number, startDate: string, endDate: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(metricsDaily)
+    .where(and(
+      eq(metricsDaily.userId, userId),
+      gte(metricsDaily.date, startDate),
+      lte(metricsDaily.date, endDate)
+    ))
+    .orderBy(metricsDaily.date);
+}
+
+export async function getMetricsSummary(userId: number, startDate: string, endDate: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select({
+    totalMessages: sql<number>`COALESCE(SUM(${metricsDaily.messagesCount}), 0)`,
+    totalTokens: sql<number>`COALESCE(SUM(${metricsDaily.tokensUsed}), 0)`,
+    totalCost: sql<string>`COALESCE(SUM(CAST(${metricsDaily.costUsd} AS DECIMAL(10,4))), 0)`,
+    totalExecutions: sql<number>`COALESCE(SUM(${metricsDaily.agentExecutionsCount}), 0)`,
+    totalTasksCompleted: sql<number>`COALESCE(SUM(${metricsDaily.agentTasksCompleted}), 0)`,
+    totalTasksFailed: sql<number>`COALESCE(SUM(${metricsDaily.agentTasksFailed}), 0)`,
+    totalLinesGenerated: sql<number>`COALESCE(SUM(${metricsDaily.linesGenerated}), 0)`,
+    totalFilesModified: sql<number>`COALESCE(SUM(${metricsDaily.filesModified}), 0)`,
+    totalExecutionTime: sql<number>`COALESCE(SUM(${metricsDaily.totalExecutionTimeMs}), 0)`,
+  }).from(metricsDaily)
+    .where(and(
+      eq(metricsDaily.userId, userId),
+      gte(metricsDaily.date, startDate),
+      lte(metricsDaily.date, endDate)
+    ));
+  
+  return result[0];
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// REQUIREMENTS (Spec-Driven Development)
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createRequirement(req: InsertRequirement) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(requirements).values(req);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getRequirementsByProjectId(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(requirements)
+    .where(eq(requirements.projectId, projectId))
+    .orderBy(desc(requirements.createdAt));
+}
+
+export async function getRequirementById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(requirements)
+    .where(and(eq(requirements.id, id), eq(requirements.userId, userId)))
+    .limit(1);
+  return result[0];
+}
+
+export async function updateRequirement(id: number, userId: number, data: Partial<InsertRequirement>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(requirements).set(data)
+    .where(and(eq(requirements.id, id), eq(requirements.userId, userId)));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TECHNICAL DESIGNS
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createTechnicalDesign(design: InsertTechnicalDesign) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(technicalDesigns).values(design);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getTechnicalDesignsByRequirementId(requirementId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(technicalDesigns)
+    .where(eq(technicalDesigns.requirementId, requirementId))
+    .orderBy(desc(technicalDesigns.createdAt));
+}
+
+export async function getTechnicalDesignById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(technicalDesigns)
+    .where(and(eq(technicalDesigns.id, id), eq(technicalDesigns.userId, userId)))
+    .limit(1);
+  return result[0];
+}
+
+export async function updateTechnicalDesign(id: number, userId: number, data: Partial<InsertTechnicalDesign>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(technicalDesigns).set(data)
+    .where(and(eq(technicalDesigns.id, id), eq(technicalDesigns.userId, userId)));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// HOOKS (Event-Driven Automation)
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createHook(hook: InsertHook) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(hooks).values(hook);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getHooksByProjectId(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(hooks)
+    .where(eq(hooks.projectId, projectId))
+    .orderBy(desc(hooks.createdAt));
+}
+
+export async function getHookById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(hooks)
+    .where(and(eq(hooks.id, id), eq(hooks.userId, userId)))
+    .limit(1);
+  return result[0];
+}
+
+export async function updateHook(id: number, userId: number, data: Partial<InsertHook>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(hooks).set(data)
+    .where(and(eq(hooks.id, id), eq(hooks.userId, userId)));
+}
+
+export async function deleteHook(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(hooks)
+    .where(and(eq(hooks.id, id), eq(hooks.userId, userId)));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// HOOK EXECUTIONS
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createHookExecution(exec: InsertHookExecution) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(hookExecutions).values(exec);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getHookExecutionsByHookId(hookId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(hookExecutions)
+    .where(eq(hookExecutions.hookId, hookId))
+    .orderBy(desc(hookExecutions.createdAt))
+    .limit(limit);
+}
+
+export async function updateHookExecution(id: number, data: Partial<InsertHookExecution>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(hookExecutions).set(data).where(eq(hookExecutions.id, id));
+}

@@ -341,7 +341,6 @@ const githubRouter = router({
   connection: protectedProcedure.query(async ({ ctx }) => {
     const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
     if (!conn) return null;
-    // Don't expose tokens
     return {
       id: conn.id,
       githubUsername: conn.githubUsername,
@@ -355,14 +354,329 @@ const githubRouter = router({
     return { success: true };
   }),
   
-  // These would require actual GitHub API integration
-  // For now, return placeholder data
-  repositories: protectedProcedure.query(async ({ ctx }) => {
-    const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
-    if (!conn) return [];
-    // TODO: Implement actual GitHub API call
-    return [];
-  }),
+  // Store GitHub token (from OAuth callback)
+  connect: protectedProcedure
+    .input(z.object({
+      accessToken: z.string(),
+      githubId: z.string(),
+      githubUsername: z.string(),
+      scopes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await db.upsertGitHubConnection({
+        userId: ctx.user.id,
+        githubId: input.githubId,
+        githubUsername: input.githubUsername,
+        accessToken: input.accessToken,
+        scopes: input.scopes,
+      });
+      return { success: true };
+    }),
+  
+  repositories: protectedProcedure
+    .input(z.object({
+      page: z.number().default(1),
+      perPage: z.number().default(30),
+      sort: z.enum(["created", "updated", "pushed", "full_name"]).default("updated"),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) return { repositories: [], hasMore: false };
+      
+      try {
+        const github = await import("./github");
+        const repos = await github.listUserRepositories(conn.accessToken, {
+          page: input?.page || 1,
+          per_page: input?.perPage || 30,
+          sort: input?.sort || "updated",
+        });
+        return {
+          repositories: repos.map(r => ({
+            id: r.id,
+            name: r.name,
+            fullName: r.full_name,
+            description: r.description,
+            private: r.private,
+            htmlUrl: r.html_url,
+            cloneUrl: r.clone_url,
+            defaultBranch: r.default_branch,
+            language: r.language,
+            stars: r.stargazers_count,
+            forks: r.forks_count,
+            updatedAt: r.updated_at,
+            owner: r.owner.login,
+            ownerAvatar: r.owner.avatar_url,
+          })),
+          hasMore: repos.length === (input?.perPage || 30),
+        };
+      } catch (error) {
+        console.error("GitHub API error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch repositories" });
+      }
+    }),
+  
+  searchRepositories: protectedProcedure
+    .input(z.object({
+      query: z.string().min(1),
+      page: z.number().default(1),
+      perPage: z.number().default(30),
+    }))
+    .query(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const result = await github.searchRepositories(conn.accessToken, input.query, {
+          page: input.page,
+          per_page: input.perPage,
+        });
+        return {
+          totalCount: result.total_count,
+          repositories: result.items.map(r => ({
+            id: r.id,
+            name: r.name,
+            fullName: r.full_name,
+            description: r.description,
+            private: r.private,
+            htmlUrl: r.html_url,
+            cloneUrl: r.clone_url,
+            defaultBranch: r.default_branch,
+            language: r.language,
+            stars: r.stargazers_count,
+            forks: r.forks_count,
+            updatedAt: r.updated_at,
+            owner: r.owner.login,
+            ownerAvatar: r.owner.avatar_url,
+          })),
+        };
+      } catch (error) {
+        console.error("GitHub search error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to search repositories" });
+      }
+    }),
+  
+  getRepository: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const r = await github.getRepository(conn.accessToken, input.owner, input.repo);
+        return {
+          id: r.id,
+          name: r.name,
+          fullName: r.full_name,
+          description: r.description,
+          private: r.private,
+          htmlUrl: r.html_url,
+          cloneUrl: r.clone_url,
+          defaultBranch: r.default_branch,
+          language: r.language,
+          stars: r.stargazers_count,
+          forks: r.forks_count,
+          updatedAt: r.updated_at,
+          owner: r.owner.login,
+          ownerAvatar: r.owner.avatar_url,
+        };
+      } catch (error) {
+        console.error("GitHub get repo error:", error);
+        throw new TRPCError({ code: "NOT_FOUND", message: "Repository not found" });
+      }
+    }),
+  
+  getBranches: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const branches = await github.listBranches(conn.accessToken, input.owner, input.repo);
+        return branches.map(b => ({
+          name: b.name,
+          sha: b.commit.sha,
+          protected: b.protected,
+        }));
+      } catch (error) {
+        console.error("GitHub branches error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch branches" });
+      }
+    }),
+  
+  getFileTree: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      branch: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const tree = await github.getRepositoryTree(
+          conn.accessToken,
+          input.owner,
+          input.repo,
+          input.branch || "main",
+          true
+        );
+        return tree.map(item => ({
+          path: item.path,
+          type: item.type,
+          sha: item.sha,
+          size: item.size,
+        }));
+      } catch (error) {
+        console.error("GitHub tree error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch file tree" });
+      }
+    }),
+  
+  getFileContent: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      path: z.string(),
+      branch: z.string().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const file = await github.getFileContent(
+          conn.accessToken,
+          input.owner,
+          input.repo,
+          input.path,
+          input.branch
+        );
+        return file;
+      } catch (error: any) {
+        console.error("GitHub file error:", error);
+        if (error.message?.includes("directory")) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Path is a directory" });
+        }
+        throw new TRPCError({ code: "NOT_FOUND", message: "File not found" });
+      }
+    }),
+  
+  updateFile: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      path: z.string(),
+      content: z.string(),
+      message: z.string(),
+      sha: z.string(),
+      branch: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const result = await github.createOrUpdateFile(
+          conn.accessToken,
+          input.owner,
+          input.repo,
+          input.path,
+          input.content,
+          input.message,
+          input.sha,
+          input.branch
+        );
+        return {
+          sha: result.content.sha,
+          commitSha: result.commit.sha,
+        };
+      } catch (error) {
+        console.error("GitHub update file error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update file" });
+      }
+    }),
+  
+  createFile: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      path: z.string(),
+      content: z.string(),
+      message: z.string(),
+      branch: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const result = await github.createOrUpdateFile(
+          conn.accessToken,
+          input.owner,
+          input.repo,
+          input.path,
+          input.content,
+          input.message,
+          undefined,
+          input.branch
+        );
+        return {
+          sha: result.content.sha,
+          commitSha: result.commit.sha,
+        };
+      } catch (error) {
+        console.error("GitHub create file error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create file" });
+      }
+    }),
+  
+  deleteFile: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      path: z.string(),
+      message: z.string(),
+      sha: z.string(),
+      branch: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const conn = await db.getGitHubConnectionByUserId(ctx.user.id);
+      if (!conn) throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      
+      try {
+        const github = await import("./github");
+        const result = await github.deleteFile(
+          conn.accessToken,
+          input.owner,
+          input.repo,
+          input.path,
+          input.message,
+          input.sha,
+          input.branch
+        );
+        return {
+          commitSha: result.commit.sha,
+        };
+      } catch (error) {
+        console.error("GitHub delete file error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to delete file" });
+      }
+    }),
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -600,6 +914,238 @@ const governanceRouter = router({
 // MAIN ROUTER
 // ════════════════════════════════════════════════════════════════════════════
 
+// New routers defined below, main router export at end of file
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// CHECKPOINTS ROUTER (Critical Gap CG-03 from Research)
+// ════════════════════════════════════════════════════════════════════════════
+
+const checkpointsRouter = router({
+  list: protectedProcedure
+    .input(z.object({ executionId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      // Verify execution ownership
+      const exec = await db.getAgentExecutionById(input.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "NOT_FOUND" });
+      return db.getCheckpointsByExecutionId(input.executionId);
+    }),
+  
+  get: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const checkpoint = await db.getCheckpointById(input.id);
+      if (!checkpoint) throw new TRPCError({ code: "NOT_FOUND" });
+      // Verify ownership through execution
+      const exec = await db.getAgentExecutionById(checkpoint.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "FORBIDDEN" });
+      return checkpoint;
+    }),
+  
+  create: protectedProcedure
+    .input(z.object({
+      agentId: z.number(),
+      executionId: z.number(),
+      stepNumber: z.number(),
+      description: z.string().optional(),
+      state: z.object({
+        executionState: z.string(),
+        currentStep: z.number(),
+        steps: z.array(z.any()),
+        context: z.record(z.string(), z.unknown()),
+        filesModified: z.array(z.string()),
+      }),
+      rollbackData: z.object({
+        fileSnapshots: z.array(z.object({
+          path: z.string(),
+          content: z.string(),
+          action: z.enum(["create", "modify", "delete"]),
+        })),
+        dbChanges: z.array(z.any()),
+      }).optional(),
+      automatic: z.boolean().default(true),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify execution ownership
+      const exec = await db.getAgentExecutionById(input.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "NOT_FOUND", message: "Execution not found" });
+      
+      return db.createCheckpoint({
+        agentId: input.agentId,
+        executionId: input.executionId,
+        userId: ctx.user.id,
+        stepNumber: input.stepNumber,
+        description: input.description,
+        state: input.state,
+        rollbackData: input.rollbackData,
+        automatic: input.automatic,
+      });
+    }),
+  
+  rollback: protectedProcedure
+    .input(z.object({ checkpointId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const checkpoint = await db.getCheckpointById(input.checkpointId);
+      if (!checkpoint) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      // Verify ownership
+      const exec = await db.getAgentExecutionById(checkpoint.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "FORBIDDEN" });
+      
+      // Update execution state to checkpoint state
+      await db.updateAgentExecution(checkpoint.executionId, {
+        state: checkpoint.state.executionState as any,
+        currentStep: checkpoint.state.currentStep,
+        steps: checkpoint.state.steps as any,
+      });
+      
+      return { 
+        success: true, 
+        message: `Rolled back to checkpoint at step ${checkpoint.stepNumber}`,
+        restoredState: checkpoint.state,
+      };
+    }),
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROJECT NOTES ROUTER (Context Engineering from Research)
+// ════════════════════════════════════════════════════════════════════════════
+
+const notesRouter = router({
+  list: protectedProcedure
+    .input(z.object({ 
+      projectId: z.number(),
+      category: z.enum(["architecture", "decisions", "todos", "bugs", "context", "requirements", "api"]).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      // Verify project ownership
+      const project = await db.getProjectById(input.projectId, ctx.user.id);
+      if (!project) throw new TRPCError({ code: "NOT_FOUND" });
+      return db.getProjectNotes(input.projectId, input.category);
+    }),
+  
+  get: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const note = await db.getProjectNoteById(input.id, ctx.user.id);
+      if (!note) throw new TRPCError({ code: "NOT_FOUND" });
+      return note;
+    }),
+  
+  create: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      category: z.enum(["architecture", "decisions", "todos", "bugs", "context", "requirements", "api"]).default("context"),
+      title: z.string().min(1).max(255),
+      content: z.string().min(1),
+      tags: z.array(z.string()).optional(),
+      priority: z.enum(["low", "medium", "high"]).default("medium"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify project ownership
+      const project = await db.getProjectById(input.projectId, ctx.user.id);
+      if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      
+      return db.createProjectNote({
+        projectId: input.projectId,
+        userId: ctx.user.id,
+        category: input.category,
+        title: input.title,
+        content: input.content,
+        tags: input.tags,
+        priority: input.priority,
+      });
+    }),
+  
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      title: z.string().min(1).max(255).optional(),
+      content: z.string().min(1).optional(),
+      category: z.enum(["architecture", "decisions", "todos", "bugs", "context", "requirements", "api"]).optional(),
+      tags: z.array(z.string()).optional(),
+      priority: z.enum(["low", "medium", "high"]).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      await db.updateProjectNote(id, ctx.user.id, data);
+      return { success: true };
+    }),
+  
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.deleteProjectNote(input.id, ctx.user.id);
+      return { success: true };
+    }),
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// METRICS ROUTER (MR-04 from Research)
+// ════════════════════════════════════════════════════════════════════════════
+
+const metricsRouter = router({
+  daily: protectedProcedure
+    .input(z.object({
+      startDate: z.string(), // YYYY-MM-DD format
+      endDate: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      return db.getDailyMetrics(ctx.user.id, input.startDate, input.endDate);
+    }),
+  
+  summary: protectedProcedure
+    .input(z.object({
+      startDate: z.string(),
+      endDate: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      return db.getMetricsSummary(ctx.user.id, input.startDate, input.endDate);
+    }),
+  
+  record: protectedProcedure
+    .input(z.object({
+      projectId: z.number().optional(),
+      date: z.string(), // YYYY-MM-DD format
+      messagesCount: z.number().optional(),
+      tokensUsed: z.number().optional(),
+      costUsd: z.string().optional(),
+      agentExecutionsCount: z.number().optional(),
+      agentTasksCompleted: z.number().optional(),
+      agentTasksFailed: z.number().optional(),
+      linesGenerated: z.number().optional(),
+      filesModified: z.number().optional(),
+      totalExecutionTimeMs: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return db.upsertDailyMetrics({
+        userId: ctx.user.id,
+        ...input,
+      });
+    }),
+  
+  // Get metrics for last 7 days
+  recentActivity: protectedProcedure.query(async ({ ctx }) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+    
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    
+    const [daily, summary] = await Promise.all([
+      db.getDailyMetrics(ctx.user.id, formatDate(startDate), formatDate(endDate)),
+      db.getMetricsSummary(ctx.user.id, formatDate(startDate), formatDate(endDate)),
+    ]);
+    
+    return { daily, summary };
+  }),
+});
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// MAIN ROUTER EXPORT
+// ════════════════════════════════════════════════════════════════════════════
+
 export const appRouter = router({
   system: systemRouter,
   auth: authRouter,
@@ -610,6 +1156,9 @@ export const appRouter = router({
   settings: settingsRouter,
   budget: budgetRouter,
   governance: governanceRouter,
+  checkpoints: checkpointsRouter,
+  notes: notesRouter,
+  metrics: metricsRouter,
 });
 
 export type AppRouter = typeof appRouter;

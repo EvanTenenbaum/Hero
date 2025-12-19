@@ -78,6 +78,40 @@ export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
 
 // ════════════════════════════════════════════════════════════════════════════
+// PROJECT NOTES (Context Engineering - Structured Note-Taking)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const projectNotes = mysqlTable("project_notes", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Note categorization
+  category: mysqlEnum("category", [
+    "architecture",    // System design decisions
+    "decisions",       // Key technical decisions
+    "todos",           // Pending tasks
+    "bugs",            // Known issues
+    "context",         // General context for AI
+    "requirements",    // Project requirements
+    "api"              // API documentation
+  ]).default("context").notNull(),
+  
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  
+  // Metadata for context retrieval
+  tags: json("tags").$type<string[]>(),
+  priority: mysqlEnum("priority", ["low", "medium", "high"]).default("medium"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProjectNote = typeof projectNotes.$inferSelect;
+export type InsertProjectNote = typeof projectNotes.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
 // CHAT CONVERSATIONS & MESSAGES
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -87,6 +121,11 @@ export const chatConversations = mysqlTable("chat_conversations", {
   projectId: int("projectId"),
   title: varchar("title", { length: 255 }),
   type: mysqlEnum("type", ["general", "project", "agent"]).default("general").notNull(),
+  
+  // Context compaction tracking
+  compactedAt: timestamp("compactedAt"),
+  compactionSummary: text("compactionSummary"),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -113,6 +152,9 @@ export const chatMessages = mysqlTable("chat_messages", {
     result?: string;
   }>>(),
   
+  // Compaction flag
+  compacted: boolean("compacted").default(false),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -128,7 +170,15 @@ export const agents = mysqlTable("agents", {
   userId: int("userId").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  type: mysqlEnum("type", ["coder", "reviewer", "planner", "custom"]).default("custom").notNull(),
+  type: mysqlEnum("type", ["coder", "reviewer", "planner", "frontend", "backend", "qa", "security", "docs", "refactor", "custom"]).default("custom").notNull(),
+  
+  // Role definition (from research)
+  role: mysqlEnum("role", ["frontend", "backend", "qa", "security", "docs", "refactor", "general"]).default("general"),
+  roleScope: json("roleScope").$type<{
+    allowedDirectories?: string[];
+    allowedTools?: string[];
+    allowedOperations?: string[];
+  }>(),
   
   // Configuration
   systemPrompt: text("systemPrompt"),
@@ -142,6 +192,9 @@ export const agents = mysqlTable("agents", {
   allowScopeExpansion: boolean("allowScopeExpansion").default(false),
   requireApprovalForChanges: boolean("requireApprovalForChanges").default(true),
   autoCheckpoint: boolean("autoCheckpoint").default(true),
+  
+  // Trust level (from research RE-02)
+  trustLevel: mysqlEnum("trustLevel", ["low", "medium", "high"]).default("low"),
   
   // Budget
   budgetLimitUsd: varchar("budgetLimitUsd", { length: 20 }).default("1.00"),
@@ -234,6 +287,50 @@ export const agentExecutions = mysqlTable("agent_executions", {
 
 export type AgentExecution = typeof agentExecutions.$inferSelect;
 export type InsertAgentExecution = typeof agentExecutions.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT CHECKPOINTS (Critical Gap CG-03 from QA Analysis)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const agentCheckpoints = mysqlTable("agent_checkpoints", {
+  id: int("id").autoincrement().primaryKey(),
+  agentId: int("agentId").notNull(),
+  executionId: int("executionId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Checkpoint details
+  stepNumber: int("stepNumber").notNull(),
+  description: varchar("description", { length: 500 }),
+  
+  // State snapshot
+  state: json("state").$type<{
+    executionState: string;
+    currentStep: number;
+    steps: unknown[];
+    context: Record<string, unknown>;
+    filesModified: string[];
+  }>().notNull(),
+  
+  // Rollback data
+  rollbackData: json("rollbackData").$type<{
+    fileSnapshots: Array<{
+      path: string;
+      content: string;
+      action: "create" | "modify" | "delete";
+    }>;
+    dbChanges: unknown[];
+  }>(),
+  
+  // Metadata
+  automatic: boolean("automatic").default(true), // Auto vs manual checkpoint
+  tokensUsedAtCheckpoint: int("tokensUsedAtCheckpoint").default(0),
+  costAtCheckpoint: varchar("costAtCheckpoint", { length: 20 }).default("0.00"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AgentCheckpoint = typeof agentCheckpoints.$inferSelect;
+export type InsertAgentCheckpoint = typeof agentCheckpoints.$inferInsert;
 
 // ════════════════════════════════════════════════════════════════════════════
 // SECRETS
@@ -416,3 +513,201 @@ export const userSettings = mysqlTable("user_settings", {
 
 export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = typeof userSettings.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPEC-DRIVEN DEVELOPMENT - REQUIREMENTS (From Kiro Research)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const requirements = mysqlTable("requirements", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Requirement details
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // User stories (EARS notation)
+  userStories: json("userStories").$type<Array<{
+    id: string;
+    role: string;
+    want: string;
+    benefit: string;
+    acceptanceCriteria: string[];
+  }>>(),
+  
+  // Assumptions and edge cases
+  assumptions: json("assumptions").$type<string[]>(),
+  edgeCases: json("edgeCases").$type<string[]>(),
+  
+  // Status
+  status: mysqlEnum("status", ["draft", "pending_review", "approved", "rejected", "implemented"]).default("draft").notNull(),
+  approvedBy: int("approvedBy"),
+  approvedAt: timestamp("approvedAt"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Requirement = typeof requirements.$inferSelect;
+export type InsertRequirement = typeof requirements.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPEC-DRIVEN DEVELOPMENT - TECHNICAL DESIGNS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const technicalDesigns = mysqlTable("technical_designs", {
+  id: int("id").autoincrement().primaryKey(),
+  requirementId: int("requirementId").notNull(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Design details
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // Technical specifications
+  dataFlow: json("dataFlow").$type<{
+    description: string;
+    components: Array<{ name: string; type: string; connections: string[] }>;
+  }>(),
+  
+  interfaces: json("interfaces").$type<Array<{
+    name: string;
+    type: string;
+    definition: string;
+  }>>(),
+  
+  schemas: json("schemas").$type<Array<{
+    name: string;
+    type: "database" | "api" | "config";
+    definition: string;
+  }>>(),
+  
+  endpoints: json("endpoints").$type<Array<{
+    method: string;
+    path: string;
+    description: string;
+    requestBody?: string;
+    responseBody?: string;
+  }>>(),
+  
+  // Status
+  status: mysqlEnum("status", ["draft", "pending_review", "approved", "rejected", "implemented"]).default("draft").notNull(),
+  approvedBy: int("approvedBy"),
+  approvedAt: timestamp("approvedAt"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TechnicalDesign = typeof technicalDesigns.$inferSelect;
+export type InsertTechnicalDesign = typeof technicalDesigns.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// EVENT-DRIVEN HOOKS (From Kiro Research)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const hooks = mysqlTable("hooks", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Hook configuration
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // Trigger configuration
+  triggerType: mysqlEnum("triggerType", [
+    "file_save",      // Triggered when file is saved
+    "file_create",    // Triggered when file is created
+    "pre_commit",     // Triggered before commit
+    "post_commit",    // Triggered after commit
+    "schedule"        // Triggered on schedule
+  ]).notNull(),
+  
+  // Pattern matching for file triggers
+  triggerPattern: varchar("triggerPattern", { length: 500 }), // Glob pattern
+  triggerDirectories: json("triggerDirectories").$type<string[]>(),
+  
+  // Action configuration
+  action: text("action").notNull(), // What the hook should do
+  systemPrompt: text("systemPrompt"), // Generated system prompt for LLM
+  
+  // Execution settings
+  enabled: boolean("enabled").default(true),
+  dryRunMode: boolean("dryRunMode").default(false),
+  
+  // Metadata
+  lastExecutedAt: timestamp("lastExecutedAt"),
+  executionCount: int("executionCount").default(0),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Hook = typeof hooks.$inferSelect;
+export type InsertHook = typeof hooks.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// HOOK EXECUTIONS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const hookExecutions = mysqlTable("hook_executions", {
+  id: int("id").autoincrement().primaryKey(),
+  hookId: int("hookId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Trigger info
+  triggerEvent: varchar("triggerEvent", { length: 255 }).notNull(),
+  triggerData: json("triggerData").$type<Record<string, unknown>>(),
+  
+  // Execution result
+  status: mysqlEnum("status", ["pending", "running", "completed", "failed"]).default("pending").notNull(),
+  result: text("result"),
+  error: text("error"),
+  
+  // Metrics
+  durationMs: int("durationMs"),
+  tokensUsed: int("tokensUsed"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+
+export type HookExecution = typeof hookExecutions.$inferSelect;
+export type InsertHookExecution = typeof hookExecutions.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// METRICS AGGREGATION (From GitHub Copilot Research MR-04)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const metricsDaily = mysqlTable("metrics_daily", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId"),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD format
+  
+  // Usage metrics
+  messagesCount: int("messagesCount").default(0),
+  tokensUsed: int("tokensUsed").default(0),
+  costUsd: varchar("costUsd", { length: 20 }).default("0.00"),
+  
+  // Agent metrics
+  agentExecutionsCount: int("agentExecutionsCount").default(0),
+  agentTasksCompleted: int("agentTasksCompleted").default(0),
+  agentTasksFailed: int("agentTasksFailed").default(0),
+  
+  // Code metrics
+  linesGenerated: int("linesGenerated").default(0),
+  filesModified: int("filesModified").default(0),
+  
+  // Time metrics
+  totalExecutionTimeMs: int("totalExecutionTimeMs").default(0),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MetricsDaily = typeof metricsDaily.$inferSelect;
+export type InsertMetricsDaily = typeof metricsDaily.$inferInsert;

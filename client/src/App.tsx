@@ -11,6 +11,9 @@ import Chat from "./pages/Chat";
 import Agents from "./pages/Agents";
 import AgentDetail from "./pages/AgentDetail";
 import Settings from "./pages/Settings";
+import Workspace from "./pages/Workspace";
+import GitHubCallback from "./pages/GitHubCallback";
+import Metrics from "./pages/Metrics";
 import DashboardLayout from "./components/DashboardLayout";
 
 function Router() {
@@ -25,6 +28,10 @@ function Router() {
       <Route path="/agents/:id" component={AgentDetail} />
       <Route path="/settings" component={Settings} />
       <Route path="/settings/:tab" component={Settings} />
+      <Route path="/workspace" component={Workspace} />
+      <Route path="/workspace/:owner/:repo" component={Workspace} />
+      <Route path="/github/callback" component={GitHubCallback} />
+      <Route path="/metrics" component={Metrics} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
