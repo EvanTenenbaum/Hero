@@ -185,3 +185,10 @@
 - [x] Design system prompts for all Hero IDE agent types (AGENT_SYSTEM_PROMPTS.md)
 - [x] Define guardrails and safety boundaries for each agent
 - [x] Create agent initialization pipeline documentation
+
+
+## Implementation Roadmap Creation
+- [x] Design lean implementation architecture
+- [x] Create phased implementation roadmap document (IMPLEMENTATION_ROADMAP.md)
+- [x] Define MVP vs future features
+- [x] Identify dependencies and risks
