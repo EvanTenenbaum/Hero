@@ -1,4 +1,5 @@
 import { ReactNode, memo, useCallback } from "react";
+import { ReactNode } from "react";
 
 export type TabKey = "projects" | "chat" | "agents" | "settings";
 
@@ -22,6 +23,7 @@ const TabBarComponent = ({ items, active, onChange }: TabBarProps): JSX.Element 
     [onChange]
   );
 
+export const TabBar = ({ items, active, onChange }: TabBarProps) => {
   return (
     <nav className="tab-bar" aria-label="Primary">
       <ul>
@@ -32,6 +34,7 @@ const TabBarComponent = ({ items, active, onChange }: TabBarProps): JSX.Element 
               className={`tab-button${active === item.key ? " active" : ""}`}
               onClick={() => handleChange(item.key)}
               aria-pressed={active === item.key}
+              onClick={() => onChange(item.key)}
             >
               <span className="tab-icon" aria-hidden="true">
                 {item.icon}

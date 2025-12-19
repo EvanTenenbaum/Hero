@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { SectionCard } from "./components/SectionCard";
+import { useMemo, useState } from "react";
 import { TabBar, TabItem, TabKey } from "./components/TabBar";
 import { AgentsScreen } from "./screens/AgentsScreen";
 import { ChatScreen } from "./screens/ChatScreen";
@@ -46,6 +47,7 @@ const quickActions = [
 ];
 
 export const App = (): JSX.Element => {
+export const App = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("projects");
 
   const tabs: TabItem[] = useMemo(
@@ -101,6 +103,25 @@ export const App = (): JSX.Element => {
         </SectionCard>
       </main>
       <TabBar items={tabs} active={activeTab} onChange={handleTabChange} />
+        <h1>{header.title}</h1>
+        <p>{header.subtitle}</p>
+      </header>
+      <main className="content">
+        {screenMap[activeTab]}
+        <div className="section-card">
+          <h2>Governance Snapshot</h2>
+          <p>
+            Every change follows the 8-step lifecycle with explicit scope, risk,
+            and approval checkpoints to protect project integrity.
+          </p>
+          <div className="section-list">
+            <div className="pill">Step 1: Declare intent</div>
+            <div className="pill">Step 4: Preview changes</div>
+            <div className="pill">Step 6: Apply with recovery</div>
+          </div>
+        </div>
+      </main>
+      <TabBar items={tabs} active={activeTab} onChange={setActiveTab} />
     </div>
   );
 };
