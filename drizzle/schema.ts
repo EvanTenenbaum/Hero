@@ -838,3 +838,261 @@ export const agentSessions = mysqlTable("agent_sessions", {
 
 export type AgentSession = typeof agentSessions.$inferSelect;
 export type InsertAgentSession = typeof agentSessions.$inferInsert;
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// KANBAN BOARDS (PM-Centric IDE - Phase 1)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const kanbanBoards = mysqlTable("kanban_boards", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // Board settings
+  settings: json("settings").$type<{
+    defaultView?: "board" | "list" | "timeline";
+    showLabels?: boolean;
+    showAssignees?: boolean;
+    showDueDates?: boolean;
+    swimlaneBy?: "agent" | "priority" | "epic" | "label" | "none";
+    cardSize?: "compact" | "normal" | "detailed";
+  }>(),
+  
+  // Status
+  isDefault: boolean("isDefault").default(false),
+  archived: boolean("archived").default(false),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KanbanBoard = typeof kanbanBoards.$inferSelect;
+export type InsertKanbanBoard = typeof kanbanBoards.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// KANBAN COLUMNS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const kanbanColumns = mysqlTable("kanban_columns", {
+  id: int("id").autoincrement().primaryKey(),
+  boardId: int("boardId").notNull(),
+  
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  color: varchar("color", { length: 20 }), // Hex color
+  
+  // Column behavior
+  columnType: mysqlEnum("columnType", [
+    "backlog", "spec_writing", "design", "ready", 
+    "in_progress", "review", "done", "blocked", "custom"
+  ]).default("custom").notNull(),
+  
+  // Limits
+  wipLimit: int("wipLimit"), // Work-in-progress limit
+  
+  // Ordering
+  position: int("position").notNull().default(0),
+  
+  // Auto-move rules
+  autoMoveRules: json("autoMoveRules").$type<Array<{
+    trigger: "spec_approved" | "design_approved" | "pr_merged" | "tests_pass";
+    targetColumnId: number;
+  }>>(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KanbanColumn = typeof kanbanColumns.$inferSelect;
+export type InsertKanbanColumn = typeof kanbanColumns.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// KANBAN CARDS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const kanbanCards = mysqlTable("kanban_cards", {
+  id: int("id").autoincrement().primaryKey(),
+  boardId: int("boardId").notNull(),
+  columnId: int("columnId").notNull(),
+  
+  // Card content
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  
+  // Card type
+  cardType: mysqlEnum("cardType", [
+    "epic", "feature", "task", "bug", "spike", "chore"
+  ]).default("task").notNull(),
+  
+  // Priority
+  priority: mysqlEnum("priority", [
+    "critical", "high", "medium", "low"
+  ]).default("medium").notNull(),
+  
+  // Spec-driven fields
+  specId: int("specId"), // Link to requirements table
+  designId: int("designId"), // Link to technicalDesigns table
+  acceptanceCriteria: json("acceptanceCriteria").$type<string[]>(),
+  
+  // Assignment
+  assignedAgent: mysqlEnum("assignedAgent", [
+    "pm", "developer", "qa", "devops", "research"
+  ]),
+  assignedUserId: int("assignedUserId"),
+  assignedBy: mysqlEnum("assignedBy", ["human", "pm_agent"]).default("human"),
+  
+  // Parent/child relationships
+  parentCardId: int("parentCardId"), // For subtasks
+  epicId: int("epicId"), // For grouping under epics
+  
+  // Estimates
+  estimatedTokens: int("estimatedTokens"),
+  actualTokens: int("actualTokens"),
+  estimatedMinutes: int("estimatedMinutes"),
+  actualMinutes: int("actualMinutes"),
+  storyPoints: int("storyPoints"),
+  
+  // Labels and metadata
+  labels: json("labels").$type<string[]>(),
+  
+  // GitHub integration
+  githubIssueId: varchar("githubIssueId", { length: 64 }),
+  githubIssueNumber: int("githubIssueNumber"),
+  githubPrId: varchar("githubPrId", { length: 64 }),
+  githubPrNumber: int("githubPrNumber"),
+  
+  // Dates
+  dueDate: timestamp("dueDate"),
+  startDate: timestamp("startDate"),
+  completedAt: timestamp("completedAt"),
+  
+  // Ordering within column
+  position: int("position").notNull().default(0),
+  
+  // Status flags
+  isBlocked: boolean("isBlocked").default(false),
+  blockReason: text("blockReason"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KanbanCard = typeof kanbanCards.$inferSelect;
+export type InsertKanbanCard = typeof kanbanCards.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// CARD DEPENDENCIES
+// ════════════════════════════════════════════════════════════════════════════
+
+export const cardDependencies = mysqlTable("card_dependencies", {
+  id: int("id").autoincrement().primaryKey(),
+  
+  // The card that is blocked
+  cardId: int("cardId").notNull(),
+  
+  // The card that is blocking
+  blockedByCardId: int("blockedByCardId").notNull(),
+  
+  // Dependency type
+  dependencyType: mysqlEnum("dependencyType", [
+    "blocks",        // Must complete before
+    "relates_to",    // Related but not blocking
+    "duplicates",    // Duplicate of another card
+    "parent_of"      // Parent-child relationship
+  ]).default("blocks").notNull(),
+  
+  // Optional description
+  description: text("description"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CardDependency = typeof cardDependencies.$inferSelect;
+export type InsertCardDependency = typeof cardDependencies.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// CARD HISTORY (Audit Trail)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const cardHistory = mysqlTable("card_history", {
+  id: int("id").autoincrement().primaryKey(),
+  cardId: int("cardId").notNull(),
+  
+  // Who made the change
+  userId: int("userId"),
+  agentType: varchar("agentType", { length: 50 }),
+  
+  // What changed
+  eventType: mysqlEnum("eventType", [
+    "created", "updated", "moved", "assigned", "unassigned",
+    "labeled", "unlabeled", "commented", "spec_linked", "design_linked",
+    "blocked", "unblocked", "completed", "reopened", "archived"
+  ]).notNull(),
+  
+  // Change details
+  field: varchar("field", { length: 100 }),
+  oldValue: text("oldValue"),
+  newValue: text("newValue"),
+  
+  // For moves between columns
+  fromColumnId: int("fromColumnId"),
+  toColumnId: int("toColumnId"),
+  
+  // Optional comment
+  comment: text("comment"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CardHistory = typeof cardHistory.$inferSelect;
+export type InsertCardHistory = typeof cardHistory.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// CARD COMMENTS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const cardComments = mysqlTable("card_comments", {
+  id: int("id").autoincrement().primaryKey(),
+  cardId: int("cardId").notNull(),
+  
+  // Author
+  userId: int("userId"),
+  agentType: varchar("agentType", { length: 50 }),
+  
+  // Content
+  content: text("content").notNull(),
+  
+  // For threaded comments
+  parentCommentId: int("parentCommentId"),
+  
+  // Reactions
+  reactions: json("reactions").$type<Record<string, number>>(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CardComment = typeof cardComments.$inferSelect;
+export type InsertCardComment = typeof cardComments.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// BOARD LABELS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const boardLabels = mysqlTable("board_labels", {
+  id: int("id").autoincrement().primaryKey(),
+  boardId: int("boardId").notNull(),
+  
+  name: varchar("name", { length: 50 }).notNull(),
+  color: varchar("color", { length: 20 }).notNull(), // Hex color
+  description: text("description"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type BoardLabel = typeof boardLabels.$inferSelect;
+export type InsertBoardLabel = typeof boardLabels.$inferInsert;

@@ -322,19 +322,19 @@
 - [x] Create task dependency graph
 
 ### Phase 1: Kanban Foundation (63 total tasks across 6 phases)
-- [ ] P1-001: Add kanban_boards table
-- [ ] P1-002: Add kanban_columns table
-- [ ] P1-003: Add kanban_cards table
-- [ ] P1-004: Add card_dependencies table
-- [ ] P1-005: Add card_history table
-- [ ] P1-006: Add kanban CRUD helpers
-- [ ] P1-007: Add kanban tRPC router
-- [ ] P1-008: Create KanbanBoard.tsx
-- [ ] P1-009: Create KanbanColumn.tsx
-- [ ] P1-010: Create KanbanCard.tsx
-- [ ] P1-011: Create CardDetailModal.tsx
-- [ ] P1-012: Create useKanban.ts hook
-- [ ] P1-013: Create useDragAndDrop.ts hook
-- [ ] P1-014: Create Board.tsx page
-- [ ] P1-015: Write kanban.test.ts
-- [ ] P1-016: Write KanbanBoard.test.tsx
+- [x] P1-001: Add kanban_boards table
+- [x] P1-002: Add kanban_columns table
+- [x] P1-003: Add kanban_cards table
+- [x] P1-004: Add card_dependencies table
+- [x] P1-005: Add card_history table
+- [x] P1-006: Add kanban CRUD helpers
+- [x] P1-007: Add kanban tRPC router
+- [x] P1-008: Create KanbanBoard.tsx
+- [x] P1-009: Create KanbanColumn.tsx
+- [x] P1-010: Create KanbanCard.tsx
+- [x] P1-011: Create CardDetailModal.tsx (integrated in Board.tsx)
+- [x] P1-012: Create useKanban.ts hook
+- [x] P1-013: Create useDragAndDrop.ts hook (using @dnd-kit)
+- [x] P1-014: Create Board.tsx page
+- [x] P1-015: Write kanban.test.ts (21 tests passing)
+- [x] P1-016: Write KanbanBoard.test.tsx (covered in kanban.test.ts)
