@@ -27,11 +27,11 @@ export interface KanbanCardData {
   cardType: "epic" | "feature" | "task" | "bug" | "spike" | "chore";
   priority: "critical" | "high" | "medium" | "low";
   assignedAgent?: "pm" | "developer" | "qa" | "devops" | "research" | null;
-  labels?: string[];
+  labels?: string[] | null;
   dueDate?: Date | null;
   estimatedMinutes?: number | null;
   storyPoints?: number | null;
-  isBlocked?: boolean;
+  isBlocked?: boolean | null;
   blockReason?: string | null;
   commentCount?: number;
   dependencyCount?: number;

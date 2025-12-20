@@ -42,6 +42,17 @@ export async function getBoardsByProject(projectId: number) {
     .orderBy(desc(kanbanBoards.isDefault), asc(kanbanBoards.name));
 }
 
+export async function getBoardsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kanbanBoards)
+    .where(and(
+      eq(kanbanBoards.userId, userId),
+      eq(kanbanBoards.archived, false)
+    ))
+    .orderBy(desc(kanbanBoards.updatedAt));
+}
+
 export async function updateBoard(id: number, data: Partial<InsertKanbanBoard>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

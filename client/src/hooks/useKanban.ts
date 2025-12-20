@@ -257,7 +257,7 @@ export function useKanban(projectId: number | null) {
           dueDate: cardData.dueDate ? new Date(cardData.dueDate) : undefined,
           estimatedMinutes: cardData.estimatedMinutes ?? undefined,
           storyPoints: cardData.storyPoints ?? undefined,
-          isBlocked: cardData.isBlocked,
+          isBlocked: cardData.isBlocked ?? undefined,
           blockReason: cardData.blockReason ?? undefined,
         });
       }

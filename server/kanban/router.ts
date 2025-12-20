@@ -38,6 +38,11 @@ export const kanbanRouter = router({
       return kanbanDb.getBoardsByProject(input.projectId);
     }),
   
+  getBoards: protectedProcedure
+    .query(async ({ ctx }) => {
+      return kanbanDb.getBoardsByUser(ctx.user.id);
+    }),
+  
   updateBoard: protectedProcedure
     .input(z.object({
       id: z.number(),

@@ -329,7 +329,7 @@ export function CardDetailModal({
               <input
                 type="checkbox"
                 id="isBlocked"
-                checked={formData.isBlocked}
+                checked={formData.isBlocked ?? false}
                 onChange={(e) => handleChange("isBlocked", e.target.checked)}
                 className="rounded border-border"
               />

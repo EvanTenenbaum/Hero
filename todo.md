@@ -362,3 +362,46 @@
 - [x] P2-015: Add Bug Triage template (7 columns, 6 labels)
 - [x] P2-016: Add template selection to board creation ("From Template" button)
 - [ ] P2-017: Write templates.test.ts
+
+
+## Unified Workspace System
+
+### Phase 1: Foundation
+- [x] WS-001: Fix Board.tsx syntax error
+- [x] WS-002: Create WorkspaceShell.tsx layout component
+- [x] WS-003: Add 3 resizable panes using ResizablePanelGroup
+- [x] WS-004: Create ContentPane.tsx with type selector dropdown
+- [x] WS-005: Create useWorkspaceState.ts hook for state management
+
+### Phase 2: Content Integration
+- [x] WS-006: Wire KanbanBoard to load in ContentPane (type='board')
+- [x] WS-007: Wire FileTree + CodeEditor to load in ContentPane (type='github')
+- [x] WS-008: Create empty state for unused panes
+- [x] WS-009: Add pane header with title and controls
+
+### Phase 3: Agent Panel
+- [x] WS-010: Create AgentPanel.tsx component
+- [x] WS-011: Add collapsible right panel to WorkspaceShell
+- [x] WS-012: Integrate AIChatBox into AgentPanel
+- [x] WS-013: Add agent tabs (PM, Dev, QA, DevOps, Research)
+- [x] WS-014: Add agent status indicators
+- [x] WS-015: Add sub-task list view
+
+### Phase 4: Browser Pane
+- [x] WS-016: Create BrowserPane.tsx with iframe
+- [x] WS-017: Add URL input bar with navigation controls
+- [x] WS-018: Handle iframe security restrictions gracefully
+- [x] WS-019: Add to ContentPane type options
+
+### Phase 5: State & Persistence
+- [x] WS-020: Persist pane contents to localStorage
+- [x] WS-021: Persist pane sizes to localStorage
+- [x] WS-022: Persist collapsed states to localStorage
+- [x] WS-023: Restore state on page load
+
+### Phase 6: Mobile & Polish
+- [x] WS-024: Create mobile layout with stacked panes
+- [x] WS-025: Add swipe navigation between panes on mobile
+- [x] WS-026: Add bottom sheet for agent panel on mobile
+- [x] WS-027: Add keyboard shortcuts (Cmd+1/2/3 for panes)
+- [ ] WS-028: Add Cmd+K quick switcher (deferred)

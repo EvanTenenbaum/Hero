@@ -32,12 +32,12 @@ import { KanbanCard, KanbanCardData } from "./KanbanCard";
 import { cn } from "@/lib/utils";
 
 export interface BoardSettings {
-  defaultView: "board" | "list" | "timeline";
-  showLabels: boolean;
-  showAssignees: boolean;
-  showDueDates: boolean;
-  swimlaneBy: "agent" | "priority" | "epic" | "label" | "none";
-  cardSize: "compact" | "normal" | "detailed";
+  defaultView?: "board" | "list" | "timeline";
+  showLabels?: boolean;
+  showAssignees?: boolean;
+  showDueDates?: boolean;
+  swimlaneBy?: "agent" | "priority" | "epic" | "label" | "none";
+  cardSize?: "compact" | "normal" | "detailed";
 }
 
 export interface KanbanBoardData {
@@ -46,7 +46,7 @@ export interface KanbanBoardData {
   description?: string | null;
   columns: KanbanColumnData[];
   labels: Array<{ id: number; name: string; color: string }>;
-  settings?: BoardSettings;
+  settings?: BoardSettings | null;
 }
 
 interface KanbanBoardProps {
