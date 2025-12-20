@@ -7,6 +7,9 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import * as db from "./db";
+import { chatAgentService, ChatContext } from "./chatAgent";
+import { recordExecution } from "./services/metricsRecorder";
+import { AgentType } from "./agents/promptTemplates";
 
 // ════════════════════════════════════════════════════════════════════════════
 // AUTH ROUTER
@@ -125,11 +128,102 @@ const chatRouter = router({
       conversationId: z.number(),
       content: z.string().min(1),
       systemPrompt: z.string().optional(),
+      agentType: z.enum(['pm', 'developer', 'qa', 'devops', 'research']).optional().default('developer'),
+      projectId: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const startTime = Date.now();
+      
       // Verify ownership
       const conv = await db.getConversationById(input.conversationId, ctx.user.id);
       if (!conv) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      // Get project context if available
+      let projectContext: { name: string; techStack: string[] } | undefined;
+      if (input.projectId || conv.projectId) {
+        const project = await db.getProjectById(input.projectId || conv.projectId!, ctx.user.id);
+        if (project) {
+          const settings = project.settings as { language?: string; framework?: string } | null;
+          projectContext = {
+            name: project.name,
+            techStack: [settings?.language, settings?.framework].filter(Boolean) as string[],
+          };
+        }
+      }
+      
+      // Get user's custom rules
+      const userRules = await db.getUserAgentRules(ctx.user.id, input.agentType);
+      
+      // Get conversation history
+      const messages = await db.getMessagesByConversationId(input.conversationId);
+      
+      // Build chat context for the agent service
+      const chatContext: ChatContext = {
+        projectId: input.projectId || conv.projectId || undefined,
+        projectName: projectContext?.name,
+        techStack: projectContext?.techStack,
+        conversationHistory: messages.slice(-10).map(m => ({
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: m.content,
+        })),
+        userRules: userRules.map(r => r.ruleContent),
+      };
+      
+      // Execute through the chat agent service (safety checks, prompt assembly)
+      const agentResult = await chatAgentService.executeMessage({
+        message: input.content,
+        agentType: input.agentType as AgentType,
+        context: chatContext,
+        userId: ctx.user.id,
+      });
+      
+      // Check if the message was blocked by safety
+      if (!agentResult.success) {
+        // Save user message even if blocked
+        await db.addMessage({
+          conversationId: input.conversationId,
+          role: "user",
+          content: input.content,
+        });
+        
+        // Save system response about the block
+        const blockedContent = `⚠️ **Safety Check Failed**\n\n${agentResult.error || 'Your message was blocked by safety rules.'}\n\nPlease rephrase your request.`;
+        const blockedMsg = await db.addMessage({
+          conversationId: input.conversationId,
+          role: "assistant",
+          content: blockedContent,
+        });
+        
+        return {
+          id: blockedMsg.id,
+          content: blockedContent,
+          blocked: true,
+          safetyReason: agentResult.safetyCheck.reason,
+        };
+      }
+      
+      // Check if confirmation is required
+      if (agentResult.safetyCheck.requiresConfirmation) {
+        await db.addMessage({
+          conversationId: input.conversationId,
+          role: "user",
+          content: input.content,
+        });
+        
+        const confirmContent = `⚠️ **Confirmation Required**\n\n${agentResult.safetyCheck.reason}\n\nPlease confirm you want to proceed with this action.`;
+        const confirmMsg = await db.addMessage({
+          conversationId: input.conversationId,
+          role: "assistant",
+          content: confirmContent,
+        });
+        
+        return {
+          id: confirmMsg.id,
+          content: confirmContent,
+          requiresConfirmation: true,
+          confirmationReason: agentResult.safetyCheck.reason,
+        };
+      }
       
       // Save user message
       await db.addMessage({
@@ -138,20 +232,11 @@ const chatRouter = router({
         content: input.content,
       });
       
-      // Get conversation history
-      const messages = await db.getMessagesByConversationId(input.conversationId);
-      
-      // Build LLM messages
+      // Build LLM messages using the assembled prompt from agent service
       const llmMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
       
-      if (input.systemPrompt) {
-        llmMessages.push({ role: "system", content: input.systemPrompt });
-      } else {
-        llmMessages.push({
-          role: "system",
-          content: `You are Hero IDE's AI assistant. You help developers with coding tasks, project management, and technical questions. Be concise, helpful, and provide code examples when appropriate. Use markdown formatting for code blocks.`
-        });
-      }
+      // Use the agent's assembled prompt as system message
+      llmMessages.push({ role: "system", content: agentResult.prompt });
       
       // Add conversation history (last 20 messages for context)
       const recentMessages = messages.slice(-20);
@@ -161,10 +246,16 @@ const chatRouter = router({
         }
       }
       
+      // Add current user message
+      llmMessages.push({ role: "user", content: input.content });
+      
       // Call LLM
       const response = await invokeLLM({ messages: llmMessages });
       const rawContent = response.choices[0]?.message?.content;
       const assistantContent = typeof rawContent === 'string' ? rawContent : "I apologize, but I couldn't generate a response.";
+      
+      const durationMs = Date.now() - startTime;
+      const tokensUsed = response.usage?.total_tokens || 0;
       
       // Save assistant message
       const assistantMsg = await db.addMessage({
@@ -172,24 +263,36 @@ const chatRouter = router({
         role: "assistant",
         content: assistantContent,
         model: "gemini-2.5-flash",
-        tokensUsed: response.usage?.total_tokens,
+        tokensUsed: tokensUsed,
       });
       
       // Record budget usage
       if (response.usage) {
         await db.recordBudgetUsage({
           userId: ctx.user.id,
-          tokensUsed: response.usage.total_tokens || 0,
-          costUsd: ((response.usage.total_tokens || 0) * 0.000001).toFixed(6), // Approximate cost
+          tokensUsed: tokensUsed,
+          costUsd: (tokensUsed * 0.000001).toFixed(6),
           model: "gemini-2.5-flash",
           operation: "chat",
         });
       }
       
+      // Record execution metrics
+      await recordExecution({
+        userId: ctx.user.id,
+        projectId: input.projectId || conv.projectId || undefined,
+        agentType: input.agentType,
+        tokensUsed: tokensUsed,
+        durationMs: durationMs,
+        success: true,
+      });
+      
       return {
         id: assistantMsg.id,
         content: assistantContent,
-        tokensUsed: response.usage?.total_tokens,
+        tokensUsed: tokensUsed,
+        agentType: input.agentType,
+        durationMs: durationMs,
       };
     }),
 });

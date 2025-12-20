@@ -289,3 +289,25 @@
 - [x] Check for type safety issues
 - [x] Fix all identified issues (see QA_FINDINGS.md)
 - [x] Re-run all tests after fixes (127 tests passing)
+
+
+## Chat to Agent System Integration
+- [x] Analyze existing chat router and chatAgent.ts
+- [x] Update chat router to use chatAgent service
+- [x] Integrate safety checks into chat flow
+- [x] Integrate prompt templates into chat flow
+- [x] Add metrics recording to chat flow
+- [ ] Update chat UI if needed
+- [x] Test integration end-to-end (127 tests passing)
+- [x] Verify safety checks block malicious prompts
+
+
+## Comprehensive Site Logic Review
+- [ ] Review all routers for improvement opportunities
+- [ ] Review all database helpers for optimization
+- [ ] Review all frontend components for UX improvements
+- [ ] Review all hooks for efficiency
+- [ ] Identify and fix code duplication
+- [ ] Improve error handling across the site
+- [ ] Optimize database queries
+- [ ] Implement identified improvements
