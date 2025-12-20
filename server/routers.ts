@@ -1,5 +1,6 @@
 import { COOKIE_NAME } from "@shared/const";
 import { TRPCError } from "@trpc/server";
+import { chatAgentRouter } from './routers/chat-agent';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -1347,6 +1348,7 @@ export const appRouter = router({
   auth: authRouter,
   projects: projectsRouter,
   chat: chatRouter,
+  chatAgent: chatAgentRouter,
   agents: agentsRouter,
   github: githubRouter,
   settings: settingsRouter,
