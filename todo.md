@@ -311,3 +311,30 @@
 - [ ] Improve error handling across the site
 - [ ] Optimize database queries
 - [ ] Implement identified improvements
+
+
+## PM-Centric IDE Transformation Roadmap
+- [x] Analyze current state and capabilities
+- [x] Define PM-centric vision and core workflows
+- [x] Design spec-driven development system
+- [x] Create AI-executable roadmap with atomic tasks (PM_CENTRIC_ROADMAP.md)
+- [x] Define file boundaries for parallel agent execution
+- [x] Create task dependency graph
+
+### Phase 1: Kanban Foundation (63 total tasks across 6 phases)
+- [ ] P1-001: Add kanban_boards table
+- [ ] P1-002: Add kanban_columns table
+- [ ] P1-003: Add kanban_cards table
+- [ ] P1-004: Add card_dependencies table
+- [ ] P1-005: Add card_history table
+- [ ] P1-006: Add kanban CRUD helpers
+- [ ] P1-007: Add kanban tRPC router
+- [ ] P1-008: Create KanbanBoard.tsx
+- [ ] P1-009: Create KanbanColumn.tsx
+- [ ] P1-010: Create KanbanCard.tsx
+- [ ] P1-011: Create CardDetailModal.tsx
+- [ ] P1-012: Create useKanban.ts hook
+- [ ] P1-013: Create useDragAndDrop.ts hook
+- [ ] P1-014: Create Board.tsx page
+- [ ] P1-015: Write kanban.test.ts
+- [ ] P1-016: Write KanbanBoard.test.tsx
