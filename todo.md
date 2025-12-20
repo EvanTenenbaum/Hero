@@ -451,3 +451,33 @@
 - [x] QA-001: Fix board creation refresh in BoardPane
 - [x] QA-002: Improve BrowserPane error detection for X-Frame-Options
 - [x] QA-003: Add timeout-based error detection for iframe blocks
+
+
+## Current Sprint
+
+### Google Drive OAuth Setup
+- [x] GD-010: Request Google OAuth credentials from user
+- [ ] GD-011: Validate credentials with test connection (needs proper OAuth Client ID)
+- [ ] GD-012: Test file browsing in Drive pane (pending credentials)
+
+### Sprint Orchestrator Testing
+- [x] SP-001: Create sample cards with file/module references
+- [x] SP-002: Test "Plan Sprint" button functionality
+- [x] SP-003: Verify workstream assignments and reasoning (conflict detection works!)
+- [x] SP-004: Refine LLM prompt if needed (working well)
+
+### Timeline View (Gantt-style)
+- [x] TV-001: Create TimelineView.tsx component
+- [x] TV-002: Implement horizontal timeline with date axis
+- [x] TV-003: Render cards as bars based on dates/estimates
+- [x] TV-004: Show dependency arrows between cards
+- [ ] TV-005: Add drag-to-reschedule functionality (deferred)
+- [x] TV-006: Add zoom controls (day/week/month)
+
+### Calendar View
+- [x] CV-001: Create CalendarView.tsx component
+- [x] CV-002: Implement month grid layout
+- [x] CV-003: Render cards on their due dates
+- [x] CV-004: Add week view option
+- [ ] CV-005: Add click-to-create card on date (deferred)
+- [ ] CV-006: Add drag-to-move card to new date (deferred)
