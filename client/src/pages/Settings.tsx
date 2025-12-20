@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Settings as SettingsIcon, Key, Shield, Bot, Bell, Loader2, Plus, Trash2, Eye, EyeOff } from "lucide-react";
+import { Settings as SettingsIcon, Key, Shield, Bot, Bell, Loader2, Plus, Trash2, Eye, EyeOff, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "wouter";
 import { toast } from "sonner";
+import { CostDashboard, UsageSummary, BudgetStatus } from "@/components/CostDashboard";
 
 export default function Settings() {
   const params = useParams<{ tab: string }>();
@@ -37,6 +38,9 @@ export default function Settings() {
             <TabsTrigger value="agents" className="data-[state=active]:bg-violet-600">
               <Bot className="h-4 w-4 mr-2" /> Agent Rules
             </TabsTrigger>
+            <TabsTrigger value="budget" className="data-[state=active]:bg-violet-600">
+              <DollarSign className="h-4 w-4 mr-2" /> Budget
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -53,6 +57,10 @@ export default function Settings() {
 
           <TabsContent value="agents">
             <AgentRulesSettings />
+          </TabsContent>
+
+          <TabsContent value="budget">
+            <BudgetSettings />
           </TabsContent>
         </Tabs>
       </div>
@@ -329,6 +337,57 @@ function AgentRulesSettings() {
             Define custom rules using natural language or code patterns to restrict agent behavior.
           </p>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BudgetSettings() {
+  const { data: settings, isLoading } = trpc.settings.get.useQuery();
+
+  // Calculate usage from settings or use defaults
+  const usage: UsageSummary = {
+    today: { tokens: 0, cost: 0, executions: 0 },
+    thisWeek: { tokens: 0, cost: 0, executions: 0 },
+    thisMonth: { tokens: 0, cost: 0, executions: 0 },
+    allTime: { tokens: 0, cost: 0, executions: 0 },
+  };
+
+  const dailyLimit = settings?.dailyBudgetLimitUsd ? parseFloat(settings.dailyBudgetLimitUsd) : 10;
+  const monthlyLimit = dailyLimit * 30;
+
+  const budget: BudgetStatus = {
+    dailyLimit,
+    monthlyLimit,
+    dailyUsed: usage.today.cost,
+    monthlyUsed: usage.thisMonth.cost,
+    dailyRemaining: dailyLimit - usage.today.cost,
+    monthlyRemaining: monthlyLimit - usage.thisMonth.cost,
+    isOverDailyLimit: usage.today.cost > dailyLimit,
+    isOverMonthlyLimit: usage.thisMonth.cost > monthlyLimit,
+    warningLevel: 'none',
+  };
+
+  // Calculate warning level
+  const dailyPercent = (budget.dailyUsed / (budget.dailyLimit || 1)) * 100;
+  const monthlyPercent = (budget.monthlyUsed / (budget.monthlyLimit || 1)) * 100;
+  const maxPercent = Math.max(dailyPercent, monthlyPercent);
+
+  if (maxPercent >= 100) budget.warningLevel = 'exceeded';
+  else if (maxPercent >= 90) budget.warningLevel = 'high';
+  else if (maxPercent >= 75) budget.warningLevel = 'medium';
+  else if (maxPercent >= 50) budget.warningLevel = 'low';
+
+  return (
+    <Card className="bg-slate-900/50 border-slate-800">
+      <CardHeader>
+        <CardTitle className="text-white">Budget & Cost Tracking</CardTitle>
+        <CardDescription className="text-slate-400">
+          Monitor token usage and costs across all agent executions
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <CostDashboard usage={usage} budget={budget} isLoading={isLoading} />
       </CardContent>
     </Card>
   );

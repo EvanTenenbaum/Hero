@@ -8,10 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Bot, Play, Pause, History, Settings, Loader2, Zap, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Bot, Play, Pause, History, Settings, Loader2, Zap, AlertTriangle, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { toast } from "sonner";
+import { RollbackPanel, Checkpoint, RollbackPreview } from "@/components/RollbackPanel";
 
 export default function AgentDetail() {
   const params = useParams<{ id: string }>();
@@ -171,6 +172,9 @@ export default function AgentDetail() {
             <TabsTrigger value="history" className="data-[state=active]:bg-violet-600">
               <History className="h-4 w-4 mr-2" /> Execution History
             </TabsTrigger>
+            <TabsTrigger value="rollback" className="data-[state=active]:bg-violet-600">
+              <RotateCcw className="h-4 w-4 mr-2" /> Checkpoints
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="config">
@@ -269,20 +273,186 @@ export default function AgentDetail() {
           </TabsContent>
 
           <TabsContent value="history">
-            <Card className="bg-slate-900/50 border-slate-800">
-              <CardHeader>
-                <CardTitle className="text-white">Execution History</CardTitle>
-                <CardDescription className="text-slate-400">
-                  View past agent executions and their results
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-400 text-sm">No execution history yet. Run the agent to see results here.</p>
-              </CardContent>
-            </Card>
+            <ExecutionHistoryTab agentId={agentId} />
+          </TabsContent>
+
+          <TabsContent value="rollback">
+            <RollbackTab agentId={agentId} />
           </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
+  );
+}
+
+
+function ExecutionHistoryTab({ agentId }: { agentId: number }) {
+  const { data: allExecutions, isLoading } = trpc.agents.executions.useQuery();
+  // Filter executions by agentId on the client side
+  const executions = allExecutions?.filter(e => e.agentId === agentId);
+
+  if (isLoading) {
+    return (
+      <Card className="bg-slate-900/50 border-slate-800">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!executions || executions.length === 0) {
+    return (
+      <Card className="bg-slate-900/50 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-white">Execution History</CardTitle>
+          <CardDescription className="text-slate-400">
+            View past agent executions and their results
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-slate-400 text-sm">No execution history yet. Run the agent to see results here.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-slate-900/50 border-slate-800">
+      <CardHeader>
+        <CardTitle className="text-white">Execution History</CardTitle>
+        <CardDescription className="text-slate-400">
+          View past agent executions and their results
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {executions.map((exec) => (
+            <div
+              key={exec.id}
+              className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`h-3 w-3 rounded-full ${
+                  exec.state === 'completed' ? 'bg-green-500' :
+                  exec.state === 'failed' ? 'bg-red-500' :
+                  exec.state === 'executing' ? 'bg-yellow-500 animate-pulse' :
+                  'bg-slate-500'
+                }`} />
+                <div>
+                  <p className="text-sm font-medium text-white truncate max-w-md">
+                    {exec.goal || 'No goal specified'}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {new Date(exec.createdAt).toLocaleString()} • Step {exec.currentStep || 0}/{exec.totalSteps || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs px-2 py-1 rounded ${
+                  exec.state === 'completed' ? 'bg-green-500/20 text-green-400' :
+                  exec.state === 'failed' ? 'bg-red-500/20 text-red-400' :
+                  exec.state === 'executing' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-slate-500/20 text-slate-400'
+                }`}>
+                  {exec.state}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RollbackTab({ agentId }: { agentId: number }) {
+  const { data: allExecutions } = trpc.agents.executions.useQuery();
+  const executions = allExecutions?.filter(e => e.agentId === agentId);
+  const { data: checkpoints, refetch: refetchCheckpoints } = trpc.checkpoints.list.useQuery(
+    { executionId: executions?.[0]?.id || 0 },
+    { enabled: !!executions?.[0]?.id }
+  );
+
+  const rollbackMutation = trpc.checkpoints.rollback.useMutation({
+    onSuccess: () => {
+      toast.success("Rolled back successfully");
+      refetchCheckpoints();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const latestExecution = executions?.[0];
+
+  if (!latestExecution) {
+    return (
+      <Card className="bg-slate-900/50 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-white">Checkpoints & Rollback</CardTitle>
+          <CardDescription className="text-slate-400">
+            Manage execution checkpoints and rollback to previous states
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-slate-400 text-sm">No executions yet. Run the agent to create checkpoints.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const formattedCheckpoints: Checkpoint[] = (checkpoints || []).map((cp) => ({
+    id: cp.id,
+    executionId: cp.executionId,
+    stepNumber: cp.stepNumber,
+    description: cp.description,
+    createdAt: new Date(cp.createdAt),
+    automatic: cp.automatic ?? undefined,
+  }));
+
+  const handleRollback = async (checkpointId: number) => {
+    await rollbackMutation.mutateAsync({ checkpointId });
+  };
+
+  const handlePreview = async (checkpointId: number): Promise<RollbackPreview | null> => {
+    // For now, return a simple preview based on checkpoint position
+    const checkpoint = formattedCheckpoints.find(cp => cp.id === checkpointId);
+    if (!checkpoint) return null;
+
+    const laterCheckpoints = formattedCheckpoints.filter(
+      cp => cp.stepNumber > checkpoint.stepNumber
+    );
+
+    return {
+      stepsToRevert: (latestExecution.currentStep || 0) - checkpoint.stepNumber,
+      checkpointsToRemove: laterCheckpoints.length,
+    };
+  };
+
+  return (
+    <Card className="bg-slate-900/50 border-slate-800">
+      <CardHeader>
+        <CardTitle className="text-white">Checkpoints & Rollback</CardTitle>
+        <CardDescription className="text-slate-400">
+          Manage execution checkpoints and rollback to previous states
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4 p-3 bg-slate-800/50 rounded-lg">
+          <p className="text-sm text-slate-300">
+            <span className="font-medium">Current Execution:</span> {latestExecution.goal || 'No goal'}
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            Step {latestExecution.currentStep || 0} of {latestExecution.totalSteps || 0} • Status: {latestExecution.state}
+          </p>
+        </div>
+        <RollbackPanel
+          checkpoints={formattedCheckpoints}
+          currentStep={latestExecution.currentStep || 0}
+          onRollback={handleRollback}
+          onPreview={handlePreview}
+          isLoading={rollbackMutation.isPending}
+        />
+      </CardContent>
+    </Card>
   );
 }

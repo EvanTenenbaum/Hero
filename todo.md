@@ -270,3 +270,10 @@
 - [x] QA Gate: Review all Sprint 3 code
 - [x] Integration: Merge Sprint 3 into main codebase
 - [x] Final QA: Full test suite and smoke testing (82 tests passing)
+
+
+## Next Steps Implementation
+- [x] Run prompt seeding script to populate database with default prompts (5 prompts inserted)
+- [x] Integrate CostDashboard into Settings page
+- [x] Wire RollbackPanel to Agent Detail view
+- [x] Run tests and QA verification (82 tests passing, TypeScript clean)
