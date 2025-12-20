@@ -568,3 +568,64 @@
 - [x] Design UI components for spec management
 - [x] Define API procedures for spec generation
 - [x] Create implementation roadmap with effort estimates
+
+
+## Red Team QA Audit - Dec 20, 2025
+
+### Authentication & Authorization
+- [ ] Test login flow with valid credentials
+- [ ] Test protected routes without authentication
+- [ ] Test role-based access control (admin vs user)
+- [ ] Check for session hijacking vulnerabilities
+- [ ] Test logout and session invalidation
+
+### Kanban Board & Workspace
+- [ ] Test board creation with edge case inputs
+- [ ] Test card creation, editing, deletion
+- [ ] Test drag-and-drop card movement
+- [ ] Test column management
+- [ ] Test Timeline and Calendar views
+- [ ] Test board templates
+- [ ] Test dependency visualization
+- [ ] Test workspace pane resizing and persistence
+
+### Agent System & Chat
+- [ ] Test PM Agent chat functionality
+- [ ] Test Dev Agent chat functionality
+- [ ] Test QA Agent chat functionality
+- [ ] Test safety checker with malicious prompts
+- [ ] Test agent execution monitoring
+- [ ] Test cost tracking accuracy
+
+### GitHub Integration
+- [ ] Test repository listing
+- [ ] Test file tree navigation
+- [ ] Test file content viewing
+- [ ] Test file editing and saving
+- [ ] Test branch switching
+
+### Unit Tests & Regressions
+- [ ] Run full test suite
+- [ ] Check for any failing tests
+- [ ] Verify test coverage
+
+### Security Checks
+- [ ] Check for SQL injection vulnerabilities
+- [ ] Check for XSS vulnerabilities
+- [ ] Check for CSRF vulnerabilities
+- [ ] Check for sensitive data exposure
+- [ ] Check API rate limiting
+
+
+## Red Team QA Audit - December 20, 2025 (Completed)
+- [x] Run full unit test suite (268 tests passing)
+- [x] Test authentication and authorization flows
+- [x] Test navigation and all sidebar links
+- [x] Test Kanban board functionality (Board/Timeline/Calendar views)
+- [x] Test agent chat with LLM integration
+- [x] Test Metrics Dashboard
+- [x] Test Settings page (all tabs)
+- [x] Test IDE Workspace multi-pane layout
+- [x] Test Agents management page
+- [x] Document all findings in QA_REDTEAM_REPORT.md
+- [x] Overall Assessment: PASS ✅
