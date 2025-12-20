@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Columns3, Calendar, GanttChart, LayoutGrid } from "lucide-react";
 import { SprintPlanningUI } from "@/components/sprint/SprintPlanningUI";
 import { CardDetailModal } from "@/components/kanban/CardDetailModal";
@@ -239,23 +239,33 @@ export default function BoardPane({ boardId: initialBoardId }: BoardPaneProps) {
             </SelectContent>
           </Select>
 
-          {/* View Tabs */}
-          <Tabs value={activeView} onValueChange={(v) => setActiveView(v as ViewType)}>
-            <TabsList className="h-8">
-              <TabsTrigger value="board" className="h-7 px-2 gap-1">
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Board</span>
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="h-7 px-2 gap-1">
-                <GanttChart className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Timeline</span>
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="h-7 px-2 gap-1">
-                <Calendar className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Calendar</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {/* View Tabs - Simple button-based switching */}
+          <div className="flex items-center bg-muted rounded-lg p-[3px] h-8">
+            <button
+              type="button"
+              onClick={() => setActiveView('board')}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-colors h-7 ${activeView === 'board' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Board</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView('timeline')}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-colors h-7 ${activeView === 'timeline' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <GanttChart className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Timeline</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView('calendar')}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-colors h-7 ${activeView === 'calendar' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Calendar</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

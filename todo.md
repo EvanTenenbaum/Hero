@@ -481,3 +481,67 @@
 - [x] CV-004: Add week view option
 - [ ] CV-005: Add click-to-create card on date (deferred)
 - [ ] CV-006: Add drag-to-move card to new date (deferred)
+
+
+## Red Team QA + Priority Features
+
+### QA: Timeline View
+- [ ] QA-TV-001: Test week zoom level rendering
+- [ ] QA-TV-002: Test month zoom level rendering
+- [ ] QA-TV-003: Test quarter zoom level rendering
+- [ ] QA-TV-004: Test card bar positioning with various dates
+- [ ] QA-TV-005: Test cards without due dates (unscheduled section)
+- [ ] QA-TV-006: Test agent grouping display
+
+### QA: Calendar View
+- [ ] QA-CV-001: Test month navigation (prev/next)
+- [ ] QA-CV-002: Test week view toggle
+- [ ] QA-CV-003: Test card rendering on dates
+- [ ] QA-CV-004: Test unscheduled cards section
+- [ ] QA-CV-005: Test card click to open detail
+
+### QA: Sprint Orchestrator
+- [ ] QA-SO-001: Test with empty board (no cards)
+- [ ] QA-SO-002: Test with cards missing descriptions
+- [ ] QA-SO-003: Test conflict detection accuracy
+- [ ] QA-SO-004: Test "Adjust Plan" functionality
+
+### QA: Card Creation
+- [ ] QA-CC-001: Test create card in BoardPane
+- [ ] QA-CC-002: Test edit existing card
+- [ ] QA-CC-003: Test delete card
+- [ ] QA-CC-004: Test card creation from Timeline view
+- [ ] QA-CC-005: Test card creation from Calendar view
+
+### Priority Management Features
+- [ ] PM-001: Add drag-and-drop priority reordering in Board view
+- [ ] PM-002: Add priority column sorting in List view
+- [ ] PM-003: Create PriorityView.tsx grouped by ticket type
+- [ ] PM-004: Add priority badges with color coding
+- [ ] PM-005: Add bulk priority update functionality
+- [ ] PM-006: Integrate Priority view into BoardPane tabs
+
+
+## QA Red Team Testing - December 20, 2025
+- [x] Issue #1: Duplicate boards in dropdown - FIXED (database cleanup)
+- [x] Issue #2: Timeline/Calendar tab switching not working - FIXED (replaced Radix Tabs with button-based tabs)
+- [x] Board selector dropdown - Working
+- [x] Board view - Working
+- [x] Timeline view - Working (Gantt chart with cards)
+- [x] Calendar view - Working (monthly calendar with task indicators)
+- [x] Tab switching - Working
+- [x] Create new card - Working
+- [x] Edit card - Working
+- [x] PM Agent chat - Working (intelligent responses)
+- [ ] Move card between columns - Not tested
+- [ ] Create new column - Not tested
+- [ ] Delete column - Not tested
+- [ ] Filter cards - Not tested
+- [ ] Generate Sprint Plan - Not tested
+- [ ] Dev Agent chat - Not tested
+- [ ] QA Agent chat - Not tested
+- [ ] DevOps Agent chat - Not tested
+- [ ] Research Agent chat - Not tested
+- [ ] GitHub OAuth connection - Not tested
+- [ ] Browser pane navigation - Not tested
+- [ ] Settings pane - Not tested

@@ -1,0 +1,90 @@
+{
+  "query": "SELECT name, COUNT(*) as count FROM kanban_boards GROUP BY name HAVING COUNT(*) > 1 ORDER BY count DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3nCV3SBgEpfe2fx.b872c450d345 --database 6QfHsGWDNgj8AHbMgcj8qN --execute SELECT name, COUNT(*) as count FROM kanban_boards GROUP BY name HAVING COUNT(*) > 1 ORDER BY count DESC LIMIT 20;",
+  "rows": [
+    {
+      "name": "Move Card Board",
+      "count": "15"
+    },
+    {
+      "name": "Project Board",
+      "count": "15"
+    },
+    {
+      "name": "To Be Deleted",
+      "count": "15"
+    },
+    {
+      "name": "Update Column Board",
+      "count": "15"
+    },
+    {
+      "name": "Agent Board",
+      "count": "15"
+    },
+    {
+      "name": "Sprint 1 Board",
+      "count": "15"
+    },
+    {
+      "name": "Board 1",
+      "count": "15"
+    },
+    {
+      "name": "Column Test Board",
+      "count": "15"
+    },
+    {
+      "name": "Column Validation Board",
+      "count": "15"
+    },
+    {
+      "name": "Delete Column Board",
+      "count": "15"
+    },
+    {
+      "name": "Update Card Board",
+      "count": "15"
+    },
+    {
+      "name": "Board 2",
+      "count": "15"
+    },
+    {
+      "name": "Priority Board",
+      "count": "15"
+    },
+    {
+      "name": "Card Test Board",
+      "count": "15"
+    },
+    {
+      "name": "Test Board",
+      "count": "15"
+    },
+    {
+      "name": "Card Types Board",
+      "count": "15"
+    },
+    {
+      "name": "Update Agent Board",
+      "count": "15"
+    },
+    {
+      "name": "Validation Board",
+      "count": "15"
+    },
+    {
+      "name": "Updated Name",
+      "count": "15"
+    },
+    {
+      "name": "Delete Card Board",
+      "count": "15"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\tcount\nMove Card Board\t15\nProject Board\t15\nTo Be Deleted\t15\nUpdate Column Board\t15\nAgent Board\t15\nSprint 1 Board\t15\nBoard 1\t15\nColumn Test Board\t15\nColumn Validation Board\t15\nDelete Column Board\t15\nUpdate Card Board\t15\nBoard 2\t15\nPriority Board\t15\nCard Test Board\t15\nTest Board\t15\nCard Types Board\t15\nUpdate Agent Board\t15\nValidation Board\t15\nUpdated Name\t15\nDelete Card Board\t15\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}

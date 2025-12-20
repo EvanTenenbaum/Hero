@@ -1,0 +1,120 @@
+{
+  "query": "SELECT id, name, archived FROM kanban_boards ORDER BY name LIMIT 30;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3nCV3SBgEpfe2fx.b872c450d345 --database 6QfHsGWDNgj8AHbMgcj8qN --execute SELECT id, name, archived FROM kanban_boards ORDER BY name LIMIT 30;",
+  "rows": [
+    {
+      "id": "120016",
+      "name": "Agent Board",
+      "archived": "0"
+    },
+    {
+      "id": "120003",
+      "name": "Board 1",
+      "archived": "0"
+    },
+    {
+      "id": "120004",
+      "name": "Board 2",
+      "archived": "0"
+    },
+    {
+      "id": "120011",
+      "name": "Card Test Board",
+      "archived": "0"
+    },
+    {
+      "id": "120012",
+      "name": "Card Types Board",
+      "archived": "0"
+    },
+    {
+      "id": "120007",
+      "name": "Column Test Board",
+      "archived": "0"
+    },
+    {
+      "id": "120021",
+      "name": "Column Validation Board",
+      "archived": "0"
+    },
+    {
+      "id": "120015",
+      "name": "Delete Card Board",
+      "archived": "0"
+    },
+    {
+      "id": "120010",
+      "name": "Delete Column Board",
+      "archived": "0"
+    },
+    {
+      "id": "120014",
+      "name": "Move Card Board",
+      "archived": "0"
+    },
+    {
+      "id": "120008",
+      "name": "Multi Column Board",
+      "archived": "0"
+    },
+    {
+      "id": "1",
+      "name": "PM Roadmap Sprint 1",
+      "archived": "0"
+    },
+    {
+      "id": "120018",
+      "name": "Priority Board",
+      "archived": "0"
+    },
+    {
+      "id": "120019",
+      "name": "Project Board",
+      "archived": "0"
+    },
+    {
+      "id": "120001",
+      "name": "Sprint 1 Board",
+      "archived": "0"
+    },
+    {
+      "id": "120002",
+      "name": "Test Board",
+      "archived": "0"
+    },
+    {
+      "id": "120006",
+      "name": "To Be Deleted",
+      "archived": "1"
+    },
+    {
+      "id": "120017",
+      "name": "Update Agent Board",
+      "archived": "0"
+    },
+    {
+      "id": "120013",
+      "name": "Update Card Board",
+      "archived": "0"
+    },
+    {
+      "id": "120009",
+      "name": "Update Column Board",
+      "archived": "0"
+    },
+    {
+      "id": "120005",
+      "name": "Updated Name",
+      "archived": "0"
+    },
+    {
+      "id": "120020",
+      "name": "Validation Board",
+      "archived": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tarchived\n120016\tAgent Board\t0\n120003\tBoard 1\t0\n120004\tBoard 2\t0\n120011\tCard Test Board\t0\n120012\tCard Types Board\t0\n120007\tColumn Test Board\t0\n120021\tColumn Validation Board\t0\n120015\tDelete Card Board\t0\n120010\tDelete Column Board\t0\n120014\tMove Card Board\t0\n120008\tMulti Column Board\t0\n1\tPM Roadmap Sprint 1\t0\n120018\tPriority Board\t0\n120019\tProject Board\t0\n120001\tSprint 1 Board\t0\n120002\tTest Board\t0\n120006\tTo Be Deleted\t1\n120017\tUpdate Agent Board\t0\n120013\tUpdate Card Board\t0\n120009\tUpdate Column Board\t0\n120005\tUpdated Name\t0\n120020\tValidation Board\t0\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}
