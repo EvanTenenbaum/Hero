@@ -8,6 +8,8 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { CardDetailModal } from "@/components/kanban/CardDetailModal";
+import { DependencyGraph } from "@/components/kanban/DependencyGraph";
+import { BoardTemplates, type TemplateType } from "@/components/kanban/BoardTemplates";
 import { useKanban } from "@/hooks/useKanban";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -36,7 +38,10 @@ import {
   FolderKanban,
   Settings,
   Trash2,
+  GitBranch,
+  LayoutTemplate,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +57,8 @@ export default function Board() {
   const [newBoardDescription, setNewBoardDescription] = useState("");
   const [isNewColumnDialogOpen, setIsNewColumnDialogOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [activeView, setActiveView] = useState<"board" | "dependencies">("board");
 
   // Fetch projects
   const projectsQuery = trpc.projects.list.useQuery();
@@ -78,7 +85,14 @@ export default function Board() {
     saveCard,
     deleteCard,
     moveCard,
+    createBoardFromTemplate,
   } = useKanban(selectedProjectId);
+
+  // Dependency graph query
+  const dependencyGraphQuery = trpc.kanban.getDependencyGraph.useQuery(
+    { boardId: selectedBoardId! },
+    { enabled: !!selectedBoardId && activeView === "dependencies" }
+  );
 
   // Auto-select first project
   useEffect(() => {
@@ -100,6 +114,11 @@ export default function Board() {
     setNewBoardName("");
     setNewBoardDescription("");
     setIsNewBoardDialogOpen(false);
+  };
+
+  const handleCreateFromTemplate = async (templateType: TemplateType, customName?: string) => {
+    await createBoardFromTemplate(templateType, customName);
+    setIsTemplateDialogOpen(false);
   };
 
   const handleDeleteBoard = async (boardId: number) => {
@@ -175,6 +194,16 @@ export default function Board() {
             </Button>
 
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTemplateDialogOpen(true)}
+              disabled={!selectedProjectId}
+            >
+              <LayoutTemplate className="h-4 w-4 mr-1" />
+              From Template
+            </Button>
+
+            <Button
               variant="default"
               size="sm"
               onClick={() => setIsNewBoardDialogOpen(true)}
@@ -238,8 +267,22 @@ export default function Board() {
               </Button>
             </div>
           ) : board ? (
-            <KanbanBoard
-              board={{
+            <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "board" | "dependencies")} className="h-full flex flex-col">
+              <div className="px-4 pt-2 border-b border-border">
+                <TabsList>
+                  <TabsTrigger value="board" className="flex items-center gap-1">
+                    <LayoutGrid className="h-4 w-4" />
+                    Board
+                  </TabsTrigger>
+                  <TabsTrigger value="dependencies" className="flex items-center gap-1">
+                    <GitBranch className="h-4 w-4" />
+                    Dependencies
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <TabsContent value="board" className="flex-1 overflow-hidden mt-0">
+                <KanbanBoard
+                  board={{
                 id: board.id,
                 name: board.name,
                 description: board.description,
@@ -277,12 +320,37 @@ export default function Board() {
                   cardSize: (board.settings?.cardSize || "normal") as "compact" | "normal" | "detailed",
                 },
               }}
-              onCardClick={openEditCard}
-              onMoveCard={moveCard}
-              onAddCard={openNewCard}
-              onAddColumn={() => setIsNewColumnDialogOpen(true)}
-              onDeleteColumn={(col) => deleteColumn(col.id)}
-            />
+                     onCardClick={openEditCard}
+                  onMoveCard={moveCard}
+                  onAddCard={openNewCard}
+                  onAddColumn={() => setIsNewColumnDialogOpen(true)}
+                  onDeleteColumn={(col) => deleteColumn(col.id)}
+                />
+              </TabsContent>
+              <TabsContent value="dependencies" className="flex-1 overflow-auto p-4 mt-0">
+                <DependencyGraph
+                  data={dependencyGraphQuery.data || { nodes: [], edges: [], blockedCards: [], criticalPath: [] }}
+                  onCardClick={(cardId) => {
+                    const card = board.columns.flatMap(c => c.cards).find(c => c.id === cardId);
+                    if (card) openEditCard({
+                      id: card.id,
+                      title: card.title,
+                      description: card.description,
+                      cardType: card.cardType,
+                      priority: card.priority,
+                      assignedAgent: card.assignedAgent,
+                      labels: card.labels || [],
+                      dueDate: card.dueDate,
+                      estimatedMinutes: card.estimatedMinutes,
+                      storyPoints: card.storyPoints,
+                      isBlocked: card.isBlocked ?? undefined,
+                      blockReason: card.blockReason,
+                    });
+                  }}
+                  isLoading={dependencyGraphQuery.isLoading}
+                />
+              </TabsContent>
+            </Tabs>
           ) : null}
         </div>
       </div>
@@ -374,6 +442,17 @@ export default function Board() {
         onSave={saveCard}
         onDelete={selectedCard ? () => deleteCard(selectedCard.id) : undefined}
       />
+
+      {/* Template Selection Dialog */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <BoardTemplates
+            onSelect={handleCreateFromTemplate}
+            onCancel={() => setIsTemplateDialogOpen(false)}
+            isLoading={isMutating}
+          />
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

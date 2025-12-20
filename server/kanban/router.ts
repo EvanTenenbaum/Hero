@@ -285,4 +285,64 @@ export const kanbanRouter = router({
     .query(async ({ input }) => {
       return kanbanDb.getCardHistory(input.cardId, input.limit);
     }),
+  
+  // ══════════════════════════════════════════════════════════════════════════
+  // SPEC LINKING (Phase 2)
+  // ══════════════════════════════════════════════════════════════════════════
+  
+  linkCardToSpec: protectedProcedure
+    .input(z.object({
+      cardId: z.number(),
+      specId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return kanbanDb.linkCardToSpec(input.cardId, input.specId, ctx.user.id);
+    }),
+  
+  unlinkCardFromSpec: protectedProcedure
+    .input(z.object({
+      cardId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return kanbanDb.unlinkCardFromSpec(input.cardId, ctx.user.id);
+    }),
+  
+  getCardsLinkedToSpec: protectedProcedure
+    .input(z.object({
+      specId: z.number(),
+    }))
+    .query(async ({ input }) => {
+      return kanbanDb.getCardsLinkedToSpec(input.specId);
+    }),
+  
+  // ══════════════════════════════════════════════════════════════════════════
+  // BOARD TEMPLATES (Phase 2)
+  // ══════════════════════════════════════════════════════════════════════════
+  
+  createBoardFromTemplate: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      templateType: z.enum(["sprint", "feature_development", "bug_triage", "kanban_basic"]),
+      name: z.string().min(1).max(255).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return kanbanDb.createBoardFromTemplate(
+        input.projectId,
+        input.templateType,
+        ctx.user.id,
+        input.name
+      );
+    }),
+  
+  // ══════════════════════════════════════════════════════════════════════════
+  // DEPENDENCY GRAPH (Phase 2)
+  // ══════════════════════════════════════════════════════════════════════════
+  
+  getDependencyGraph: protectedProcedure
+    .input(z.object({
+      boardId: z.number(),
+    }))
+    .query(async ({ input }) => {
+      return kanbanDb.getDependencyGraph(input.boardId);
+    }),
 });

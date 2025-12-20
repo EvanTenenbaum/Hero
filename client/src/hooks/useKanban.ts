@@ -49,6 +49,13 @@ export function useKanban(projectId: number | null) {
     },
   });
 
+  const createBoardFromTemplateMutation = trpc.kanban.createBoardFromTemplate.useMutation({
+    onSuccess: (board) => {
+      utils.kanban.getBoardsByProject.invalidate();
+      if (board) setSelectedBoardId(board.id);
+    },
+  });
+
   const createColumnMutation = trpc.kanban.createColumn.useMutation({
     onSuccess: () => {
       utils.kanban.getBoard.invalidate();
@@ -164,6 +171,19 @@ export function useKanban(projectId: number | null) {
     [deleteBoardMutation]
   );
 
+  const createBoardFromTemplate = useCallback(
+    async (templateType: "sprint" | "feature_development" | "bug_triage" | "kanban_basic", customName?: string) => {
+      if (!projectId) return;
+      const board = await createBoardFromTemplateMutation.mutateAsync({
+        projectId,
+        templateType,
+        name: customName,
+      });
+      return board;
+    },
+    [projectId, createBoardFromTemplateMutation]
+  );
+
   // Column actions
   const addColumn = useCallback(
     async (name: string, columnType: "backlog" | "spec_writing" | "design" | "ready" | "in_progress" | "review" | "done" | "blocked" | "custom" = "custom") => {
@@ -272,6 +292,7 @@ export function useKanban(projectId: number | null) {
     isLoading: boardsQuery.isLoading || boardQuery.isLoading,
     isMutating:
       createBoardMutation.isPending ||
+      createBoardFromTemplateMutation.isPending ||
       createColumnMutation.isPending ||
       createCardMutation.isPending ||
       moveCardMutation.isPending,
@@ -280,6 +301,7 @@ export function useKanban(projectId: number | null) {
     createBoard,
     selectBoard,
     deleteBoard,
+    createBoardFromTemplate,
 
     // Column actions
     addColumn,

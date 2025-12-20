@@ -338,3 +338,27 @@
 - [x] P1-014: Create Board.tsx page
 - [x] P1-015: Write kanban.test.ts (21 tests passing)
 - [x] P1-016: Write KanbanBoard.test.tsx (covered in kanban.test.ts)
+
+
+### Phase 2: Spec-Driven Development
+- [x] P2-001: Create RequirementsEditor component
+- [x] P2-002: Add acceptance criteria management (integrated in RequirementsEditor)
+- [x] P2-003: Link requirements to Kanban cards (linkCardToSpec, unlinkCardFromSpec APIs)
+- [x] P2-004: Add spec status tracking (draft, approved, implemented)
+- [x] P2-005: Create Requirements page (RequirementsList component)
+- [ ] P2-006: Write spec-driven.test.ts
+
+### Dependency Visualization
+- [x] P2-007: Create DependencyGraph component
+- [x] P2-008: Add visual dependency arrows on board (SVG bezier curves)
+- [x] P2-009: Implement blocker highlighting (red border, blocked badge)
+- [x] P2-010: Add dependency creation UI (via card edit modal)
+- [ ] P2-011: Write dependency.test.ts
+
+### Board Templates
+- [x] P2-012: Create BoardTemplates component
+- [x] P2-013: Add Sprint template (6 columns, 5 labels)
+- [x] P2-014: Add Feature Development template (7 columns, 5 labels)
+- [x] P2-015: Add Bug Triage template (7 columns, 6 labels)
+- [x] P2-016: Add template selection to board creation ("From Template" button)
+- [ ] P2-017: Write templates.test.ts

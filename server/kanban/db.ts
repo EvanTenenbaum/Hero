@@ -478,3 +478,302 @@ export async function createDefaultBoard(projectId: number, userId: number) {
   
   return getBoardWithData(board.id!);
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPEC LINKING (Phase 2)
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function linkCardToSpec(cardId: number, specId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(kanbanCards)
+    .set({ specId })
+    .where(eq(kanbanCards.id, cardId));
+  
+  // Record in history
+  await recordCardHistory({
+    cardId,
+    userId,
+    eventType: "spec_linked",
+    newValue: JSON.stringify({ specId }),
+  });
+  
+  return getCardById(cardId);
+}
+
+export async function unlinkCardFromSpec(cardId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const card = await getCardById(cardId);
+  const previousSpecId = card?.specId;
+  
+  await db.update(kanbanCards)
+    .set({ specId: null })
+    .where(eq(kanbanCards.id, cardId));
+  
+  // Record in history
+  await recordCardHistory({
+    cardId,
+    userId,
+    eventType: "spec_linked",
+    comment: previousSpecId ? `Unlinked from spec ${previousSpecId}` : "Unlinked from spec",
+  });
+  
+  return getCardById(cardId);
+}
+
+export async function getCardsLinkedToSpec(specId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(kanbanCards)
+    .where(eq(kanbanCards.specId, specId))
+    .orderBy(asc(kanbanCards.position));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// BOARD TEMPLATES (Phase 2)
+// ════════════════════════════════════════════════════════════════════════════
+
+interface BoardTemplate {
+  name: string;
+  description: string;
+  columns: Array<{
+    name: string;
+    columnType: "backlog" | "spec_writing" | "design" | "ready" | "in_progress" | "review" | "done" | "blocked" | "custom";
+    color: string;
+    wipLimit?: number;
+  }>;
+  labels: Array<{ name: string; color: string }>;
+}
+
+const BOARD_TEMPLATES: Record<string, BoardTemplate> = {
+  sprint: {
+    name: "Sprint Board",
+    description: "Agile sprint board for 2-week iterations",
+    columns: [
+      { name: "Sprint Backlog", columnType: "backlog", color: "#6B7280" },
+      { name: "To Do", columnType: "ready", color: "#3B82F6" },
+      { name: "In Progress", columnType: "in_progress", color: "#F59E0B", wipLimit: 3 },
+      { name: "Code Review", columnType: "review", color: "#8B5CF6" },
+      { name: "QA", columnType: "review", color: "#EC4899" },
+      { name: "Done", columnType: "done", color: "#10B981" },
+    ],
+    labels: [
+      { name: "story", color: "#3B82F6" },
+      { name: "bug", color: "#EF4444" },
+      { name: "tech-debt", color: "#6B7280" },
+      { name: "spike", color: "#F59E0B" },
+      { name: "blocked", color: "#DC2626" },
+    ],
+  },
+  feature_development: {
+    name: "Feature Development",
+    description: "Spec-driven feature development workflow",
+    columns: [
+      { name: "Ideas", columnType: "backlog", color: "#6B7280" },
+      { name: "Spec Writing", columnType: "spec_writing", color: "#8B5CF6" },
+      { name: "Design Review", columnType: "design", color: "#EC4899" },
+      { name: "Approved", columnType: "ready", color: "#3B82F6" },
+      { name: "Development", columnType: "in_progress", color: "#F59E0B", wipLimit: 2 },
+      { name: "Testing", columnType: "review", color: "#10B981" },
+      { name: "Released", columnType: "done", color: "#059669" },
+    ],
+    labels: [
+      { name: "feature", color: "#3B82F6" },
+      { name: "enhancement", color: "#8B5CF6" },
+      { name: "mvp", color: "#F59E0B" },
+      { name: "nice-to-have", color: "#6B7280" },
+      { name: "customer-request", color: "#EC4899" },
+    ],
+  },
+  bug_triage: {
+    name: "Bug Triage",
+    description: "Bug tracking and triage workflow",
+    columns: [
+      { name: "Reported", columnType: "backlog", color: "#EF4444" },
+      { name: "Triaging", columnType: "spec_writing", color: "#F59E0B" },
+      { name: "Confirmed", columnType: "ready", color: "#3B82F6" },
+      { name: "Fixing", columnType: "in_progress", color: "#8B5CF6", wipLimit: 3 },
+      { name: "Verifying", columnType: "review", color: "#10B981" },
+      { name: "Closed", columnType: "done", color: "#059669" },
+      { name: "Won't Fix", columnType: "done", color: "#6B7280" },
+    ],
+    labels: [
+      { name: "critical", color: "#DC2626" },
+      { name: "high", color: "#EF4444" },
+      { name: "medium", color: "#F59E0B" },
+      { name: "low", color: "#6B7280" },
+      { name: "regression", color: "#8B5CF6" },
+      { name: "security", color: "#DC2626" },
+    ],
+  },
+  kanban_basic: {
+    name: "Basic Kanban",
+    description: "Simple Kanban board for general use",
+    columns: [
+      { name: "To Do", columnType: "backlog", color: "#6B7280" },
+      { name: "In Progress", columnType: "in_progress", color: "#3B82F6", wipLimit: 5 },
+      { name: "Done", columnType: "done", color: "#10B981" },
+    ],
+    labels: [
+      { name: "urgent", color: "#EF4444" },
+      { name: "important", color: "#F59E0B" },
+      { name: "normal", color: "#3B82F6" },
+    ],
+  },
+};
+
+export async function createBoardFromTemplate(
+  projectId: number,
+  templateType: keyof typeof BOARD_TEMPLATES,
+  userId: number,
+  customName?: string
+) {
+  const template = BOARD_TEMPLATES[templateType];
+  if (!template) throw new Error(`Unknown template type: ${templateType}`);
+  
+  // Create board
+  const board = await createBoard({
+    projectId,
+    userId,
+    name: customName || template.name,
+    description: template.description,
+    isDefault: false,
+    settings: {
+      defaultView: "board",
+      showLabels: true,
+      showAssignees: true,
+      showDueDates: true,
+      swimlaneBy: "none",
+      cardSize: "normal",
+    },
+  });
+  
+  // Create columns from template
+  for (const col of template.columns) {
+    await createColumn({
+      boardId: board.id!,
+      name: col.name,
+      columnType: col.columnType,
+      color: col.color,
+      wipLimit: col.wipLimit,
+    });
+  }
+  
+  // Create labels from template
+  for (const label of template.labels) {
+    await createLabel({
+      boardId: board.id!,
+      name: label.name,
+      color: label.color,
+    });
+  }
+  
+  return getBoardWithData(board.id!);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// DEPENDENCY GRAPH (Phase 2)
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface DependencyNode {
+  id: number;
+  title: string;
+  columnId: number;
+  columnName: string;
+  status: string;
+  isBlocked: boolean;
+  cardType: string;
+  priority: string;
+}
+
+export interface DependencyEdge {
+  id: number;
+  sourceId: number;
+  targetId: number;
+  dependencyType: string;
+  description?: string | null;
+}
+
+export interface DependencyGraphData {
+  nodes: DependencyNode[];
+  edges: DependencyEdge[];
+  blockedCards: number[];
+  criticalPath: number[];
+}
+
+export async function getDependencyGraph(boardId: number): Promise<DependencyGraphData> {
+  const db = await getDb();
+  if (!db) return { nodes: [], edges: [], blockedCards: [], criticalPath: [] };
+  
+  // Get all cards and columns for this board
+  const columns = await getColumnsByBoard(boardId);
+  const cards = await getCardsByBoard(boardId);
+  const cardIds = cards.map(c => c.id);
+  
+  // Get all dependencies
+  const dependencies = cardIds.length > 0
+    ? await db.select().from(cardDependencies)
+        .where(inArray(cardDependencies.cardId, cardIds))
+    : [];
+  
+  // Build column name map
+  const columnNameMap = new Map<number, string>();
+  for (const col of columns) {
+    columnNameMap.set(col.id, col.name);
+  }
+  
+  // Build nodes
+  const nodes: DependencyNode[] = cards.map(card => ({
+    id: card.id,
+    title: card.title,
+    columnId: card.columnId,
+    columnName: columnNameMap.get(card.columnId) || "Unknown",
+    status: card.isBlocked ? "blocked" : "active",
+    isBlocked: card.isBlocked || false,
+    cardType: card.cardType,
+    priority: card.priority,
+  }));
+  
+  // Build edges
+  const edges: DependencyEdge[] = dependencies.map(dep => ({
+    id: dep.id,
+    sourceId: dep.blockedByCardId,
+    targetId: dep.cardId,
+    dependencyType: dep.dependencyType,
+    description: dep.description,
+  }));
+  
+  // Find blocked cards (cards that have unresolved dependencies)
+  const blockedCards: number[] = [];
+  const doneColumnIds = columns
+    .filter(c => c.columnType === "done")
+    .map(c => c.id);
+  
+  for (const dep of dependencies) {
+    if (dep.dependencyType === "blocks") {
+      const blockerCard = cards.find(c => c.id === dep.blockedByCardId);
+      if (blockerCard && !doneColumnIds.includes(blockerCard.columnId)) {
+        blockedCards.push(dep.cardId);
+      }
+    }
+  }
+  
+  // Simple critical path calculation (cards with most dependents)
+  const dependentCount = new Map<number, number>();
+  for (const dep of dependencies) {
+    const count = dependentCount.get(dep.blockedByCardId) || 0;
+    dependentCount.set(dep.blockedByCardId, count + 1);
+  }
+  
+  const criticalPath = Array.from(dependentCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([cardId]) => cardId);
+  
+  return { nodes, edges, blockedCards, criticalPath };
+}
