@@ -2,6 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { TRPCError } from "@trpc/server";
 import { chatAgentRouter } from './routers/chat-agent';
 import { kanbanRouter } from './kanban/router';
+import { driveRouter } from './drive/router';
+import { codebaseRouter } from './codebase/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -1465,6 +1467,8 @@ export const appRouter = router({
   agentLogs: agentLogsRouter,
   executionSteps: executionStepsRouter,
   kanban: kanbanRouter,
+  drive: driveRouter,
+  codebase: codebaseRouter,
 });
 
 export type AppRouter = typeof appRouter;

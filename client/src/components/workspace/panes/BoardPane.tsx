@@ -19,7 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Columns3 } from "lucide-react";
+import { Plus, Columns3, Sparkles } from "lucide-react";
+import { SprintPlanningUI } from "@/components/sprint/SprintPlanningUI";
 import { toast } from "sonner";
 
 interface BoardPaneProps {
@@ -35,6 +36,7 @@ export default function BoardPane({ boardId: initialBoardId }: BoardPaneProps) {
 
   // Use kanban hook - pass null for projectId to get all boards
   const kanban = useKanban(null);
+  const utils = trpc.useUtils();
   
   // Set initial board if provided
   useEffect(() => {
@@ -53,6 +55,8 @@ export default function BoardPane({ boardId: initialBoardId }: BoardPaneProps) {
     }
     try {
       const board = await kanban.createBoard(newBoardName, newBoardDescription || undefined);
+      // Invalidate boards query to refresh the list
+      await utils.kanban.getBoards.invalidate();
       if (board) {
         kanban.selectBoard(board.id);
       }
@@ -191,10 +195,18 @@ export default function BoardPane({ boardId: initialBoardId }: BoardPaneProps) {
             </SelectContent>
           </Select>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setShowNewBoardDialog(true)}>
-          <Plus className="w-4 h-4" />
-        </Button>
-      </div>
+        <div className="flex items-center gap-2">
+            {kanban.selectedBoardId && kanban.board && (
+              <SprintPlanningUI
+                boardId={kanban.selectedBoardId}
+                boardName={kanban.board.name}
+              />
+            )}
+            <Button size="sm" variant="outline" onClick={() => setShowNewBoardDialog(true)}>
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-hidden">

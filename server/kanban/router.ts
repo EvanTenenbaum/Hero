@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import * as kanbanDb from "./db";
+import { generateSprintPlan, adjustSprintPlan, SprintPlan } from "../sprint/orchestrator";
 
 export const kanbanRouter = router({
   // ══════════════════════════════════════════════════════════════════════════
@@ -344,10 +345,37 @@ export const kanbanRouter = router({
   // ══════════════════════════════════════════════════════════════════════════
   
   getDependencyGraph: protectedProcedure
-    .input(z.object({
-      boardId: z.number(),
-    }))
+    .input(z.object({ boardId: z.number() }))
     .query(async ({ input }) => {
       return kanbanDb.getDependencyGraph(input.boardId);
+    }),
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SPRINT ORCHESTRATOR
+  // ══════════════════════════════════════════════════════════════════════════
+  
+  generateSprintPlan: protectedProcedure
+    .input(z.object({
+      boardId: z.number(),
+      sprintName: z.string().min(1).max(255),
+      sprintGoal: z.string().min(1),
+      durationDays: z.number().min(1).max(90).optional().default(14),
+    }))
+    .mutation(async ({ input }) => {
+      return generateSprintPlan(
+        input.boardId,
+        input.sprintName,
+        input.sprintGoal,
+        input.durationDays
+      );
+    }),
+
+  adjustSprintPlan: protectedProcedure
+    .input(z.object({
+      currentPlan: z.any(), // SprintPlan type
+      adjustment: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      return adjustSprintPlan(input.currentPlan as SprintPlan, input.adjustment);
     }),
 });

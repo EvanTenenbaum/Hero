@@ -405,3 +405,49 @@
 - [x] WS-026: Add bottom sheet for agent panel on mobile
 - [x] WS-027: Add keyboard shortcuts (Cmd+1/2/3 for panes)
 - [ ] WS-028: Add Cmd+K quick switcher (deferred)
+
+
+## Additional Features (Completed)
+
+### AI Sprint Orchestrator
+- [x] SO-001: Create sprintOrchestrator.ts service
+- [x] SO-002: Implement generateSprintPlan with LLM integration
+- [x] SO-003: Analyze tasks for file/module touchpoints
+- [x] SO-004: Detect agent conflicts (same codebase areas)
+- [x] SO-005: Group non-conflicting tasks into parallel workstreams
+- [x] SO-006: Order tasks respecting dependencies
+- [x] SO-007: Create SprintPlanningUI.tsx component
+- [x] SO-008: Add "Generate Sprint Plan" button to BoardPane
+- [x] SO-009: Show sprint plan with reasoning and workstreams
+- [x] SO-010: Add sprint plan approval workflow
+
+### Google Drive Integration
+- [x] GD-001: Add google_drive_connections table to schema
+- [x] GD-002: Create driveRouter with OAuth procedures
+- [x] GD-003: Implement getAuthUrl for OAuth flow
+- [x] GD-004: Implement handleCallback for token exchange
+- [x] GD-005: Implement listFiles to browse Drive
+- [x] GD-006: Implement getFileContent for file preview
+- [x] GD-007: Create DrivePane.tsx component
+- [x] GD-008: Add Drive to ContentPane type options
+- [x] GD-009: Add Drive to PaneSelector dropdown
+
+### Codebase Structure System
+- [x] CS-001: Create structure.ts with FileNode types
+- [x] CS-002: Implement categorizeFile for file classification
+- [x] CS-003: Define FileCategory and ArchitectureLayer types
+- [x] CS-004: Implement analyzeStructure for summary stats
+- [x] CS-005: Implement searchStructure for codebase search
+- [x] CS-006: Implement validateStructure for best practices
+- [x] CS-007: Implement extractImports/extractExports
+- [x] CS-008: Define RECOMMENDED_STRUCTURE best practices
+- [x] CS-009: Create codebaseRouter with tRPC procedures
+- [x] CS-010: Add analyzeFromGitHub procedure
+- [x] CS-011: Add search procedure with filters
+- [x] CS-012: Add analyzeFile for dependency analysis
+- [x] CS-013: Add getByCategory and getByLayer procedures
+
+### QA Fixes Applied
+- [x] QA-001: Fix board creation refresh in BoardPane
+- [x] QA-002: Improve BrowserPane error detection for X-Frame-Options
+- [x] QA-003: Add timeout-based error detection for iframe blocks

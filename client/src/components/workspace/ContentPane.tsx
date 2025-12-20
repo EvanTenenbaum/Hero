@@ -10,6 +10,7 @@ const BoardContent = lazy(() => import("./panes/BoardPane"));
 const GitHubContent = lazy(() => import("./panes/GitHubPane"));
 const EditorContent = lazy(() => import("./panes/EditorPane"));
 const BrowserContent = lazy(() => import("./panes/BrowserPane"));
+const DriveContent = lazy(() => import("./panes/DrivePane"));
 
 interface ContentPaneProps {
   content: PaneContent;
@@ -46,6 +47,9 @@ function EmptyPane({ onTypeChange }: { onTypeChange: (type: PaneContentType) => 
           </Button>
           <Button variant="outline" size="sm" onClick={() => onTypeChange('browser')}>
             Browser
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onTypeChange('drive')}>
+            Drive
           </Button>
         </div>
       </div>
@@ -105,6 +109,12 @@ export function ContentPane({
               url={content.browserUrl}
               onUrlChange={(url: string) => onContentChange({ ...content, browserUrl: url })}
             />
+          </Suspense>
+        );
+      case 'drive':
+        return (
+          <Suspense fallback={<PaneLoading />}>
+            <DriveContent />
           </Suspense>
         );
       case 'empty':

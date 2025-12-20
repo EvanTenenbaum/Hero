@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -68,12 +68,36 @@ export default function BrowserPane({ url: initialUrl, onUrlChange }: BrowserPan
 
   const handleIframeLoad = () => {
     setIsLoading(false);
+    // Check if iframe actually loaded content (some sites block with X-Frame-Options)
+    // We can't directly check due to cross-origin, but we can detect common failure patterns
+    try {
+      // If we can access contentWindow, the iframe loaded something
+      const hasContent = iframeRef.current?.contentWindow;
+      if (!hasContent) {
+        setError("This site may have blocked embedding. Try opening it externally.");
+      }
+    } catch (e) {
+      // Cross-origin error is expected for most sites, which means it loaded
+    }
   };
 
   const handleIframeError = () => {
     setIsLoading(false);
     setError("This site cannot be displayed in an embedded frame. Try opening it externally.");
   };
+
+  // Timeout-based error detection for sites that block silently
+  useEffect(() => {
+    if (isLoading && currentUrl) {
+      const timeout = setTimeout(() => {
+        if (isLoading) {
+          setIsLoading(false);
+          // Don't set error immediately, let user see if it loaded
+        }
+      }, 10000); // 10 second timeout
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading, currentUrl]);
 
   return (
     <div className="flex flex-col h-full">

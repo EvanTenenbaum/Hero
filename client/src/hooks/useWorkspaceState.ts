@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-export type PaneContentType = 'board' | 'github' | 'editor' | 'browser' | 'empty';
+export type PaneContentType = 'board' | 'github' | 'editor' | 'browser' | 'drive' | 'empty';
 
 export interface PaneContent {
   type: PaneContentType;

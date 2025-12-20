@@ -41,6 +41,27 @@ export type GitHubConnection = typeof githubConnections.$inferSelect;
 export type InsertGitHubConnection = typeof githubConnections.$inferInsert;
 
 // ════════════════════════════════════════════════════════════════════════════
+// GOOGLE DRIVE CONNECTIONS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const driveConnections = mysqlTable("drive_connections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  googleId: varchar("googleId", { length: 64 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  displayName: varchar("displayName", { length: 255 }),
+  accessToken: text("accessToken").notNull(),
+  refreshToken: text("refreshToken"),
+  tokenExpiresAt: timestamp("tokenExpiresAt"),
+  scopes: text("scopes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DriveConnection = typeof driveConnections.$inferSelect;
+export type InsertDriveConnection = typeof driveConnections.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
 // PROJECTS
 // ════════════════════════════════════════════════════════════════════════════
 
