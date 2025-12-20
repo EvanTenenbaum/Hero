@@ -176,15 +176,32 @@ export class ExecutionEngine {
   // ── Execution Control ──────────────────────────────────────────────────────
   
   /**
+   * Check if execution can start
+   */
+  canStart(): { canStart: boolean; reason?: string } {
+    if (this.state !== 'idle' && this.state !== 'planning') {
+      return { canStart: false, reason: `Cannot start execution in state: ${this.state}` };
+    }
+    if (this.steps.length === 0) {
+      return { canStart: false, reason: 'No steps to execute. Add steps using addSteps() first.' };
+    }
+    return { canStart: true };
+  }
+  
+  /**
    * Start execution
    */
   async start(): Promise<ExecutionResult> {
-    if (this.state !== 'idle' && this.state !== 'planning') {
-      throw new Error(`Cannot start execution in state: ${this.state}`);
-    }
-    
-    if (this.steps.length === 0) {
-      throw new Error('No steps to execute');
+    const check = this.canStart();
+    if (!check.canStart) {
+      // Return a failed result instead of throwing
+      this.startedAt = new Date();
+      this.completedAt = new Date();
+      this.setState('failed');
+      return {
+        ...this.getResult(),
+        error: check.reason,
+      };
     }
     
     this.startedAt = new Date();

@@ -105,6 +105,20 @@ export class ContextBuilder {
   }
   
   /**
+   * Add multiple files by path (without content, just for reference)
+   */
+  addFiles(paths: string[]): void {
+    if (paths.length === 0) return;
+    
+    this.addSource({
+      type: 'file',
+      priority: 40, // Lower priority than file content
+      content: `Referenced Files:\n${paths.map(p => `- ${p}`).join('\n')}`,
+      metadata: { paths },
+    });
+  }
+  
+  /**
    * Add conversation context
    */
   addConversationContext(messages: Array<{ role: string; content: string }>, summary?: string): void {

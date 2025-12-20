@@ -30,6 +30,80 @@ export interface ActionContext {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// PROMPT INJECTION PATTERNS
+// ════════════════════════════════════════════════════════════════════════════
+
+const PROMPT_INJECTION_PATTERNS = [
+  // Instruction override attempts
+  /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|rules?|prompts?)/i,
+  /forget\s+(all\s+)?(previous|prior|your)\s+(instructions?|rules?|training)/i,
+  /disregard\s+(all\s+)?(previous|prior|above)\s+(instructions?|rules?)/i,
+  /override\s+(all\s+)?(previous|prior|system)\s+(instructions?|rules?|prompts?)/i,
+  
+  // Role hijacking attempts
+  /you\s+are\s+(now|no\s+longer)\s+(a|an)?\s*(different|new|evil|unrestricted)/i,
+  /pretend\s+(to\s+be|you\s+are)\s+(a|an)?\s*(different|new|evil)/i,
+  /act\s+as\s+(if|though)\s+you\s+(are|were)\s+(a|an)?/i,
+  /roleplay\s+as\s+(a|an)?\s*(hacker|attacker|malicious)/i,
+  
+  // Jailbreak attempts
+  /\bDAN\s*(mode)?\b/i,
+  /\bDeveloper\s*Mode\b/i,
+  /\bjailbreak\b/i,
+  /\bunrestricted\s*mode\b/i,
+  /\bno\s*(safety|content)\s*filter/i,
+  /\bdisable\s*(safety|content|filter)/i,
+  
+  // System prompt extraction
+  /what\s+(is|are)\s+your\s+(system\s+)?prompt/i,
+  /show\s+(me\s+)?your\s+(system\s+)?instructions/i,
+  /reveal\s+your\s+(system\s+)?prompt/i,
+  /print\s+your\s+(initial|system)\s+(prompt|instructions)/i,
+  
+  // Encoding/obfuscation attempts
+  /base64\s*decode/i,
+  /eval\s*\(/i,
+  /\bexec\s*\(/i,
+];
+
+// ════════════════════════════════════════════════════════════════════════════
+// DANGEROUS COMMAND PATTERNS
+// ════════════════════════════════════════════════════════════════════════════
+
+const DANGEROUS_COMMAND_PATTERNS: Array<{
+  pattern: RegExp;
+  riskLevel: 'medium' | 'high' | 'critical';
+  description: string;
+}> = [
+  // Critical - System destruction
+  { pattern: /rm\s+-rf\s+\/(?!\w)/i, riskLevel: 'critical', description: 'Attempting to delete root filesystem' },
+  { pattern: /rm\s+-rf\s+~\//i, riskLevel: 'critical', description: 'Attempting to delete home directory' },
+  { pattern: /rm\s+-rf\s+\*/i, riskLevel: 'critical', description: 'Recursive force delete with wildcard' },
+  { pattern: /mkfs\s+/i, riskLevel: 'critical', description: 'Filesystem formatting command' },
+  { pattern: /dd\s+if=.*of=\/dev\//i, riskLevel: 'critical', description: 'Direct disk write command' },
+  { pattern: /format\s+[a-z]:/i, riskLevel: 'critical', description: 'Drive format command' },
+  
+  // High - Privilege escalation
+  { pattern: /\bsudo\s+/i, riskLevel: 'high', description: 'Sudo command detected' },
+  { pattern: /\bsu\s+-/i, riskLevel: 'high', description: 'User switching command' },
+  { pattern: /chmod\s+[0-7]*7[0-7]*\s+/i, riskLevel: 'high', description: 'World-writable permissions' },
+  { pattern: /chown\s+root/i, riskLevel: 'high', description: 'Changing ownership to root' },
+  
+  // High - Database destruction
+  { pattern: /DROP\s+(TABLE|DATABASE|SCHEMA)/i, riskLevel: 'high', description: 'Database drop command' },
+  { pattern: /TRUNCATE\s+TABLE/i, riskLevel: 'high', description: 'Table truncation command' },
+  { pattern: /DELETE\s+FROM\s+\w+\s*(;|$)/i, riskLevel: 'high', description: 'Delete without WHERE clause' },
+  
+  // Medium - Potentially dangerous
+  { pattern: /curl\s+.*\|\s*(ba)?sh/i, riskLevel: 'medium', description: 'Piping curl to shell' },
+  { pattern: /wget\s+.*\|\s*(ba)?sh/i, riskLevel: 'medium', description: 'Piping wget to shell' },
+  { pattern: /git\s+push\s+.*--force/i, riskLevel: 'medium', description: 'Force push to git' },
+  { pattern: /npm\s+publish/i, riskLevel: 'medium', description: 'Publishing to npm' },
+  { pattern: /\bkill\s+-9\s+/i, riskLevel: 'medium', description: 'Force kill process' },
+  { pattern: /\bkillall\s+/i, riskLevel: 'medium', description: 'Kill all processes' },
+];
+
+// ════════════════════════════════════════════════════════════════════════════
 // DEFAULT SAFETY RULES
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -271,12 +345,72 @@ function determineRiskLevel(
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
+ * Check for prompt injection attempts
+ */
+function checkPromptInjection(text: string): { detected: boolean; pattern?: string } {
+  for (const pattern of PROMPT_INJECTION_PATTERNS) {
+    if (pattern.test(text)) {
+      return { detected: true, pattern: pattern.source };
+    }
+  }
+  return { detected: false };
+}
+
+/**
+ * Check for dangerous commands
+ */
+function checkDangerousCommands(text: string): {
+  detected: boolean;
+  riskLevel?: 'medium' | 'high' | 'critical';
+  description?: string;
+} {
+  for (const { pattern, riskLevel, description } of DANGEROUS_COMMAND_PATTERNS) {
+    if (pattern.test(text)) {
+      return { detected: true, riskLevel, description };
+    }
+  }
+  return { detected: false };
+}
+
+/**
  * Check if an action is allowed based on safety rules
  */
 export function checkSafety(
   action: string,
   customRules: SafetyRule[] = []
 ): SafetyCheckResult {
+  // First, check for prompt injection attempts
+  const injectionCheck = checkPromptInjection(action);
+  if (injectionCheck.detected) {
+    return {
+      allowed: false,
+      requiresConfirmation: false,
+      reason: 'Potential prompt injection detected',
+      riskLevel: 'critical',
+    };
+  }
+  
+  // Check for dangerous commands
+  const dangerousCheck = checkDangerousCommands(action);
+  if (dangerousCheck.detected) {
+    // Critical commands are blocked outright
+    if (dangerousCheck.riskLevel === 'critical') {
+      return {
+        allowed: false,
+        requiresConfirmation: false,
+        reason: dangerousCheck.description || 'Dangerous command detected',
+        riskLevel: 'critical',
+      };
+    }
+    // High and medium risk commands require confirmation
+    return {
+      allowed: true,
+      requiresConfirmation: true,
+      reason: dangerousCheck.description || 'Potentially dangerous command',
+      riskLevel: dangerousCheck.riskLevel || 'high',
+    };
+  }
+  
   // Combine default rules with custom rules (custom rules take precedence)
   const allRules = [...customRules, ...DEFAULT_RULES];
   

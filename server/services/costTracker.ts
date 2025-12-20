@@ -62,9 +62,41 @@ export interface BudgetStatus {
 }
 
 /**
+ * Validate token usage values
+ */
+function validateTokenUsage(usage: TokenUsage): { valid: boolean; error?: string } {
+  if (usage.inputTokens < 0) {
+    return { valid: false, error: 'Input tokens cannot be negative' };
+  }
+  if (usage.outputTokens < 0) {
+    return { valid: false, error: 'Output tokens cannot be negative' };
+  }
+  if (usage.totalTokens < 0) {
+    return { valid: false, error: 'Total tokens cannot be negative' };
+  }
+  if (usage.inputTokens + usage.outputTokens !== usage.totalTokens) {
+    // Auto-correct totalTokens if it doesn't match
+    usage.totalTokens = usage.inputTokens + usage.outputTokens;
+  }
+  return { valid: true };
+}
+
+/**
  * Calculate cost from token usage
  */
 export function calculateCost(usage: TokenUsage): CostEstimate {
+  // Validate and sanitize input
+  const validation = validateTokenUsage(usage);
+  if (!validation.valid) {
+    console.warn('Invalid token usage:', validation.error);
+    return {
+      inputCost: 0,
+      outputCost: 0,
+      totalCost: 0,
+      currency: 'USD',
+    };
+  }
+  
   const inputCost = (usage.inputTokens / 1000) * COST_PER_1K_INPUT_TOKENS;
   const outputCost = (usage.outputTokens / 1000) * COST_PER_1K_OUTPUT_TOKENS;
   

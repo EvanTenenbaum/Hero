@@ -277,3 +277,15 @@
 - [x] Integrate CostDashboard into Settings page
 - [x] Wire RollbackPanel to Agent Detail view
 - [x] Run tests and QA verification (82 tests passing, TypeScript clean)
+
+
+## Red Team QA Audit
+- [x] Audit backend modules (chatAgent, promptSeeds, metricsRecorder, costTracker, rollbackService)
+- [x] Audit frontend components (CostDashboard, RollbackPanel, ConfirmationModal, RulePresets)
+- [x] Audit frontend hooks (useChatAgent, useConfirmation, useExecutionUpdates)
+- [x] Audit database schema additions and routers
+- [x] Check for security vulnerabilities (SQL injection, XSS, auth bypass)
+- [x] Check for edge cases and error handling
+- [x] Check for type safety issues
+- [x] Fix all identified issues (see QA_FINDINGS.md)
+- [x] Re-run all tests after fixes (127 tests passing)
