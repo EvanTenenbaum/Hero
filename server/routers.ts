@@ -1143,6 +1143,202 @@ const metricsRouter = router({
 
 
 // ════════════════════════════════════════════════════════════════════════════
+// USER AGENT RULES ROUTER
+// ════════════════════════════════════════════════════════════════════════════
+
+const userRulesRouter = router({
+  list: protectedProcedure
+    .input(z.object({
+      agentType: z.enum(["pm", "developer", "qa", "devops", "research"]).optional(),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      return db.getUserAgentRules(ctx.user.id, input?.agentType);
+    }),
+  
+  create: protectedProcedure
+    .input(z.object({
+      agentType: z.enum(["pm", "developer", "qa", "devops", "research"]).optional(),
+      ruleType: z.enum(["instruction", "allow", "deny", "confirm"]),
+      ruleContent: z.string().min(1).max(1000),
+      priority: z.number().min(0).max(100).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return db.createUserAgentRule({
+        userId: ctx.user.id,
+        ...input,
+      });
+    }),
+  
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      ruleContent: z.string().min(1).max(1000).optional(),
+      ruleType: z.enum(["instruction", "allow", "deny", "confirm"]).optional(),
+      isActive: z.boolean().optional(),
+      priority: z.number().min(0).max(100).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      await db.updateUserAgentRule(id, ctx.user.id, data);
+      return { success: true };
+    }),
+  
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.deleteUserAgentRule(input.id, ctx.user.id);
+      return { success: true };
+    }),
+  
+  // Bulk create preset rules
+  createPresets: protectedProcedure
+    .input(z.object({
+      presets: z.array(z.enum([
+        "typescript_only",
+        "confirm_deletes",
+        "no_force_push",
+        "document_changes",
+        "test_before_commit",
+      ])),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const presetRules: Array<{ ruleType: "instruction" | "allow" | "deny" | "confirm"; ruleContent: string }> = [];
+      
+      for (const preset of input.presets) {
+        switch (preset) {
+          case "typescript_only":
+            presetRules.push({ ruleType: "instruction", ruleContent: "Always use TypeScript instead of JavaScript" });
+            break;
+          case "confirm_deletes":
+            presetRules.push({ ruleType: "confirm", ruleContent: "Always confirm before deleting any file" });
+            break;
+          case "no_force_push":
+            presetRules.push({ ruleType: "deny", ruleContent: "Never use git push --force" });
+            break;
+          case "document_changes":
+            presetRules.push({ ruleType: "instruction", ruleContent: "Add comments explaining significant code changes" });
+            break;
+          case "test_before_commit":
+            presetRules.push({ ruleType: "instruction", ruleContent: "Run tests before committing changes" });
+            break;
+        }
+      }
+      
+      const created = [];
+      for (const rule of presetRules) {
+        const result = await db.createUserAgentRule({
+          userId: ctx.user.id,
+          ...rule,
+        });
+        created.push(result);
+      }
+      
+      return created;
+    }),
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT LOGS ROUTER
+// ════════════════════════════════════════════════════════════════════════════
+
+const agentLogsRouter = router({
+  list: protectedProcedure
+    .input(z.object({
+      executionId: z.number().optional(),
+      sessionId: z.string().optional(),
+      agentType: z.string().optional(),
+      level: z.enum(["debug", "info", "warn", "error"]).optional(),
+      limit: z.number().min(1).max(500).default(100),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      return db.getAgentLogs(ctx.user.id, {
+        executionId: input?.executionId,
+        sessionId: input?.sessionId,
+        agentType: input?.agentType,
+        level: input?.level,
+        limit: input?.limit || 100,
+      });
+    }),
+  
+  create: protectedProcedure
+    .input(z.object({
+      executionId: z.number().optional(),
+      sessionId: z.string().optional(),
+      agentType: z.string(),
+      event: z.string(),
+      level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+      data: z.record(z.string(), z.unknown()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return db.createAgentLog({
+        userId: ctx.user.id,
+        ...input,
+      });
+    }),
+  
+  // Get logs for a specific execution
+  byExecution: protectedProcedure
+    .input(z.object({ executionId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      return db.getAgentLogs(ctx.user.id, { executionId: input.executionId, limit: 500 });
+    }),
+  
+  // Get recent errors
+  errors: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(100).default(50) }).optional())
+    .query(async ({ ctx, input }) => {
+      return db.getAgentLogs(ctx.user.id, { level: "error", limit: input?.limit || 50 });
+    }),
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXECUTION STEPS ROUTER
+// ════════════════════════════════════════════════════════════════════════════
+
+const executionStepsRouter = router({
+  list: protectedProcedure
+    .input(z.object({ executionId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      return db.getExecutionSteps(input.executionId, ctx.user.id);
+    }),
+  
+  create: protectedProcedure
+    .input(z.object({
+      executionId: z.number(),
+      stepNumber: z.number(),
+      action: z.string(),
+      input: z.record(z.string(), z.unknown()).optional(),
+      requiresConfirmation: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return db.createExecutionStep({
+        ...input,
+        userId: ctx.user.id,
+      });
+    }),
+  
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      status: z.enum(["pending", "running", "awaiting_confirmation", "complete", "failed", "skipped"]).optional(),
+      output: z.record(z.string(), z.unknown()).optional(),
+      error: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      await db.updateExecutionStep(id, ctx.user.id, data);
+      return { success: true };
+    }),
+  
+  confirm: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.confirmExecutionStep(input.id, ctx.user.id);
+      return { success: true };
+    }),
+});
+
+// ════════════════════════════════════════════════════════════════════════════
 // MAIN ROUTER EXPORT
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -1159,6 +1355,9 @@ export const appRouter = router({
   checkpoints: checkpointsRouter,
   notes: notesRouter,
   metrics: metricsRouter,
+  userRules: userRulesRouter,
+  agentLogs: agentLogsRouter,
+  executionSteps: executionStepsRouter,
 });
 
 export type AppRouter = typeof appRouter;

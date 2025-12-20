@@ -13,6 +13,9 @@ import {
   violations, InsertViolation, Violation,
   budgetUsage, InsertBudgetUsage, BudgetUsage,
   userSettings, InsertUserSettings, UserSettings,
+  userAgentRules, InsertUserAgentRule, UserAgentRule,
+  agentLogs, InsertAgentLog, AgentLog,
+  executionSteps, InsertExecutionStep, ExecutionStep,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -754,4 +757,173 @@ export async function updateHookExecution(id: number, data: Partial<InsertHookEx
   const db = await getDb();
   if (!db) return;
   await db.update(hookExecutions).set(data).where(eq(hookExecutions.id, id));
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// USER AGENT RULES
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createUserAgentRule(rule: InsertUserAgentRule) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(userAgentRules).values(rule);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getUserAgentRules(userId: number, agentType?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  if (agentType) {
+    return db.select().from(userAgentRules)
+      .where(and(
+        eq(userAgentRules.userId, userId),
+        eq(userAgentRules.isActive, true),
+        sql`(${userAgentRules.agentType} = ${agentType} OR ${userAgentRules.agentType} IS NULL)`
+      ))
+      .orderBy(desc(userAgentRules.priority));
+  }
+  
+  return db.select().from(userAgentRules)
+    .where(and(eq(userAgentRules.userId, userId), eq(userAgentRules.isActive, true)))
+    .orderBy(desc(userAgentRules.priority));
+}
+
+export async function getUserAgentRuleById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(userAgentRules)
+    .where(and(eq(userAgentRules.id, id), eq(userAgentRules.userId, userId)))
+    .limit(1);
+  return result[0];
+}
+
+export async function updateUserAgentRule(id: number, userId: number, data: Partial<InsertUserAgentRule>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(userAgentRules).set(data)
+    .where(and(eq(userAgentRules.id, id), eq(userAgentRules.userId, userId)));
+}
+
+export async function deleteUserAgentRule(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(userAgentRules)
+    .where(and(eq(userAgentRules.id, id), eq(userAgentRules.userId, userId)));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT LOGS
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createAgentLog(log: InsertAgentLog) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(agentLogs).values(log);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getAgentLogs(userId: number, options?: {
+  executionId?: number;
+  sessionId?: string;
+  agentType?: string;
+  level?: string;
+  limit?: number;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const conditions = [eq(agentLogs.userId, userId)];
+  
+  if (options?.executionId) {
+    conditions.push(eq(agentLogs.executionId, options.executionId));
+  }
+  if (options?.sessionId) {
+    conditions.push(eq(agentLogs.sessionId, options.sessionId));
+  }
+  if (options?.agentType) {
+    conditions.push(eq(agentLogs.agentType, options.agentType));
+  }
+  if (options?.level) {
+    conditions.push(sql`${agentLogs.level} = ${options.level}`);
+  }
+  
+  return db.select().from(agentLogs)
+    .where(and(...conditions))
+    .orderBy(desc(agentLogs.createdAt))
+    .limit(options?.limit || 100);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXECUTION STEPS
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function createExecutionStep(step: InsertExecutionStep & { userId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Verify the execution belongs to the user
+  const execution = await db.select().from(agentExecutions)
+    .where(eq(agentExecutions.id, step.executionId))
+    .limit(1);
+  
+  if (!execution[0]) throw new Error("Execution not found");
+  
+  const { userId, ...stepData } = step;
+  const result = await db.insert(executionSteps).values(stepData);
+  return { id: Number(result[0].insertId) };
+}
+
+export async function getExecutionSteps(executionId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Verify the execution belongs to the user
+  const execution = await db.select().from(agentExecutions)
+    .where(eq(agentExecutions.id, executionId))
+    .limit(1);
+  
+  if (!execution[0]) return [];
+  
+  return db.select().from(executionSteps)
+    .where(eq(executionSteps.executionId, executionId))
+    .orderBy(executionSteps.stepNumber);
+}
+
+export async function getExecutionStepById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(executionSteps)
+    .where(eq(executionSteps.id, id))
+    .limit(1);
+  
+  return result[0];
+}
+
+export async function updateExecutionStep(id: number, userId: number, data: Partial<InsertExecutionStep>) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const updateData: Partial<InsertExecutionStep> = { ...data };
+  
+  // If status is changing to complete or failed, set completedAt
+  if (data.status === 'complete' || data.status === 'failed') {
+    updateData.completedAt = new Date();
+  }
+  
+  await db.update(executionSteps).set(updateData)
+    .where(eq(executionSteps.id, id));
+}
+
+export async function confirmExecutionStep(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(executionSteps).set({
+    status: 'running',
+    confirmedAt: new Date(),
+    confirmedBy: userId,
+  }).where(eq(executionSteps.id, id));
 }

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, FolderKanban, MessageSquare, Bot, Settings, BarChart3, Code2 } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, FolderKanban, MessageSquare, Bot, Settings, BarChart3, Code2, Shield, Activity } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,6 +33,8 @@ const menuItems = [
   { icon: MessageSquare, label: "Chat", path: "/chat" },
   { icon: Bot, label: "Agents", path: "/agents" },
   { icon: Code2, label: "Workspace", path: "/workspace" },
+  { icon: Shield, label: "Agent Config", path: "/agent-config" },
+  { icon: Activity, label: "Execution History", path: "/execution-history" },
   { icon: BarChart3, label: "Metrics", path: "/metrics" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];

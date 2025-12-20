@@ -711,3 +711,130 @@ export const metricsDaily = mysqlTable("metrics_daily", {
 
 export type MetricsDaily = typeof metricsDaily.$inferSelect;
 export type InsertMetricsDaily = typeof metricsDaily.$inferInsert;
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROMPT TEMPLATES (Agent Configuration Framework - Phase 1)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const promptTemplates = mysqlTable("prompt_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  agentType: mysqlEnum("agentType", ["pm", "developer", "qa", "devops", "research"]).notNull(),
+  version: varchar("version", { length: 20 }).notNull(),
+  
+  // Prompt sections
+  identitySection: text("identitySection").notNull(),
+  communicationSection: text("communicationSection").notNull(),
+  toolsSection: text("toolsSection").notNull(),
+  safetySection: text("safetySection").notNull(),
+  
+  // Metadata
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PromptTemplate = typeof promptTemplates.$inferSelect;
+export type InsertPromptTemplate = typeof promptTemplates.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// USER AGENT RULES (Agent Configuration Framework - Phase 1)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const userAgentRules = mysqlTable("user_agent_rules", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  agentType: mysqlEnum("agentType", ["pm", "developer", "qa", "devops", "research"]), // NULL = all agents
+  
+  // Rule configuration
+  ruleType: mysqlEnum("ruleType", ["instruction", "allow", "deny", "confirm"]).notNull(),
+  ruleContent: text("ruleContent").notNull(),
+  
+  // Metadata
+  isActive: boolean("isActive").default(true),
+  priority: int("priority").default(0), // Higher = more important
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserAgentRule = typeof userAgentRules.$inferSelect;
+export type InsertUserAgentRule = typeof userAgentRules.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT LOGS (Observability - Phase 5)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const agentLogs = mysqlTable("agent_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  executionId: int("executionId"),
+  sessionId: varchar("sessionId", { length: 64 }),
+  userId: int("userId").notNull(),
+  agentType: varchar("agentType", { length: 50 }).notNull(),
+  
+  // Log details
+  event: varchar("event", { length: 255 }).notNull(),
+  level: mysqlEnum("level", ["debug", "info", "warn", "error"]).default("info").notNull(),
+  data: json("data").$type<Record<string, unknown>>(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AgentLog = typeof agentLogs.$inferSelect;
+export type InsertAgentLog = typeof agentLogs.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXECUTION STEPS (Execution Engine - Phase 2)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const executionSteps = mysqlTable("execution_steps", {
+  id: int("id").autoincrement().primaryKey(),
+  executionId: int("executionId").notNull(),
+  stepNumber: int("stepNumber").notNull(),
+  
+  // Step details
+  action: varchar("action", { length: 255 }).notNull(),
+  input: json("input").$type<Record<string, unknown>>(),
+  output: json("output").$type<Record<string, unknown>>(),
+  
+  // Status
+  status: mysqlEnum("status", ["pending", "running", "awaiting_confirmation", "complete", "failed", "skipped"]).default("pending").notNull(),
+  requiresConfirmation: boolean("requiresConfirmation").default(false),
+  confirmedAt: timestamp("confirmedAt"),
+  confirmedBy: int("confirmedBy"),
+  
+  // Error tracking
+  error: text("error"),
+  
+  // Timing
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  durationMs: int("durationMs"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ExecutionStep = typeof executionSteps.$inferSelect;
+export type InsertExecutionStep = typeof executionSteps.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT SESSIONS (Context Management - Phase 4)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const agentSessions = mysqlTable("agent_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: varchar("sessionId", { length: 64 }).notNull().unique(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId"),
+  agentType: varchar("agentType", { length: 50 }).notNull(),
+  
+  // Session state
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  
+  // Timing
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  lastActivityAt: timestamp("lastActivityAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt"),
+});
+
+export type AgentSession = typeof agentSessions.$inferSelect;
+export type InsertAgentSession = typeof agentSessions.$inferInsert;

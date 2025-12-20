@@ -14,6 +14,8 @@ import Settings from "./pages/Settings";
 import Workspace from "./pages/Workspace";
 import GitHubCallback from "./pages/GitHubCallback";
 import Metrics from "./pages/Metrics";
+import AgentConfig from "./pages/AgentConfig";
+import ExecutionHistory from "./pages/ExecutionHistory";
 import DashboardLayout from "./components/DashboardLayout";
 
 function Router() {
@@ -32,6 +34,8 @@ function Router() {
       <Route path="/workspace/:owner/:repo" component={Workspace} />
       <Route path="/github/callback" component={GitHubCallback} />
       <Route path="/metrics" component={Metrics} />
+      <Route path="/agent-config" component={AgentConfig} />
+      <Route path="/execution-history" component={ExecutionHistory} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

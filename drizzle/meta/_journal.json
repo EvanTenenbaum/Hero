@@ -22,6 +22,13 @@
       "when": 1766183280812,
       "tag": "0002_public_virginia_dare",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1766196377677,
+      "tag": "0003_spicy_imperial_guard",
+      "breakpoints": true
     }
   ]
 }
