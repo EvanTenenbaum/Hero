@@ -554,3 +554,17 @@
 - [ ] Research roadmap integration patterns
 - [ ] Design Prompt-to-Plan feature architecture for Hero IDE
 - [ ] Create comprehensive feature specification document
+
+
+## Prompt-to-Plan Feature Research - Dec 20, 2025
+- [x] Research Traycer spec-driven development approach
+- [x] Research Cursor Plan Mode and agent to-dos
+- [x] Research GitHub Spec Kit four-phase workflow
+- [x] Research Amazon Kiro specs and hooks system
+- [x] Analyze common patterns across AI planning tools
+- [x] Create comprehensive PROMPT_TO_PLAN_SPEC.md document
+- [x] Define four-phase workflow (Specify → Design → Tasks → Implement)
+- [x] Design database schema for spec artifacts
+- [x] Design UI components for spec management
+- [x] Define API procedures for spec generation
+- [x] Create implementation roadmap with effort estimates
