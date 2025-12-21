@@ -629,3 +629,27 @@
 - [x] Test Agents management page
 - [x] Document all findings in QA_REDTEAM_REPORT.md
 - [x] Overall Assessment: PASS ✅
+
+
+## Beta Roadmap - Created Dec 20, 2025
+- [x] Create comprehensive Beta Roadmap document (docs/BETA_ROADMAP.md)
+- [ ] Feature 1: Context Engine (4 weeks)
+  - [ ] 1.1 Codebase Indexing
+  - [ ] 1.2 Keyword Search
+  - [ ] 1.3 Semantic Search
+  - [ ] 1.4 Context Ranking
+- [ ] Feature 2: Prompt-to-Plan Workflow (4 weeks)
+  - [ ] 2.1 Specify Phase
+  - [ ] 2.2 Design Phase
+  - [ ] 2.3 Tasks Phase
+  - [ ] 2.4 Implement Phase
+- [ ] Feature 3: Enhanced GitHub Integration (2 weeks)
+  - [ ] 3.1 Repository Management
+  - [ ] 3.2 Pull Requests & Issues
+- [ ] Feature 4: Advanced Agent Orchestration (2 weeks)
+  - [ ] 4.1 PM Agent Orchestration
+  - [ ] 4.2 Dependency Management
+- [ ] Feature 5: Sprint Planning & Velocity (1 week)
+- [ ] Feature 6: Resource & Cost Management (1 week)
+- [ ] Feature 7: Code Editor Enhancements (1 week)
+- [ ] Feature 8: Polish & Beta Preparation (1 week)
