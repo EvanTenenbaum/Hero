@@ -5,6 +5,7 @@ import { kanbanRouter } from './kanban/router';
 import { driveRouter } from './drive/router';
 import { codebaseRouter } from './codebase/router';
 import { contextRouter } from './context/router';
+import { specsRouter } from './specs/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -1471,6 +1472,7 @@ export const appRouter = router({
   drive: driveRouter,
   codebase: codebaseRouter,
   context: contextRouter,
+  specs: specsRouter,
 });
 
 export type AppRouter = typeof appRouter;

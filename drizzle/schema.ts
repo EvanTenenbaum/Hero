@@ -1256,3 +1256,118 @@ export const contextIndexStatus = mysqlTable("context_index_status", {
 
 export type ContextIndexStatus = typeof contextIndexStatus.$inferSelect;
 export type InsertContextIndexStatus = typeof contextIndexStatus.$inferInsert;
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPECS SYSTEM (Sprint 3: Prompt-to-Plan Workflow)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Specs - Feature specifications with EARS format requirements
+ */
+export const specs = mysqlTable("specs", {
+  id: int("id").primaryKey().autoincrement(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Spec metadata
+  title: varchar("title", { length: 500 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["draft", "review", "approved", "implemented", "archived"]).default("draft").notNull(),
+  priority: mysqlEnum("priority", ["critical", "high", "medium", "low"]).default("medium").notNull(),
+  
+  // EARS-format content sections
+  overview: text("overview"),
+  requirements: json("requirements").$type<{
+    id: string;
+    type: "ubiquitous" | "event_driven" | "state_driven" | "optional" | "complex";
+    text: string;
+    rationale?: string;
+    acceptanceCriteria?: string[];
+  }[]>(),
+  
+  // Technical design
+  technicalDesign: text("technicalDesign"),
+  dataModel: text("dataModel"),
+  apiDesign: text("apiDesign"),
+  uiMockups: json("uiMockups").$type<{
+    name: string;
+    description: string;
+    imageUrl?: string;
+  }[]>(),
+  
+  // Implementation tracking
+  estimatedHours: int("estimatedHours"),
+  actualHours: int("actualHours"),
+  completionPercentage: int("completionPercentage").default(0),
+  
+  // Relationships
+  parentSpecId: int("parentSpecId"),
+  
+  // Version control
+  currentVersion: int("currentVersion").default(1).notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Spec = typeof specs.$inferSelect;
+export type InsertSpec = typeof specs.$inferInsert;
+
+/**
+ * Spec Versions - Version history for specs
+ */
+export const specVersions = mysqlTable("spec_versions", {
+  id: int("id").primaryKey().autoincrement(),
+  specId: int("specId").notNull(),
+  version: int("version").notNull(),
+  
+  // Snapshot of spec content at this version
+  title: varchar("title", { length: 500 }).notNull(),
+  overview: text("overview"),
+  requirements: json("requirements"),
+  technicalDesign: text("technicalDesign"),
+  dataModel: text("dataModel"),
+  apiDesign: text("apiDesign"),
+  
+  // Change metadata
+  changeType: mysqlEnum("changeType", ["created", "updated", "status_change", "approved"]).notNull(),
+  changeSummary: text("changeSummary"),
+  changedBy: int("changedBy").notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SpecVersion = typeof specVersions.$inferSelect;
+export type InsertSpecVersion = typeof specVersions.$inferInsert;
+
+/**
+ * Spec Card Links - Links specs to kanban cards
+ */
+export const specCardLinks = mysqlTable("spec_card_links", {
+  id: int("id").primaryKey().autoincrement(),
+  specId: int("specId").notNull(),
+  cardId: int("cardId").notNull(),
+  linkType: mysqlEnum("linkType", ["implements", "blocks", "related"]).default("implements").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SpecCardLink = typeof specCardLinks.$inferSelect;
+export type InsertSpecCardLink = typeof specCardLinks.$inferInsert;
+
+/**
+ * Spec Comments - Discussion threads on specs
+ */
+export const specComments = mysqlTable("spec_comments", {
+  id: int("id").primaryKey().autoincrement(),
+  specId: int("specId").notNull(),
+  userId: int("userId").notNull(),
+  parentCommentId: int("parentCommentId"),
+  content: text("content").notNull(),
+  resolved: boolean("resolved").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SpecComment = typeof specComments.$inferSelect;
+export type InsertSpecComment = typeof specComments.$inferInsert;

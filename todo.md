@@ -676,3 +676,28 @@
 - [x] 1.1.8 Build indexing status UI component
 - [x] 1.1.9 Write unit tests for chunking
 - [x] Sprint 1 Red Team QA
+
+
+## Sprint 2: Context Engine Search (Executing)
+- [x] 2.1.1 Set up Gemini embedding API integration
+- [x] 2.1.2 Create embedding generation service
+- [x] 2.1.3 Build batch embedding pipeline
+- [x] 2.1.4 Implement vector similarity search
+- [x] 2.1.5 Create hybrid search (keyword + semantic)
+- [x] 2.1.6 Build context retrieval for agents
+- [x] 2.1.7 Add search UI component
+- [x] 2.1.8 Write unit tests for search
+- [x] Sprint 2 Red Team QA
+
+
+## Sprint 3: Prompt-to-Plan Workflow (Dec 20, 2025)
+- [x] 3.1.1 Create specs database schema
+- [x] 3.1.2 Create spec_versions table for history
+- [x] 3.1.3 Build EARS requirements generator
+- [x] 3.1.4 Create spec CRUD API endpoints
+- [x] 3.1.5 Build Spec Panel UI component
+- [x] 3.1.6 Implement spec-to-task linking
+- [x] 3.1.7 Add spec versioning and diff view
+- [x] 3.1.8 Wire PM Agent to generate specs
+- [x] 3.1.9 Write unit tests for specs
+- [x] Sprint 3 Red Team QA

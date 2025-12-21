@@ -50,6 +50,13 @@
       "when": 1766278228571,
       "tag": "0006_aberrant_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1766281464286,
+      "tag": "0007_hard_wallop",
+      "breakpoints": true
     }
   ]
 }
