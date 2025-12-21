@@ -10,9 +10,9 @@
 
 This roadmap outlines the path from Hero IDE's current state to a complete beta release. The platform already has a solid foundation including authentication, chat with 5 agent types, Kanban boards, metrics tracking, and governance systems. The beta milestone focuses on completing the **Prompt-to-Plan** workflow, enhancing **GitHub integration**, and building a robust **Context Engine** for codebase-aware AI assistance.
 
-**Estimated Timeline:** 16 weeks  
-**Total Major Features:** 8  
-**Total Subtasks:** 127
+**Estimated Timeline:** 18 weeks  
+**Total Major Features:** 9  
+**Total Subtasks:** 152
 
 ---
 
@@ -29,6 +29,7 @@ This roadmap outlines the path from Hero IDE's current state to a complete beta 
 | Metrics & Observability | Complete | 90% |
 | Prompt-to-Plan | Not Started | 0% |
 | Context Engine | Not Started | 0% |
+| Calm-Leaning UX Design | Not Started | 0% |
 
 ---
 
@@ -275,7 +276,93 @@ Enhance the Monaco editor with AI-powered features.
 
 ---
 
-## Feature 8: Polish & Beta Preparation
+## Feature 8: Calm-Leaning UX Design System
+
+**Priority:** High  
+**Duration:** 2 weeks  
+**Dependencies:** None (can run in parallel)
+
+Implement a design system that leans toward calm, clarity, and low cognitive noise **without sacrificing speed, usability, or modern workflow efficiency**. The IDE should feel grounded, trustworthy, and visually quiet while remaining fast and capable.
+
+### Design Philosophy
+
+> **Critical Constraint:** Functionality and efficiency always win. Never sacrifice actual features, speed, or discoverability for the sake of visual calm. If calmness conflicts with productivity or flow, **prioritize flow**.
+
+The IDE is a focused work environment, not a dashboard and not a meditation tool. Calm is a bias, not an absolute rule.
+
+**The IDE must feel:**
+- Grounded and trustworthy
+- Visually quiet
+- Comfortable for long sessions
+
+**The IDE must NOT feel:**
+- Slow or sluggish
+- Overly restrained or friction-heavy
+- Ideological or precious
+- Missing expected features
+
+Dense information is acceptable when context demands it (debugging, reviewing diffs, inspecting logs). Advanced features must remain discoverable and one step away—never hidden behind excessive friction.
+
+### 8.1 Design Tokens & Color System (Week 15)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| 8.1.1 | Define neutral, comfortable base color palette | 4h | [ ] |
+| 8.1.2 | Create muted accent color system | 3h | [ ] |
+| 8.1.3 | Implement semantic color tokens (error, warning, success) | 3h | [ ] |
+| 8.1.4 | Build contrast and saturation guidelines | 2h | [ ] |
+| 8.1.5 | Create dark/light theme variants | 6h | [ ] |
+| 8.1.6 | Document color usage patterns | 2h | [ ] |
+
+### 8.2 Attention Mode System (Week 15)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| 8.2.1 | Define Background mode styling (visible but ignorable) | 4h | [ ] |
+| 8.2.2 | Define Working mode styling (active, focused use) | 4h | [ ] |
+| 8.2.3 | Define Interruptive mode styling (rare, important) | 3h | [ ] |
+| 8.2.4 | Implement notification restraint system | 4h | [ ] |
+| 8.2.5 | Build dismissible indicator patterns | 3h | [ ] |
+| 8.2.6 | Write attention mode documentation | 2h | [ ] |
+
+### 8.3 Typography & Layout (Week 16)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| 8.3.1 | Select highly legible, neutral typefaces | 3h | [ ] |
+| 8.3.2 | Define typography scale and hierarchy | 4h | [ ] |
+| 8.3.3 | Implement comfortable line heights for long sessions | 2h | [ ] |
+| 8.3.4 | Create layout grid with generous whitespace | 4h | [ ] |
+| 8.3.5 | Design supportive (not dominant) sidebar patterns | 4h | [ ] |
+| 8.3.6 | Prioritize editor/workspace in visual hierarchy | 3h | [ ] |
+
+### 8.4 Motion & Feedback (Week 16)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| 8.4.1 | Define fast, subtle transition timing | 3h | [ ] |
+| 8.4.2 | Implement state change clarification animations | 4h | [ ] |
+| 8.4.3 | Remove playful/elastic motion patterns | 2h | [ ] |
+| 8.4.4 | Build orientation-providing transitions | 3h | [ ] |
+| 8.4.5 | Ensure experienced users feel responsiveness | 2h | [ ] |
+| 8.4.6 | Write motion guidelines documentation | 2h | [ ] |
+
+### 8.5 Component Refactoring (Week 16)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| 8.5.1 | Audit and reduce visual flair in existing components | 6h | [ ] |
+| 8.5.2 | Minimize competing panels and visual noise | 4h | [ ] |
+| 8.5.3 | Reduce overuse of badges, pills, and counters | 3h | [ ] |
+| 8.5.4 | Apply calm-by-default, power-on-demand pattern | 4h | [ ] |
+| 8.5.5 | Ensure advanced features are discoverable | 3h | [ ] |
+| 8.5.6 | Implement design reflection checklist | 2h | [ ] |
+| 8.5.7 | Verify no functionality was sacrificed for aesthetics | 4h | [ ] |
+| 8.5.8 | User testing: confirm experienced users find it fast | 4h | [ ] |
+
+---
+
+## Feature 9: Polish & Beta Preparation
 
 **Priority:** High  
 **Duration:** 1 week  
@@ -283,18 +370,18 @@ Enhance the Monaco editor with AI-powered features.
 
 Final polish, documentation, and beta release preparation.
 
-### 8.1 Polish & Documentation (Week 16)
+### 9.1 Polish & Documentation (Week 17-18)
 
 | Task | Description | Effort | Status |
 |------|-------------|--------|--------|
-| 8.1.1 | Clean up test data and duplicates | 4h | [ ] |
-| 8.1.2 | Add onboarding flow for new users | 6h | [ ] |
-| 8.1.3 | Create user documentation | 8h | [ ] |
-| 8.1.4 | Build help system and tooltips | 4h | [ ] |
-| 8.1.5 | Performance optimization | 6h | [ ] |
-| 8.1.6 | Security audit and fixes | 6h | [ ] |
-| 8.1.7 | Final QA and bug fixes | 8h | [ ] |
-| 8.1.8 | Create release notes | 2h | [ ] |
+| 9.1.1 | Clean up test data and duplicates | 4h | [ ] |
+| 9.1.2 | Add onboarding flow for new users | 6h | [ ] |
+| 9.1.3 | Create user documentation | 8h | [ ] |
+| 9.1.4 | Build help system and tooltips | 4h | [ ] |
+| 9.1.5 | Performance optimization | 6h | [ ] |
+| 9.1.6 | Security audit and fixes | 6h | [ ] |
+| 9.1.7 | Final QA and bug fixes | 8h | [ ] |
+| 9.1.8 | Create release notes | 2h | [ ] |
 
 ---
 
@@ -315,8 +402,9 @@ Week 11:    Agent Orchestration - PM Agent
 Week 12:    Agent Orchestration - Dependencies
 Week 13:    Sprint Planning & Velocity
 Week 14:    Resource & Cost Management
-Week 15:    Code Editor Enhancements
-Week 16:    Polish & Beta Preparation
+Week 15:    Code Editor Enhancements + UX Design System (Part 1)
+Week 16:    UX Design System (Part 2) + Component Refactoring
+Week 17-18: Polish & Beta Preparation
 ```
 
 ---
@@ -396,9 +484,10 @@ Week 16:    Polish & Beta Preparation
 | Sprint Planning | 7 | 29h |
 | Cost Management | 7 | 29h |
 | Editor Enhancements | 6 | 31h |
+| Calm-Leaning UX Design | 32 | 106h |
 | Polish & Beta | 8 | 44h |
-| **Total** | **105** | **461h** |
+| **Total** | **137** | **567h** |
 
-*Note: Additional 20% buffer recommended for unforeseen issues = ~92h*
+*Note: Additional 20% buffer recommended for unforeseen issues = ~113h*
 
-**Total Estimated Effort: 553 hours (~14 weeks at 40h/week)**
+**Total Estimated Effort: 680 hours (~18 weeks at 40h/week)**

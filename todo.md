@@ -653,3 +653,13 @@
 - [ ] Feature 6: Resource & Cost Management (1 week)
 - [ ] Feature 7: Code Editor Enhancements (1 week)
 - [ ] Feature 8: Polish & Beta Preparation (1 week)
+
+
+## Roadmap QA & New Story - Dec 20, 2025
+- [ ] QA existing Beta Roadmap for completeness
+- [ ] Add Feature 9: Calm-Leaning UX Design System
+  - [ ] 9.1 Define design tokens and color palette
+  - [ ] 9.2 Implement attention mode system (Background/Working/Interruptive)
+  - [ ] 9.3 Refactor UI components for calm aesthetics
+  - [ ] 9.4 Create motion and feedback guidelines
+  - [ ] 9.5 Apply design system to all major surfaces
