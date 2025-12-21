@@ -8,15 +8,27 @@
 
 import { invokeLLM } from "../_core/llm";
 
-// EARS requirement types
-export type EarsType = "ubiquitous" | "event_driven" | "state_driven" | "optional" | "complex";
+// EARS requirement types (including unwanted behavior pattern)
+export type EarsType = "ubiquitous" | "event_driven" | "state_driven" | "optional" | "unwanted" | "complex";
 
 export interface EarsRequirement {
   id: string;
   type: EarsType;
   text: string;
+  // Structured EARS components
+  precondition?: string;
+  trigger?: string;
+  system?: string;
+  response?: string;
   rationale?: string;
   acceptanceCriteria?: string[];
+}
+
+export interface ClarificationQuestion {
+  id: string;
+  question: string;
+  context: string;
+  options?: string[];
 }
 
 export interface GeneratedSpec {
@@ -26,15 +38,18 @@ export interface GeneratedSpec {
   technicalConsiderations?: string;
   outOfScope?: string[];
   assumptions?: string[];
+  clarificationQuestions?: ClarificationQuestion[];
+  confidence?: number; // 0-100 confidence in interpretation
 }
 
-// EARS templates for each type
+// EARS templates for each type (based on Alistair Mavin's original patterns)
 const EARS_TEMPLATES = {
   ubiquitous: "The [system] shall [action].",
   event_driven: "When [trigger], the [system] shall [action].",
   state_driven: "While [state], the [system] shall [action].",
   optional: "Where [feature is enabled], the [system] shall [action].",
-  complex: "If [condition], then the [system] shall [action], otherwise [alternative]."
+  unwanted: "If [unwanted condition], then the [system] shall [action].",
+  complex: "While [state], when [trigger], the [system] shall [action]."
 };
 
 const EARS_SYSTEM_PROMPT = `You are a requirements engineering expert specializing in EARS (Easy Approach to Requirements Syntax) format.
@@ -59,9 +74,13 @@ Your task is to transform natural language feature descriptions into precise, te
    Template: "Where [feature is enabled], the [system] shall [action]."
    Example: "Where two-factor authentication is enabled, the system shall require a verification code."
 
-5. **Complex** - Conditional with alternatives
-   Template: "If [condition], then the [system] shall [action], otherwise [alternative]."
-   Example: "If the password is incorrect, then the system shall display an error message, otherwise the system shall redirect to the dashboard."
+5. **Unwanted** - Error handling and unwanted conditions
+   Template: "If [unwanted condition], then the [system] shall [action]."
+   Example: "If an invalid credit card number is entered, then the system shall display 'please re-enter credit card details'."
+
+6. **Complex** - Combines state and event triggers
+   Template: "While [state], when [trigger], the [system] shall [action]."
+   Example: "While the aircraft is on ground, when reverse thrust is commanded, the engine control system shall enable reverse thrust."
 
 ## Guidelines:
 - Each requirement must be atomic (one testable behavior)
@@ -132,9 +151,13 @@ Generate comprehensive EARS-format requirements for this feature. Return valid J
                   id: { type: "string", description: "Unique requirement ID like REQ-001" },
                   type: { 
                     type: "string", 
-                    enum: ["ubiquitous", "event_driven", "state_driven", "optional", "complex"],
+                    enum: ["ubiquitous", "event_driven", "state_driven", "optional", "unwanted", "complex"],
                     description: "EARS requirement type"
                   },
+                  precondition: { type: "string", description: "State that must be true (for state-driven/complex)" },
+                  trigger: { type: "string", description: "Event or condition that triggers the behavior" },
+                  system: { type: "string", description: "The system or component name" },
+                  response: { type: "string", description: "What the system shall do" },
                   text: { type: "string", description: "The requirement in EARS format" },
                   rationale: { type: "string", description: "Why this requirement exists" },
                   acceptanceCriteria: {
@@ -157,9 +180,25 @@ Generate comprehensive EARS-format requirements for this feature. Return valid J
               type: "array",
               items: { type: "string" },
               description: "Assumptions made during analysis"
-            }
+            },
+            clarificationQuestions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  question: { type: "string" },
+                  context: { type: "string" },
+                  options: { type: "array", items: { type: "string" } }
+                },
+                required: ["id", "question", "context"],
+                additionalProperties: false
+              },
+              description: "Questions to ask if the prompt is ambiguous"
+            },
+            confidence: { type: "number", description: "0-100 confidence in interpretation" }
           },
-          required: ["title", "overview", "requirements", "technicalConsiderations", "outOfScope", "assumptions"],
+          required: ["title", "overview", "requirements", "technicalConsiderations", "outOfScope", "assumptions", "confidence"],
           additionalProperties: false
         }
       }
@@ -216,12 +255,20 @@ export function validateEarsRequirement(requirement: EarsRequirement): {
         issues.push("Optional requirement should start with 'Where'");
       }
       break;
-    case "complex":
+    case "unwanted":
       if (!text.startsWith("if ")) {
-        issues.push("Complex requirement should start with 'If'");
+        issues.push("Unwanted requirement should start with 'If'");
       }
-      if (!text.includes("otherwise")) {
-        issues.push("Complex requirement should contain 'otherwise'");
+      if (!text.includes("then ")) {
+        issues.push("Unwanted requirement should contain 'then'");
+      }
+      break;
+    case "complex":
+      if (!text.startsWith("while ")) {
+        issues.push("Complex requirement should start with 'While'");
+      }
+      if (!text.includes("when ")) {
+        issues.push("Complex requirement should contain 'when'");
       }
       break;
   }
@@ -255,6 +302,7 @@ export function formatRequirementsAsMarkdown(spec: GeneratedSpec): string {
     event_driven: [],
     state_driven: [],
     optional: [],
+    unwanted: [],
     complex: []
   };
   
@@ -267,6 +315,7 @@ export function formatRequirementsAsMarkdown(spec: GeneratedSpec): string {
     event_driven: "Event-Driven Requirements",
     state_driven: "State-Driven Requirements",
     optional: "Optional Requirements",
+    unwanted: "Unwanted Behavior Requirements",
     complex: "Complex Requirements"
   };
   

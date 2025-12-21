@@ -770,3 +770,146 @@
 - [x] 5.6.3 Write unit tests for context service (18 tests)
 - [x] 5.6.4 Write unit tests for context router (6 tests)
 - [x] Sprint 5 Red Team QA (407 total tests passing)
+
+
+## Sprint 6: Prompt-to-Plan Workflow - Dec 20, 2025
+
+### 6.0 Research Phase
+- [x] 6.0.1 Research EARS requirements format
+- [x] 6.0.2 Research LLM prompt engineering for specs
+- [x] 6.0.3 Research spec-driven development patterns
+- [x] 6.0.4 Design spec versioning strategy
+- [x] 6.0.5 Design human checkpoint UX
+
+### 6.1 Specify Phase
+- [x] 6.1.1 Enhance specs table schema with phase workflow
+- [x] 6.1.2 Enhance spec_versions table schema
+- [x] 6.1.3 Enhance EARS requirements generator with clarifications
+- [x] 6.1.4 Build intent clarification dialog (PromptToPlanWorkflow)
+- [x] 6.1.5 Create spec editor component (PromptToPlanWorkflow)
+- [x] 6.1.6 Add human checkpoint for spec approval workflow
+- [x] 6.1.8 Write unit tests for Specify phase (8 tests)
+
+### 6.2 Design Phase
+- [x] 6.2.1 Implement codebase analysis service (codebaseAnalysis.ts)
+- [x] 6.2.2 Build data model generator
+- [x] 6.2.3 Implement API contract generator
+- [x] 6.2.4 Add Mermaid diagram generation
+- [x] 6.2.5 Create design document editor (in PromptToPlanWorkflow)
+- [x] 6.2.6 Build file change manifest generator
+- [x] 6.2.7 Write unit tests for Design phase (10 tests)
+
+### 6.3 Tasks Phase
+- [x] 6.3.1 Implement task breakdown service (taskBreakdown.ts)
+- [x] 6.3.2 Build dependency analyzer
+- [x] 6.3.3 Add agent assignment logic
+- [x] 6.3.4 Implement effort estimation
+- [x] 6.3.5 Create Kanban card generator (createCardsFromTasks)
+- [x] 6.3.6 Build spec-to-card linking
+- [x] 6.3.7 Write unit tests for Tasks phase (10 tests)
+
+### 6.4 Implement Phase
+- [x] 6.4.1 Enhance execution engine with spec context (implementationService.ts)
+- [x] 6.4.2 Build verification service
+- [x] 6.4.3 Implement spec sync
+- [x] 6.4.4 Add progress tracking with traceability
+- [x] 6.4.5 Create implementation dashboard (in PromptToPlanWorkflow)
+- [x] 6.4.6 Write integration tests (6 tests)
+
+### 6.5 Testing & QA
+- [x] 6.5.1 Unit test coverage review
+- [x] 6.5.2 Integration test suite (38 tests in prompt-to-plan.test.ts)
+- [x] 6.5.3 Edge case testing
+- [x] 6.5.4 Performance testing
+- [x] 6.5.5 Red Team QA (447 total tests passing)
+- [x] 6.5.6 Save checkpoint
+
+## Sprint 7: Enhanced GitHub Integration - Dec 2025
+
+### 7.0 Research Phase
+- [ ] 7.0.1 Research git clone optimization
+- [ ] 7.0.2 Research merge conflict resolution
+- [ ] 7.0.3 Research GitHub webhook security
+- [ ] 7.0.4 Design workspace storage strategy
+
+### 7.1 Repository Cloning
+- [ ] 7.1.1 Implement repository cloning service
+- [ ] 7.1.2 Add shallow clone support
+- [ ] 7.1.3 Build clone progress UI
+- [ ] 7.1.4 Implement workspace management
+- [ ] 7.1.5 Write unit tests for cloning
+
+### 7.2 Merge Conflict Detection
+- [ ] 7.2.1 Implement conflict detection service
+- [ ] 7.2.2 Build 3-way diff viewer component
+- [ ] 7.2.3 Add conflict resolution UI
+- [ ] 7.2.4 Implement merge commit creation
+- [ ] 7.2.5 Write unit tests for conflicts
+
+### 7.3 PR Workflow
+- [ ] 7.3.1 Implement PR creation from cards
+- [ ] 7.3.2 Build PR review interface
+- [ ] 7.3.3 Add AI-powered PR review
+- [ ] 7.3.4 Implement PR merge functionality
+- [ ] 7.3.5 Write unit tests for PR workflow
+
+### 7.4 Issue Sync
+- [ ] 7.4.1 Implement issue listing API
+- [ ] 7.4.2 Build issue-to-card sync
+- [ ] 7.4.3 Add bidirectional sync
+- [ ] 7.4.4 Implement GitHub webhooks
+- [ ] 7.4.5 Add webhook security
+- [ ] 7.4.6 Write unit tests for issue sync
+
+### 7.5 Testing & QA
+- [ ] 7.5.1 Unit test coverage review
+- [ ] 7.5.2 Integration test suite
+- [ ] 7.5.3 Large repo testing
+- [ ] 7.5.4 Red Team QA
+- [ ] 7.5.5 Save checkpoint
+
+## Sprint 8: Advanced Agent Orchestration - Dec 2025
+
+### 8.0 Research Phase
+- [ ] 8.0.1 Research agent capability modeling
+- [ ] 8.0.2 Research graph visualization libraries
+- [ ] 8.0.3 Research blocker detection algorithms
+- [ ] 8.0.4 Design escalation workflow
+
+### 8.1 PM Agent Epic Breakdown
+- [ ] 8.1.1 Implement epic analysis service
+- [ ] 8.1.2 Build story generation from epic
+- [ ] 8.1.3 Add acceptance criteria generation
+- [ ] 8.1.4 Implement story sizing
+- [ ] 8.1.5 Write unit tests for epic breakdown
+
+### 8.2 Intelligent Task Assignment
+- [ ] 8.2.1 Create agent capabilities schema
+- [ ] 8.2.2 Implement capability matching
+- [ ] 8.2.3 Add workload balancing
+- [ ] 8.2.4 Implement reassignment logic
+- [ ] 8.2.5 Write unit tests for assignment
+
+### 8.3 Dependency Graph Visualization
+- [ ] 8.3.1 Install and configure graph library
+- [ ] 8.3.2 Build dependency graph component
+- [ ] 8.3.3 Add critical path highlighting
+- [ ] 8.3.4 Implement interactive features
+- [ ] 8.3.5 Add drag-and-drop reordering
+- [ ] 8.3.6 Write unit tests for graph
+
+### 8.4 Blocker Detection
+- [ ] 8.4.1 Create blockers schema
+- [ ] 8.4.2 Implement time-based detection
+- [ ] 8.4.3 Implement dependency-based detection
+- [ ] 8.4.4 Build blocker badge component
+- [ ] 8.4.5 Add escalation workflow
+- [ ] 8.4.6 Implement unblock suggestions
+- [ ] 8.4.7 Write unit tests for blockers
+
+### 8.5 Testing & QA
+- [ ] 8.5.1 Unit test coverage review
+- [ ] 8.5.2 Integration test suite
+- [ ] 8.5.3 Scale testing
+- [ ] 8.5.4 Red Team QA
+- [ ] 8.5.5 Save checkpoint

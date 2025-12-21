@@ -12,12 +12,19 @@ import { getDb } from "../db";
 import { specs, specVersions, specCardLinks, specComments } from "../../drizzle/schema";
 import { eq, and, desc, like, or, sql } from "drizzle-orm";
 import { generateEarsRequirements, formatRequirementsAsMarkdown, type GeneratedSpec } from "./earsGenerator";
+import { analyzeCodebase, generateDesign, formatDesignAsMarkdown, type DesignRecommendation } from "./codebaseAnalysis";
+import { breakdownDesign, formatTaskBreakdownAsMarkdown, type TaskBreakdownResult } from "./taskBreakdown";
+import { getImplementationProgress, createCardsFromTasks } from "./implementationService";
 
 // Zod schemas for validation
 const requirementSchema = z.object({
   id: z.string(),
-  type: z.enum(["ubiquitous", "event_driven", "state_driven", "optional", "complex"]),
-  text: z.string(),
+  type: z.enum(["ubiquitous", "event_driven", "state_driven", "optional", "unwanted", "complex"]),
+  precondition: z.string().optional(),
+  trigger: z.string().optional(),
+  system: z.string(),
+  response: z.string(),
+  rawText: z.string(),
   rationale: z.string().optional(),
   acceptanceCriteria: z.array(z.string()).optional()
 });
@@ -266,15 +273,26 @@ export const specsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
         const slug = generateSlug(generated.title);
         
+        // Transform requirements to match the enhanced schema
+        const transformedRequirements = generated.requirements.map(req => ({
+          ...req,
+          system: req.system || "the system",
+          response: req.response || req.text,
+          rawText: req.text
+        }));
+        
         const [result] = await db.insert(specs).values({
           projectId: input.projectId,
           userId: ctx.user.id,
           title: generated.title,
           slug,
           overview: generated.overview,
-          requirements: generated.requirements,
+          requirements: transformedRequirements,
           technicalDesign: generated.technicalConsiderations,
           status: "draft",
+          phase: "specify",
+          phaseStatus: "draft",
+          originalPrompt: input.prompt,
           currentVersion: 1
         });
         
@@ -283,7 +301,7 @@ export const specsRouter = router({
           version: 1,
           title: generated.title,
           overview: generated.overview,
-          requirements: generated.requirements,
+          requirements: transformedRequirements,
           technicalDesign: generated.technicalConsiderations,
           changeType: "created",
           changeSummary: "Generated from prompt",
@@ -487,5 +505,289 @@ export const specsRouter = router({
         .where(eq(specComments.id, input.commentId));
       
       return { resolved: !comment.resolved };
+    }),
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // DESIGN PHASE
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // Analyze codebase for a project
+  analyzeCodebase: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      return await analyzeCodebase(input.projectId);
+    }),
+
+  // Generate technical design from requirements
+  generateDesign: protectedProcedure
+    .input(z.object({
+      specId: z.number(),
+      focusAreas: z.array(z.string()).optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Get the spec
+      const [spec] = await db.select().from(specs).where(eq(specs.id, input.specId));
+      if (!spec) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Spec not found" });
+      }
+
+      // Get codebase analysis
+      const codebaseAnalysis = await analyzeCodebase(spec.projectId);
+
+      // Extract requirements
+      const requirements = ((spec.requirements as any[]) || []).map((r: any) => ({
+        id: r.id,
+        type: r.type,
+        rawText: r.rawText || r.text,
+        acceptanceCriteria: r.acceptanceCriteria
+      }));
+
+      // Generate design
+      const design = await generateDesign(requirements, codebaseAnalysis, {
+        projectName: spec.title,
+        focusAreas: input.focusAreas
+      });
+
+      // Update spec with design
+      await db.update(specs)
+        .set({
+          technicalDesign: formatDesignAsMarkdown(design),
+          dataModel: design.dataModel.mermaidER,
+          apiDesign: JSON.stringify(design.apiDesign),
+          fileManifest: design.fileManifest,
+          phase: "design",
+          phaseStatus: "draft",
+          updatedAt: new Date()
+        })
+        .where(eq(specs.id, input.specId));
+
+      return design;
+    }),
+
+  // Get design as Markdown
+  getDesignAsMarkdown: protectedProcedure
+    .input(z.object({ specId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const [spec] = await db.select().from(specs).where(eq(specs.id, input.specId));
+      if (!spec) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Spec not found" });
+      }
+
+      return spec.technicalDesign || "No design generated yet.";
+    }),
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // TASKS PHASE
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // Break down design into tasks
+  breakdownIntoTasks: protectedProcedure
+    .input(z.object({
+      specId: z.number(),
+      maxTaskHours: z.number().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Get the spec
+      const [spec] = await db.select().from(specs).where(eq(specs.id, input.specId));
+      if (!spec) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Spec not found" });
+      }
+
+      // Parse design from spec
+      let design: DesignRecommendation;
+      try {
+        const apiDesign = spec.apiDesign ? JSON.parse(spec.apiDesign) : { newEndpoints: [], modifiedEndpoints: [] };
+        design = {
+          dataModel: {
+            newTables: [],
+            modifiedTables: [],
+            mermaidER: spec.dataModel || ""
+          },
+          apiDesign,
+          componentDesign: {
+            newComponents: [],
+            modifiedComponents: []
+          },
+          fileManifest: (spec.fileManifest as any[]) || [],
+          diagrams: []
+        };
+      } catch {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid design data in spec" });
+      }
+
+      // Extract requirements
+      const requirements = ((spec.requirements as any[]) || []).map((r: any) => ({
+        id: r.id,
+        rawText: r.rawText || r.text
+      }));
+
+      // Break down into tasks
+      const taskBreakdown = await breakdownDesign(design, requirements, {
+        maxTaskHours: input.maxTaskHours
+      });
+
+      // Update spec with task breakdown - map blocked status to pending for schema compatibility
+      const tasksForDb = taskBreakdown.tasks.map(t => ({
+        ...t,
+        status: t.status === "blocked" ? "pending" as const : t.status
+      }));
+      await db.update(specs)
+        .set({
+          taskBreakdown: tasksForDb,
+          phase: "tasks",
+          phaseStatus: "draft",
+          estimatedHours: taskBreakdown.totalEstimatedHours,
+          updatedAt: new Date()
+        })
+        .where(eq(specs.id, input.specId));
+
+      return taskBreakdown;
+    }),
+
+  // Get task breakdown as Markdown
+  getTaskBreakdownAsMarkdown: protectedProcedure
+    .input(z.object({ specId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const [spec] = await db.select().from(specs).where(eq(specs.id, input.specId));
+      if (!spec) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Spec not found" });
+      }
+
+      if (!spec.taskBreakdown) {
+        return "No task breakdown generated yet.";
+      }
+
+      // Reconstruct TaskBreakdownResult for formatting
+      const tasks = spec.taskBreakdown as any[];
+      const result: TaskBreakdownResult = {
+        tasks: tasks.map(t => ({ ...t, status: "pending" as const })),
+        dependencyGraph: { nodes: [], edges: [] },
+        criticalPath: [],
+        totalEstimatedHours: tasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0),
+        parallelizableTasks: [],
+        mermaidDiagram: ""
+      };
+
+      return formatTaskBreakdownAsMarkdown(result);
+    }),
+
+  // Create Kanban cards from tasks
+  createCardsFromSpec: protectedProcedure
+    .input(z.object({
+      specId: z.number(),
+      boardId: z.number(),
+      columnId: z.number()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      // Get the spec
+      const [spec] = await db.select().from(specs).where(eq(specs.id, input.specId));
+      if (!spec) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Spec not found" });
+      }
+
+      if (!spec.taskBreakdown) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No task breakdown available" });
+      }
+
+      const tasks = (spec.taskBreakdown as any[]).map(t => ({
+        ...t,
+        status: "pending" as const
+      }));
+
+      const cardIds = await createCardsFromTasks(
+        input.specId,
+        spec.projectId,
+        input.boardId,
+        input.columnId,
+        tasks
+      );
+
+      // Update spec phase
+      await db.update(specs)
+        .set({
+          phase: "implement",
+          phaseStatus: "pending_review",
+          updatedAt: new Date()
+        })
+        .where(eq(specs.id, input.specId));
+
+      return { cardIds, count: cardIds.length };
+    }),
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // IMPLEMENT PHASE
+  // ════════════════════════════════════════════════════════════════════════════
+
+  // Get implementation progress
+  getImplementationProgress: protectedProcedure
+    .input(z.object({ specId: z.number() }))
+    .query(async ({ input }) => {
+      return await getImplementationProgress(input.specId);
+    }),
+
+  // Advance spec to next phase
+  advancePhase: protectedProcedure
+    .input(z.object({
+      specId: z.number(),
+      approve: z.boolean().default(true)
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      const [spec] = await db.select().from(specs).where(eq(specs.id, input.specId));
+      if (!spec) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Spec not found" });
+      }
+
+      if (!input.approve) {
+        // Send back to previous phase
+        const phaseOrder = ["specify", "design", "tasks", "implement", "complete"];
+        const currentIndex = phaseOrder.indexOf(spec.phase || "specify");
+        const prevPhase = currentIndex > 0 ? phaseOrder[currentIndex - 1] : "specify";
+
+        await db.update(specs)
+          .set({
+            phase: prevPhase as any,
+            phaseStatus: "rejected",
+            updatedAt: new Date()
+          })
+          .where(eq(specs.id, input.specId));
+
+        return { phase: prevPhase, status: "revision_needed" };
+      }
+
+      // Advance to next phase
+      const phaseOrder = ["specify", "design", "tasks", "implement", "complete"];
+      const currentIndex = phaseOrder.indexOf(spec.phase || "specify");
+      const nextPhase = currentIndex < phaseOrder.length - 1 
+        ? phaseOrder[currentIndex + 1] 
+        : "complete";
+
+      await db.update(specs)
+        .set({
+          phase: nextPhase as any,
+          phaseStatus: nextPhase === "complete" ? "approved" : "draft",
+          status: nextPhase === "complete" ? "implemented" : spec.status,
+          updatedAt: new Date()
+        })
+        .where(eq(specs.id, input.specId));
+
+      return { phase: nextPhase, status: "approved" };
     })
 });

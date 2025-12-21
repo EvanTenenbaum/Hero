@@ -1264,6 +1264,7 @@ export type InsertContextIndexStatus = typeof contextIndexStatus.$inferInsert;
 
 /**
  * Specs - Feature specifications with EARS format requirements
+ * Implements the Prompt-to-Plan workflow: Specify → Design → Tasks → Implement
  */
 export const specs = mysqlTable("specs", {
   id: int("id").primaryKey().autoincrement(),
@@ -1273,27 +1274,94 @@ export const specs = mysqlTable("specs", {
   // Spec metadata
   title: varchar("title", { length: 500 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull(),
+  
+  // Workflow phase tracking
+  phase: mysqlEnum("phase", ["specify", "design", "tasks", "implement", "complete"]).default("specify").notNull(),
+  phaseStatus: mysqlEnum("phaseStatus", ["draft", "pending_review", "approved", "rejected"]).default("draft").notNull(),
+  
+  // Overall status
   status: mysqlEnum("status", ["draft", "review", "approved", "implemented", "archived"]).default("draft").notNull(),
   priority: mysqlEnum("priority", ["critical", "high", "medium", "low"]).default("medium").notNull(),
   
-  // EARS-format content sections
+  // Original user prompt
+  originalPrompt: text("originalPrompt"),
+  
+  // SPECIFY PHASE: EARS-format requirements
   overview: text("overview"),
   requirements: json("requirements").$type<{
     id: string;
-    type: "ubiquitous" | "event_driven" | "state_driven" | "optional" | "complex";
-    text: string;
+    type: "ubiquitous" | "event_driven" | "state_driven" | "optional" | "unwanted" | "complex";
+    precondition?: string;
+    trigger?: string;
+    system: string;
+    response: string;
+    rawText: string;
     rationale?: string;
     acceptanceCriteria?: string[];
   }[]>(),
   
-  // Technical design
+  // Intent clarification history
+  clarifications: json("clarifications").$type<{
+    question: string;
+    answer: string;
+    timestamp: number;
+  }[]>(),
+  
+  // DESIGN PHASE: Technical design
   technicalDesign: text("technicalDesign"),
   dataModel: text("dataModel"),
   apiDesign: text("apiDesign"),
+  
+  // Mermaid diagrams
+  diagrams: json("diagrams").$type<{
+    type: "er" | "sequence" | "flow" | "class";
+    title: string;
+    mermaidCode: string;
+  }[]>(),
+  
+  // File change manifest
+  fileManifest: json("fileManifest").$type<{
+    action: "create" | "modify" | "delete";
+    path: string;
+    description: string;
+    estimatedLines?: number;
+  }[]>(),
+  
   uiMockups: json("uiMockups").$type<{
     name: string;
     description: string;
     imageUrl?: string;
+  }[]>(),
+  
+  // TASKS PHASE: Task breakdown
+  taskBreakdown: json("taskBreakdown").$type<{
+    id: string;
+    title: string;
+    description: string;
+    requirementIds: string[];
+    dependencies: string[];
+    estimatedHours: number;
+    assignedAgentType?: string;
+    status: "pending" | "in_progress" | "completed";
+  }[]>(),
+  
+  // Dependency graph (adjacency list)
+  dependencyGraph: json("dependencyGraph").$type<{
+    nodes: { id: string; label: string; type: string }[];
+    edges: { from: string; to: string; type: string }[];
+  }>(),
+  
+  // IMPLEMENT PHASE: Execution tracking
+  implementationProgress: json("implementationProgress").$type<{
+    taskId: string;
+    status: "pending" | "executing" | "completed" | "failed";
+    startedAt?: number;
+    completedAt?: number;
+    executionId?: number;
+    verificationResult?: {
+      passed: boolean;
+      issues: string[];
+    };
   }[]>(),
   
   // Implementation tracking
@@ -1306,6 +1374,15 @@ export const specs = mysqlTable("specs", {
   
   // Version control
   currentVersion: int("currentVersion").default(1).notNull(),
+  
+  // Phase approval history
+  approvalHistory: json("approvalHistory").$type<{
+    phase: string;
+    action: "approved" | "rejected" | "edited";
+    feedback?: string;
+    userId: number;
+    timestamp: number;
+  }[]>(),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
