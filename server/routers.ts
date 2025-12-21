@@ -6,6 +6,7 @@ import { driveRouter } from './drive/router';
 import { codebaseRouter } from './codebase/router';
 import { contextRouter } from './context/router';
 import { specsRouter } from './specs/router';
+import { githubRouter as githubApiRouter } from './github/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -1458,7 +1459,7 @@ export const appRouter = router({
   chat: chatRouter,
   chatAgent: chatAgentRouter,
   agents: agentsRouter,
-  github: githubRouter,
+  github: githubApiRouter,
   settings: settingsRouter,
   budget: budgetRouter,
   governance: governanceRouter,

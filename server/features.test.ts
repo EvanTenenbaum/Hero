@@ -34,26 +34,26 @@ function createAuthContext(): TrpcContext {
 }
 
 describe("GitHub Integration", () => {
-  describe("github.connection", () => {
-    it("returns null when no GitHub connection exists", async () => {
+  describe("github.getConnection", () => {
+    it("returns not connected when no GitHub connection exists", async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
       
-      const result = await caller.github.connection();
+      const result = await caller.github.getConnection();
       
-      // Should return null or undefined for new users
-      expect(result).toBeFalsy();
+      // Should return connected: false for new users
+      expect(result.connected).toBe(false);
+      expect(result.username).toBeNull();
     });
   });
 
-  describe("github.repositories", () => {
-    it("returns empty array when not connected to GitHub", async () => {
+  describe("github.listRepos", () => {
+    it("throws error when not connected to GitHub", async () => {
       const ctx = createAuthContext();
       const caller = appRouter.createCaller(ctx);
       
-      const result = await caller.github.repositories({ page: 1 });
-      expect(result.repositories).toEqual([]);
-      expect(result.hasMore).toBe(false);
+      // Should throw because user is not connected to GitHub
+      await expect(caller.github.listRepos({})).rejects.toThrow("GitHub not connected");
     });
   });
 

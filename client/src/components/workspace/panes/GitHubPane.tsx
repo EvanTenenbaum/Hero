@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,7 +10,6 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Github, Folder, FileCode, ChevronRight, RefreshCw, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
 
 interface GitHubPaneProps {
   owner?: string;
@@ -21,8 +19,9 @@ interface GitHubPaneProps {
 }
 
 interface FileTreeItem {
+  name: string;
   path: string;
-  type: "blob" | "tree";
+  type: "file" | "dir";
   sha: string;
   size?: number;
 }
@@ -35,36 +34,41 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   // Check GitHub connection
-  const { data: connection, isLoading: connectionLoading } = trpc.github.connection.useQuery();
+  const { data: connectionData, isLoading: connectionLoading } = trpc.github.getConnection.useQuery();
+  const connection = connectionData?.connected ? connectionData : null;
   
   // Fetch repositories
-  const { data: reposData, isLoading: reposLoading } = trpc.github.repositories.useQuery(
-    undefined,
+  const { data: repos, isLoading: reposLoading } = trpc.github.listRepos.useQuery(
+    { sort: "updated" },
     { enabled: !!connection }
   );
-  const repos = reposData?.repositories;
 
-  // Fetch file tree (full tree, filter client-side)
-  const { data: fullTree, isLoading: treeLoading, refetch: refetchTree } = trpc.github.getFileTree.useQuery(
-    { owner: selectedOwner, repo: selectedRepo, branch: selectedBranch },
+  // Fetch branches
+  const { data: branches } = trpc.github.listBranches.useQuery(
+    { owner: selectedOwner, repo: selectedRepo },
     { enabled: !!selectedOwner && !!selectedRepo && !!connection }
   );
 
-  // Filter tree to show only items in current path
-  const fileTree = fullTree?.filter(item => {
-    if (!currentPath) {
-      // Root level: show items without slashes or first level only
-      return !item.path.includes("/");
-    }
-    // Show items that start with currentPath/ but don't have further slashes
-    if (!item.path.startsWith(currentPath + "/")) return false;
-    const remainder = item.path.slice(currentPath.length + 1);
-    return !remainder.includes("/");
-  });
+  // Fetch directory contents
+  const { data: contents, isLoading: contentsLoading, refetch: refetchContents } = trpc.github.getContents.useQuery(
+    { owner: selectedOwner, repo: selectedRepo, path: currentPath, ref: selectedBranch },
+    { enabled: !!selectedOwner && !!selectedRepo && !!connection }
+  );
+
+  // Convert contents to file tree items
+  const fileTree: FileTreeItem[] = Array.isArray(contents) 
+    ? contents.map(item => ({
+        name: item.name,
+        path: item.path,
+        type: item.type === "dir" ? "dir" : "file",
+        sha: item.sha,
+        size: item.size,
+      }))
+    : [];
 
   // Fetch file content
   const { data: fileContent, isLoading: contentLoading } = trpc.github.getFileContent.useQuery(
-    { owner: selectedOwner, repo: selectedRepo, branch: selectedBranch, path: selectedFile! },
+    { owner: selectedOwner, repo: selectedRepo, path: selectedFile!, ref: selectedBranch },
     { enabled: !!selectedFile && !!selectedOwner && !!selectedRepo }
   );
 
@@ -82,21 +86,17 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
       setSelectedRepo(parts[1]);
       setCurrentPath("");
       setSelectedFile(null);
+      setSelectedBranch("main");
     }
   };
 
   const handleItemClick = (item: FileTreeItem) => {
-    if (item.type === "tree") {
+    if (item.type === "dir") {
       setCurrentPath(item.path);
       setSelectedFile(null);
     } else {
       setSelectedFile(item.path);
     }
-  };
-
-  const getFileName = (path: string) => {
-    const parts = path.split("/");
-    return parts[parts.length - 1];
   };
 
   const handleNavigateUp = () => {
@@ -121,7 +121,8 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
         <p className="text-sm text-muted-foreground text-center mb-4">
           Connect your GitHub account to browse repositories
         </p>
-        <Button onClick={() => window.open("/api/github/auth", "_blank")}>
+        <p className="text-xs text-muted-foreground mb-4">GitHub OAuth Coming Soon</p>
+        <Button disabled>
           <Github className="w-4 h-4 mr-2" />
           Connect GitHub
         </Button>
@@ -143,17 +144,31 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
           </SelectTrigger>
           <SelectContent>
             {repos?.map((r) => (
-              <SelectItem key={r.id} value={r.fullName}>
-                {r.fullName}
+              <SelectItem key={r.id} value={r.full_name}>
+                {r.full_name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {branches && branches.length > 0 && (
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <SelectTrigger className="w-32 h-8">
+              <SelectValue placeholder="Branch" />
+            </SelectTrigger>
+            <SelectContent>
+              {branches.map((b) => (
+                <SelectItem key={b.name} value={b.name}>
+                  {b.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Button
           size="icon"
           variant="ghost"
           className="h-8 w-8"
-          onClick={() => refetchTree()}
+          onClick={() => refetchContents()}
           disabled={!selectedRepo}
         >
           <RefreshCw className="h-4 w-4" />
@@ -193,7 +208,7 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
 
           {/* File list */}
           <ScrollArea className="flex-1">
-            {treeLoading ? (
+            {contentsLoading ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 Loading...
               </div>
@@ -212,22 +227,29 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
                     <span>..</span>
                   </button>
                 )}
-                {fileTree?.map((item) => (
-                  <button
-                    key={item.path}
-                    className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-muted text-left ${
-                      selectedFile === item.path ? "bg-muted" : ""
-                    }`}
-                    onClick={() => handleItemClick(item)}
-                  >
-                    {item.type === "tree" ? (
-                      <Folder className="w-4 h-4 text-blue-400" />
-                    ) : (
-                      <FileCode className="w-4 h-4 text-muted-foreground" />
-                    )}
-                    <span className="truncate">{getFileName(item.path)}</span>
-                  </button>
-                ))}
+                {fileTree
+                  .sort((a, b) => {
+                    // Directories first, then files
+                    if (a.type === "dir" && b.type !== "dir") return -1;
+                    if (a.type !== "dir" && b.type === "dir") return 1;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((item) => (
+                    <button
+                      key={item.path}
+                      className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-muted text-left ${
+                        selectedFile === item.path ? "bg-muted" : ""
+                      }`}
+                      onClick={() => handleItemClick(item)}
+                    >
+                      {item.type === "dir" ? (
+                        <Folder className="w-4 h-4 text-blue-400" />
+                      ) : (
+                        <FileCode className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className="truncate">{item.name}</span>
+                    </button>
+                  ))}
               </div>
             )}
           </ScrollArea>

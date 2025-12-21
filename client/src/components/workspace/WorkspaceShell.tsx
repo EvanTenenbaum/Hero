@@ -21,6 +21,8 @@ import {
   Calendar,
   List,
   GanttChart,
+  FileText,
+  Search,
 } from "lucide-react";
 import { ContentPane } from "./ContentPane";
 import { AgentPanel } from "./AgentPanel";
@@ -82,6 +84,18 @@ export function WorkspaceShell() {
       icon: <Globe className="w-5 h-5" />,
       label: "Browser",
       action: () => setPaneContent(state.activePaneIndex as 0 | 1 | 2, { type: "browser" }),
+    },
+    {
+      id: "spec",
+      icon: <FileText className="w-5 h-5" />,
+      label: "Specs",
+      action: () => setPaneContent(state.activePaneIndex as 0 | 1 | 2, { type: "spec" }),
+    },
+    {
+      id: "search",
+      icon: <Search className="w-5 h-5" />,
+      label: "Search",
+      action: () => setPaneContent(state.activePaneIndex as 0 | 1 | 2, { type: "search" }),
     },
   ];
 

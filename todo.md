@@ -701,3 +701,31 @@
 - [x] 3.1.8 Wire PM Agent to generate specs
 - [x] 3.1.9 Write unit tests for specs
 - [x] Sprint 3 Red Team QA
+
+
+## Roadmap Addition - Flexible Pane Architecture
+- [ ] Add Feature 9: Flexible Pane Architecture to BETA_ROADMAP.md
+
+
+## SpecPanel Integration into IDE Workspace
+- [x] Add 'spec' as a new pane type in workspace
+- [x] Create SpecPane wrapper component
+- [x] Register spec pane in pane registry
+- [x] Add spec icon to pane selector
+- [x] Test spec pane in workspace
+
+
+## Sprint 4: GitHub Integration - Dec 20, 2025
+- [x] 4.1.1 Create GitHub OAuth configuration
+- [x] 4.1.2 Build OAuth callback handler
+- [x] 4.1.3 Store GitHub tokens securely
+- [x] 4.1.4 Create repository listing API
+- [x] 4.1.5 Build file tree browser component
+- [x] 4.1.6 Implement file content viewer
+- [x] 4.1.7 Add commit history view
+- [x] 4.1.8 Create branch selector
+- [x] 4.1.9 Write unit tests for GitHub integration (30 tests)
+- [x] 4.1.10 Add file update/delete mutations
+- [x] 4.1.11 Add PR listing and creation APIs
+- [x] 4.1.12 Add GitHub settings tab with OAuth UI
+- [x] Sprint 4 Red Team QA

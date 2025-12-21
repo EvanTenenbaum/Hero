@@ -34,7 +34,6 @@ import {
   GitBranch,
   FolderGit2,
   Save,
-  Plus,
   X,
   FileCode,
   MessageSquare,
@@ -66,6 +65,15 @@ interface Repository {
   ownerAvatar: string;
 }
 
+interface GitHubBranch {
+  name: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
+  protected: boolean;
+}
+
 export default function Workspace() {
   const params = useParams<{ owner?: string; repo?: string }>();
   const [, navigate] = useLocation();
@@ -83,14 +91,14 @@ export default function Workspace() {
   const repo = params.repo || selectedRepo?.name || "";
 
   // Fetch branches when repo is selected
-  const { data: branches } = trpc.github.getBranches.useQuery(
+  const { data: branches } = trpc.github.listBranches.useQuery(
     { owner, repo },
     { enabled: !!owner && !!repo }
   );
 
   // Fetch file content when a file is selected
   const fileContentQuery = trpc.github.getFileContent.useQuery(
-    { owner, repo, path: activeFilePath || "", branch: selectedBranch || undefined },
+    { owner, repo, path: activeFilePath || "", ref: selectedBranch || undefined },
     { enabled: !!owner && !!repo && !!activeFilePath && !openFiles.find(f => f.path === activeFilePath) }
   );
 
@@ -220,7 +228,7 @@ export default function Workspace() {
                       <SelectValue placeholder="Select branch" />
                     </SelectTrigger>
                     <SelectContent>
-                      {branches.map((branch) => (
+                      {branches.map((branch: GitHubBranch) => (
                         <SelectItem key={branch.name} value={branch.name}>
                           {branch.name}
                           {branch.protected && (
@@ -379,14 +387,8 @@ export default function Workspace() {
                 onClick={handleConfirmSave}
                 disabled={!commitMessage.trim() || updateFileMutation.isPending}
               >
-                {updateFileMutation.isPending ? (
-                  "Saving..."
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Commit
-                  </>
-                )}
+                <Save className="w-4 h-4 mr-2" />
+                Commit
               </Button>
             </DialogFooter>
           </DialogContent>

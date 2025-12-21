@@ -11,7 +11,7 @@ export default function GitHubCallback() {
   const [, navigate] = useLocation();
   const [error, setError] = useState<string | null>(null);
   
-  const connectMutation = trpc.github.connect.useMutation({
+  const handleCallbackMutation = trpc.github.handleCallback.useMutation({
     onSuccess: () => {
       navigate("/settings?tab=github&connected=true");
     },
@@ -33,29 +33,14 @@ export default function GitHubCallback() {
       return;
     }
 
-    if (!code) {
-      setError("No authorization code received");
+    if (!code || !state) {
+      setError("No authorization code or state received");
       return;
     }
 
-    // Exchange the code for an access token
-    // Note: In production, this should be done server-side
-    // For now, we'll simulate with a placeholder
-    // The actual OAuth flow would require a GitHub OAuth App
-    
-    // Simulated token exchange - in production, call a server endpoint
-    const exchangeCode = async () => {
-      try {
-        // This would normally be a server-side call to exchange the code
-        // For demonstration, we'll show the flow
-        setError("GitHub OAuth requires server-side token exchange. Please configure your GitHub OAuth App credentials in Settings.");
-      } catch (err: any) {
-        setError(err.message || "Failed to exchange authorization code");
-      }
-    };
-
-    exchangeCode();
-  }, [connectMutation, navigate]);
+    // Exchange the code for an access token via tRPC
+    handleCallbackMutation.mutate({ code, state });
+  }, []);
 
   if (error) {
     return (

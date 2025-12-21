@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Settings as SettingsIcon, Key, Shield, Bot, Bell, Loader2, Plus, Trash2, Eye, EyeOff, DollarSign } from "lucide-react";
+import { Settings as SettingsIcon, Key, Shield, Bot, Bell, Loader2, Plus, Trash2, Eye, EyeOff, DollarSign, Github, ExternalLink, Check, X } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "wouter";
 import { toast } from "sonner";
@@ -41,6 +41,9 @@ export default function Settings() {
             <TabsTrigger value="budget" className="data-[state=active]:bg-violet-600">
               <DollarSign className="h-4 w-4 mr-2" /> Budget
             </TabsTrigger>
+            <TabsTrigger value="github" className="data-[state=active]:bg-violet-600">
+              <Github className="h-4 w-4 mr-2" /> GitHub
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -61,6 +64,10 @@ export default function Settings() {
 
           <TabsContent value="budget">
             <BudgetSettings />
+          </TabsContent>
+
+          <TabsContent value="github">
+            <GitHubSettings />
           </TabsContent>
         </Tabs>
       </div>
@@ -388,6 +395,146 @@ function BudgetSettings() {
       </CardHeader>
       <CardContent>
         <CostDashboard usage={usage} budget={budget} isLoading={isLoading} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function GitHubSettings() {
+  const { data: connection, isLoading, refetch } = trpc.github.getConnection.useQuery();
+  const { data: authUrl } = trpc.github.getAuthUrl.useQuery(undefined, {
+    enabled: !connection?.connected,
+  });
+  const disconnectMutation = trpc.github.disconnect.useMutation({
+    onSuccess: () => {
+      toast.success("GitHub disconnected");
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  if (isLoading) {
+    return <SettingsLoader />;
+  }
+
+  return (
+    <Card className="bg-slate-900/50 border-slate-800">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Github className="h-5 w-5" />
+          GitHub Integration
+        </CardTitle>
+        <CardDescription className="text-slate-400">
+          Connect your GitHub account to browse repositories, view files, and make changes directly from Hero IDE.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {connection?.connected ? (
+          <>
+            {/* Connected state */}
+            <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <Check className="h-5 w-5 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-green-400">Connected to GitHub</p>
+                    <p className="text-sm text-slate-400">Logged in as @{connection.username}</p>
+                  </div>
+                </div>
+                <a
+                  href={`https://github.com/${connection.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-white"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* Permissions info */}
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <h4 className="text-sm font-medium text-slate-300 mb-3">Permissions Granted</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  Read access to repositories
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  Write access to repository contents
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  Create and manage pull requests
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  Create and manage branches
+                </li>
+              </ul>
+            </div>
+
+            {/* Disconnect button */}
+            <Button
+              variant="outline"
+              className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+            >
+              {disconnectMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <X className="h-4 w-4 mr-2" />
+              )}
+              Disconnect GitHub
+            </Button>
+          </>
+        ) : (
+          <>
+            {/* Not connected state */}
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center">
+                  <Github className="h-5 w-5 text-slate-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-300">Not Connected</p>
+                  <p className="text-sm text-slate-500">Connect your GitHub account to get started</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm text-slate-400 mb-4">
+                <p>By connecting your GitHub account, you will be able to:</p>
+                <ul className="space-y-2 ml-4">
+                  <li>• Browse and search your repositories</li>
+                  <li>• View and edit files directly in Hero IDE</li>
+                  <li>• Create commits and push changes</li>
+                  <li>• Manage branches and pull requests</li>
+                  <li>• Let AI agents work with your codebase</li>
+                </ul>
+              </div>
+
+              {authUrl?.url ? (
+                <Button
+                  className="bg-[#24292f] hover:bg-[#32383f] text-white"
+                  onClick={() => window.location.href = authUrl.url}
+                >
+                  <Github className="h-4 w-4 mr-2" />
+                  Connect with GitHub
+                </Button>
+              ) : (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <p className="text-sm text-amber-400">
+                    GitHub OAuth is not configured. Please set up GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables.
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

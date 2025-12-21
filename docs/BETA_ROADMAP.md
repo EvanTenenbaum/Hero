@@ -10,9 +10,9 @@
 
 This roadmap outlines the path from Hero IDE's current state to a complete beta release. The platform already has a solid foundation including authentication, chat with 5 agent types, Kanban boards, metrics tracking, and governance systems. The beta milestone focuses on completing the **Prompt-to-Plan** workflow, enhancing **GitHub integration**, and building a robust **Context Engine** for codebase-aware AI assistance.
 
-**Estimated Timeline:** 18 weeks  
-**Total Major Features:** 9  
-**Total Subtasks:** 152
+**Estimated Timeline:** 19 weeks  
+**Total Major Features:** 10  
+**Total Subtasks:** 153
 
 ---
 
@@ -362,7 +362,45 @@ Dense information is acceptable when context demands it (debugging, reviewing di
 
 ---
 
-## Feature 9: Polish & Beta Preparation
+## Feature 9: Flexible Pane Architecture
+
+**Priority:** High  
+**Duration:** 1 week  
+**Dependencies:** Feature 1 (Context Engine), Feature 2 (Prompt-to-Plan)
+
+**Design Principle:** Functionality and efficiency always win over aesthetics. This feature enhances power-user workflows by allowing any module to be loaded in any pane, rather than having dedicated single-purpose panes.
+
+Transform the workspace from fixed pane types to a dynamic module system where each pane can host any available module (Spec, Roadmap, Google Drive, GitHub, Agent Chat, Board, Browser, Editor, etc.).
+
+### 9.1 Pane Module System (Week 17)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| 9.1.1 | Design module registry interface for all workspace modules | 3h | [ ] |
+| 9.1.2 | Create `PaneModuleSelector` dropdown component | 4h | [ ] |
+| 9.1.3 | Refactor existing panes (Board, GitHub, Browser) into standalone modules | 6h | [ ] |
+| 9.1.4 | Add Spec module for viewing/editing specifications | 4h | [ ] |
+| 9.1.5 | Add Roadmap module for viewing project roadmap | 3h | [ ] |
+| 9.1.6 | Add Google Drive module for file browsing | 4h | [ ] |
+| 9.1.7 | Add Agent Chat module (embed chat in any pane) | 4h | [ ] |
+| 9.1.8 | Add CodeSearch module for context engine search | 3h | [ ] |
+| 9.1.9 | Implement pane state persistence (remember module selection) | 3h | [ ] |
+| 9.1.10 | Add keyboard shortcuts for quick module switching | 2h | [ ] |
+| 9.1.11 | Write unit tests for module registry | 4h | [ ] |
+
+### 9.2 Module Communication (Week 17)
+
+| Task | Description | Effort | Status |
+|------|-------------|--------|--------|
+| 9.2.1 | Create inter-pane message bus for module communication | 4h | [ ] |
+| 9.2.2 | Implement "Open in Pane" action from any module | 3h | [ ] |
+| 9.2.3 | Add drag-and-drop to move content between panes | 4h | [ ] |
+| 9.2.4 | Support linked panes (e.g., spec in pane 1 → tasks in pane 2) | 4h | [ ] |
+| 9.2.5 | Add pane presets (save/load workspace configurations) | 3h | [ ] |
+
+---
+
+## Feature 10: Polish & Beta Preparation
 
 **Priority:** High  
 **Duration:** 1 week  
@@ -485,9 +523,11 @@ Week 17-18: Polish & Beta Preparation
 | Cost Management | 7 | 29h |
 | Editor Enhancements | 6 | 31h |
 | Calm-Leaning UX Design | 32 | 106h |
+| Flexible Pane Architecture | 16 | 58h |
 | Polish & Beta | 8 | 44h |
-| **Total** | **137** | **567h** |
+| **Total** | **153** | **625h** |
 
-*Note: Additional 20% buffer recommended for unforeseen issues = ~113h*
+*Note: Additional 20% buffer recommended for unforeseen issues = ~125h*
 
-**Total Estimated Effort: 680 hours (~18 weeks at 40h/week)**
+**Total Estimated Effort: 750 hours (~19 weeks at 40h/week)**
+

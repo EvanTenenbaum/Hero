@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PaneContentType } from "@/hooks/useWorkspaceState";
-import { Columns3, Github, Code2, Globe, Square, HardDrive } from "lucide-react";
+import { Columns3, Github, Code2, Globe, Square, HardDrive, FileText, Search } from "lucide-react";
 
 interface PaneSelectorProps {
   value: PaneContentType;
@@ -20,6 +20,8 @@ const PANE_OPTIONS: { value: PaneContentType; label: string; icon: React.ReactNo
   { value: 'editor', label: 'Editor', icon: <Code2 className="w-4 h-4" /> },
   { value: 'browser', label: 'Browser', icon: <Globe className="w-4 h-4" /> },
   { value: 'drive', label: 'Drive', icon: <HardDrive className="w-4 h-4" /> },
+  { value: 'spec', label: 'Specs', icon: <FileText className="w-4 h-4" /> },
+  { value: 'search', label: 'Search', icon: <Search className="w-4 h-4" /> },
   { value: 'empty', label: 'Empty', icon: <Square className="w-4 h-4" /> },
 ];
 

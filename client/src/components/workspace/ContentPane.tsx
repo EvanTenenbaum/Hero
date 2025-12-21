@@ -11,6 +11,8 @@ const GitHubContent = lazy(() => import("./panes/GitHubPane"));
 const EditorContent = lazy(() => import("./panes/EditorPane"));
 const BrowserContent = lazy(() => import("./panes/BrowserPane"));
 const DriveContent = lazy(() => import("./panes/DrivePane"));
+const SpecContent = lazy(() => import("./panes/SpecPane"));
+const SearchContent = lazy(() => import("./panes/SearchPane"));
 
 interface ContentPaneProps {
   content: PaneContent;
@@ -50,6 +52,12 @@ function EmptyPane({ onTypeChange }: { onTypeChange: (type: PaneContentType) => 
           </Button>
           <Button variant="outline" size="sm" onClick={() => onTypeChange('drive')}>
             Drive
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onTypeChange('spec')}>
+            Specs
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onTypeChange('search')}>
+            Search
           </Button>
         </div>
       </div>
@@ -115,6 +123,24 @@ export function ContentPane({
         return (
           <Suspense fallback={<PaneLoading />}>
             <DriveContent />
+          </Suspense>
+        );
+      case 'spec':
+        return (
+          <Suspense fallback={<PaneLoading />}>
+            <SpecContent
+              specId={content.specId}
+              onSpecChange={(specId: number) => onContentChange({ ...content, specId })}
+            />
+          </Suspense>
+        );
+      case 'search':
+        return (
+          <Suspense fallback={<PaneLoading />}>
+            <SearchContent
+              searchQuery={content.searchQuery}
+              onQueryChange={(query: string) => onContentChange({ ...content, searchQuery: query })}
+            />
           </Suspense>
         );
       case 'empty':

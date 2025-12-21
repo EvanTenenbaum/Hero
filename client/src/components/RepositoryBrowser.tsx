@@ -18,7 +18,6 @@ import {
   RefreshCw,
   ExternalLink,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 interface Repository {
   id: number;
@@ -37,32 +36,75 @@ interface Repository {
   ownerAvatar: string;
 }
 
+interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  private: boolean;
+  html_url: string;
+  clone_url: string;
+  default_branch: string;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  updated_at: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
 interface RepositoryBrowserProps {
   onSelectRepository?: (repo: Repository) => void;
   selectedRepoId?: number;
+}
+
+// Transform GitHub API response to our Repository interface
+function transformRepo(repo: GitHubRepo): Repository {
+  return {
+    id: repo.id,
+    name: repo.name,
+    fullName: repo.full_name,
+    description: repo.description,
+    private: repo.private,
+    htmlUrl: repo.html_url,
+    cloneUrl: repo.clone_url,
+    defaultBranch: repo.default_branch,
+    language: repo.language,
+    stars: repo.stargazers_count,
+    forks: repo.forks_count,
+    updatedAt: repo.updated_at,
+    owner: repo.owner.login,
+    ownerAvatar: repo.owner.avatar_url,
+  };
 }
 
 export function RepositoryBrowser({ onSelectRepository, selectedRepoId }: RepositoryBrowserProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data: connection, isLoading: connectionLoading } = trpc.github.connection.useQuery();
+  const { data: connectionData, isLoading: connectionLoading } = trpc.github.getConnection.useQuery();
+  const connection = connectionData?.connected ? connectionData : null;
   
-  const { data: reposData, isLoading: reposLoading, refetch } = trpc.github.repositories.useQuery(
+  const { data: reposData, isLoading: reposLoading, refetch } = trpc.github.listRepos.useQuery(
     { page, perPage: 30, sort: "updated" },
     { enabled: !!connection }
   );
 
-  const { data: searchData, isLoading: searchLoading } = trpc.github.searchRepositories.useQuery(
-    { query: `user:${connection?.githubUsername} ${searchQuery}`, page: 1, perPage: 30 },
+  const { data: searchData, isLoading: searchLoading } = trpc.github.searchRepos.useQuery(
+    { query: `user:${connection?.username} ${searchQuery}`, page: 1 },
     { enabled: !!connection && searchQuery.length > 2 }
   );
 
-  const repositories = useMemo(() => {
-    if (searchQuery.length > 2 && searchData) {
-      return searchData.repositories;
+  const repositories: Repository[] = useMemo(() => {
+    if (searchQuery.length > 2 && searchData?.items) {
+      return searchData.items.map(transformRepo);
     }
-    return reposData?.repositories || [];
+    if (reposData) {
+      return reposData.map(transformRepo);
+    }
+    return [];
   }, [searchQuery, searchData, reposData]);
 
   const isLoading = connectionLoading || reposLoading || (searchQuery.length > 2 && searchLoading);
@@ -102,15 +144,13 @@ export function RepositoryBrowser({ onSelectRepository, selectedRepoId }: Reposi
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img
-            src={`https://github.com/${connection.githubUsername}.png`}
-            alt={connection.githubUsername}
+            src={`https://github.com/${connection.username}.png`}
+            alt={connection.username || "GitHub User"}
             className="w-8 h-8 rounded-full"
           />
           <div>
-            <div className="font-medium">{connection.githubUsername}</div>
-            <div className="text-xs text-muted-foreground">
-              Connected {formatDistanceToNow(new Date(connection.createdAt), { addSuffix: true })}
-            </div>
+            <div className="font-medium">{connection.username}</div>
+            <div className="text-xs text-muted-foreground">Connected</div>
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={() => refetch()}>
@@ -143,7 +183,7 @@ export function RepositoryBrowser({ onSelectRepository, selectedRepoId }: Reposi
               {searchQuery ? "No repositories found" : "No repositories available"}
             </div>
           ) : (
-            repositories.map((repo) => (
+            repositories.map((repo: Repository) => (
               <Card
                 key={repo.id}
                 className={`cursor-pointer transition-colors hover:bg-accent/50 ${
@@ -210,7 +250,7 @@ export function RepositoryBrowser({ onSelectRepository, selectedRepoId }: Reposi
       </ScrollArea>
 
       {/* Pagination */}
-      {!searchQuery && reposData?.hasMore && (
+      {!searchQuery && reposData && reposData.length >= 30 && (
         <div className="flex justify-center gap-2">
           <Button
             variant="outline"
@@ -223,7 +263,6 @@ export function RepositoryBrowser({ onSelectRepository, selectedRepoId }: Reposi
           <Button
             variant="outline"
             size="sm"
-            disabled={!reposData.hasMore}
             onClick={() => setPage((p) => p + 1)}
           >
             Next

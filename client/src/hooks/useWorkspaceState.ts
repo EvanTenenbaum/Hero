@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-export type PaneContentType = 'board' | 'github' | 'editor' | 'browser' | 'drive' | 'empty';
+export type PaneContentType = 'board' | 'github' | 'editor' | 'browser' | 'drive' | 'spec' | 'search' | 'empty';
 
 export interface PaneContent {
   type: PaneContentType;
@@ -11,6 +11,8 @@ export interface PaneContent {
   repoOwner?: string;
   repoName?: string;
   branch?: string;
+  specId?: number;
+  searchQuery?: string;
 }
 
 export interface WorkspaceState {
