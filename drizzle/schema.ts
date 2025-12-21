@@ -1117,3 +1117,142 @@ export const boardLabels = mysqlTable("board_labels", {
 
 export type BoardLabel = typeof boardLabels.$inferSelect;
 export type InsertBoardLabel = typeof boardLabels.$inferInsert;
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONTEXT ENGINE - CODE CHUNKS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const contextChunks = mysqlTable("context_chunks", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  
+  // File information
+  filePath: varchar("filePath", { length: 1024 }).notNull(),
+  fileHash: varchar("fileHash", { length: 64 }).notNull(), // SHA-256 of file content
+  
+  // Chunk location
+  startLine: int("startLine").notNull(),
+  endLine: int("endLine").notNull(),
+  startColumn: int("startColumn").default(0),
+  endColumn: int("endColumn"),
+  
+  // Chunk type and metadata
+  chunkType: mysqlEnum("chunkType", [
+    "function",
+    "class",
+    "interface",
+    "type",
+    "component",
+    "hook",
+    "constant",
+    "import",
+    "export",
+    "comment",
+    "block",
+    "file_summary"
+  ]).notNull(),
+  
+  // Identifiers
+  name: varchar("name", { length: 255 }), // Function/class/component name
+  parentName: varchar("parentName", { length: 255 }), // Parent class/component if nested
+  
+  // Content
+  content: text("content").notNull(), // The actual code chunk
+  summary: text("summary"), // AI-generated summary of the chunk
+  
+  // Semantic information
+  language: varchar("language", { length: 50 }).default("typescript"),
+  imports: json("imports").$type<string[]>(), // Dependencies this chunk imports
+  exports: json("exports").$type<string[]>(), // What this chunk exports
+  references: json("references").$type<string[]>(), // Other chunks this references
+  
+  // Embedding for semantic search
+  embedding: json("embedding").$type<number[]>(), // Vector embedding
+  embeddingModel: varchar("embeddingModel", { length: 64 }),
+  
+  // Search optimization
+  keywords: text("keywords"), // Extracted keywords for trigram search
+  tokenCount: int("tokenCount"), // Token count for budget management
+  
+  // Metadata
+  lastIndexedAt: timestamp("lastIndexedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContextChunk = typeof contextChunks.$inferSelect;
+export type InsertContextChunk = typeof contextChunks.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONTEXT ENGINE - QUERY HISTORY
+// ════════════════════════════════════════════════════════════════════════════
+
+export const contextQueries = mysqlTable("context_queries", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  
+  // Query information
+  query: text("query").notNull(),
+  queryType: mysqlEnum("queryType", ["keyword", "semantic", "hybrid"]).default("hybrid").notNull(),
+  
+  // Query embedding for semantic search
+  queryEmbedding: json("queryEmbedding").$type<number[]>(),
+  
+  // Results
+  resultChunkIds: json("resultChunkIds").$type<number[]>(),
+  resultCount: int("resultCount").default(0),
+  
+  // Performance metrics
+  searchTimeMs: int("searchTimeMs"),
+  tokensUsed: int("tokensUsed"),
+  
+  // Feedback for ranking improvement
+  relevanceFeedback: json("relevanceFeedback").$type<Record<number, number>>(), // chunkId -> rating
+  
+  // Context
+  conversationId: int("conversationId"),
+  agentExecutionId: int("agentExecutionId"),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContextQuery = typeof contextQueries.$inferSelect;
+export type InsertContextQuery = typeof contextQueries.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONTEXT ENGINE - INDEXING STATUS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const contextIndexStatus = mysqlTable("context_index_status", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().unique(),
+  
+  // Status
+  status: mysqlEnum("status", ["idle", "indexing", "completed", "failed"]).default("idle").notNull(),
+  
+  // Progress
+  totalFiles: int("totalFiles").default(0),
+  indexedFiles: int("indexedFiles").default(0),
+  totalChunks: int("totalChunks").default(0),
+  
+  // Timing
+  lastFullIndexAt: timestamp("lastFullIndexAt"),
+  lastIncrementalAt: timestamp("lastIncrementalAt"),
+  indexDurationMs: int("indexDurationMs"),
+  
+  // Error tracking
+  lastError: text("lastError"),
+  errorCount: int("errorCount").default(0),
+  
+  // Configuration
+  excludePatterns: json("excludePatterns").$type<string[]>(), // Glob patterns to exclude
+  includePatterns: json("includePatterns").$type<string[]>(), // Glob patterns to include
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContextIndexStatus = typeof contextIndexStatus.$inferSelect;
+export type InsertContextIndexStatus = typeof contextIndexStatus.$inferInsert;

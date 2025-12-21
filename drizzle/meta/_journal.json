@@ -43,6 +43,13 @@
       "when": 1766251379035,
       "tag": "0005_remarkable_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1766278228571,
+      "tag": "0006_aberrant_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

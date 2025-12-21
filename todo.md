@@ -663,3 +663,16 @@
   - [ ] 9.3 Refactor UI components for calm aesthetics
   - [ ] 9.4 Create motion and feedback guidelines
   - [ ] 9.5 Apply design system to all major surfaces
+
+
+## Sprint 1: Context Engine Foundation (Starting Dec 20, 2025)
+- [x] 1.1.1 Create `context_chunks` database schema
+- [x] 1.1.2 Create `context_queries` database schema
+- [x] 1.1.3 Implement file watcher service
+- [x] 1.1.4 Build TypeScript semantic chunker
+- [x] 1.1.5 Build React/JSX semantic chunker
+- [x] 1.1.6 Implement chunk storage and retrieval
+- [x] 1.1.7 Add tRPC procedures for indexing
+- [x] 1.1.8 Build indexing status UI component
+- [x] 1.1.9 Write unit tests for chunking
+- [x] Sprint 1 Red Team QA
