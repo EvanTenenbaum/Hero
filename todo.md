@@ -729,3 +729,44 @@
 - [x] 4.1.11 Add PR listing and creation APIs
 - [x] 4.1.12 Add GitHub settings tab with OAuth UI
 - [x] Sprint 4 Red Team QA
+
+
+## Sprint 5: Context Engine - Dec 20, 2025
+
+### 5.1 Foundation (Existing Infrastructure Review)
+- [x] 5.1.1 Review existing context_chunks schema
+- [x] 5.1.2 Review existing chunker implementation
+- [x] 5.1.3 Review existing semantic search implementation
+- [x] 5.1.4 Review existing embedding implementation
+- [x] 5.1.5 Enhance embedding to use Gemini embedding API directly
+
+### 5.2 Gemini Embedding Integration
+- [x] 5.2.1 Implement native Gemini embedding-001 API call (768 dimensions)
+- [x] 5.2.2 Add batch embedding with rate limiting (100 batch, 100ms delay)
+- [x] 5.2.3 Implement embedding caching strategy (LRU cache, 1000 entries)
+- [x] 5.2.4 Add embedding pipeline for incremental updates
+
+### 5.3 Enhanced Semantic Search
+- [x] 5.3.1 Implement vector similarity search with cosine distance
+- [x] 5.3.2 Add hybrid search (keyword + semantic + graph) with configurable weights
+- [x] 5.3.3 Implement context ranking with relevance scoring
+- [x] 5.3.4 Add token budget management (knapsack selection with diversity)
+
+### 5.4 Context Retrieval Service
+- [x] 5.4.1 Implement multi-retriever architecture (keyword, semantic, graph)
+- [x] 5.4.2 Add file proximity and recency weighting
+- [x] 5.4.3 Implement import graph analysis for related code
+- [x] 5.4.4 Add context formatting (markdown, compact, XML formats)
+
+### 5.5 Context Engine UI
+- [x] 5.5.1 Enhanced IndexingStatus component with progress
+- [x] 5.5.2 Create ContextSearch component with filters and weight sliders
+- [x] 5.5.3 Add ContextPreview panel with format tabs
+- [x] 5.5.4 Add tRPC endpoints for context retrieval
+
+### 5.6 Testing & QA
+- [x] 5.6.1 Write unit tests for embedding service (15 tests)
+- [x] 5.6.2 Write unit tests for hybrid search (12 tests)
+- [x] 5.6.3 Write unit tests for context service (18 tests)
+- [x] 5.6.4 Write unit tests for context router (6 tests)
+- [x] Sprint 5 Red Team QA (407 total tests passing)
