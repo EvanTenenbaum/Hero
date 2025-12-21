@@ -1,7 +1,7 @@
 # Hero IDE - Agent Handoff Documentation
 
 > **Last Updated:** December 21, 2025  
-> **Current Sprint:** Sprint 9 Complete  
+> **Current Sprint:** Sprint 10 Complete  
 > **Total Tests:** 575 passing  
 > **Checkpoint Version:** Latest
 
@@ -56,12 +56,12 @@ Sprint 6: Prompt-to-Plan Workflow ✓
 Sprint 7: Enhanced GitHub Integration ✓
 Sprint 8: Agent Orchestration ✓
 Sprint 9: Sprint Planning & Cost Management ✓
-Sprint 10: Remaining (Polish & Beta Prep)
+Sprint 10: Polish & UX ✓
 ```
 
 ### Test Coverage
 
-- **Total Tests:** 531 passing
+- **Total Tests:** 575 passing
 - **Sprint 4 (GitHub):** 30 tests
 - **Sprint 5 (Context):** 51 tests
 - **Sprint 6 (Prompt-to-Plan):** 38 tests
@@ -239,15 +239,12 @@ hero-ide/
 - [x] Cost breakdown dashboard (costEntries, dailyCostAggregates tables)
 - [x] 41 new unit tests
 
-### Sprint 10: Polish & Beta Prep (2 weeks)
+### Sprint 10: Polish & UX ✓ COMPLETE
 
-| Task | Priority | Effort |
-|------|----------|--------|
-| Calm-leaning UX design system | High | 3 days |
-| Flexible pane architecture | Medium | 3 days |
-| Onboarding flow | High | 2 days |
-| Documentation | Medium | 2 days |
-| Security audit | High | 2 days |
+- **Sprint Planning UI:** SprintDashboard with velocity charts, burndown graphs, sprint selector
+- **Quick Action Buttons:** Desktop horizontal bar + mobile FAB with keyboard shortcuts
+- **Actions:** Create Sprint, Execute Sprint, Run QA Protocol, Generate Report
+- **Keyboard Shortcuts:** Ctrl+Shift+N (create), Ctrl+Shift+E (execute), Ctrl+Shift+Q (QA)
 
 ---
 

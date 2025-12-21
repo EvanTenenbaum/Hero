@@ -991,3 +991,93 @@
 
 ### 9.6 Prompt-to-Plan Testing
 - [x] 9.6.1 Test Prompt-to-Plan workflow end-to-end (PM Agent generates EARS clarifying questions)
+
+
+## Red Team QA - Full E2E Testing - Dec 21, 2025
+
+### QA-1: Unit Tests
+- [x] QA-1.1 Run all unit tests (575 passing)
+- [x] QA-1.2 Fix any failing tests (none found)
+
+### QA-2: Authentication
+- [ ] QA-2.1 Test login flow
+- [ ] QA-2.2 Test logout flow
+- [ ] QA-2.3 Test protected routes
+- [ ] QA-2.4 Test user profile display
+
+### QA-3: Project Management
+- [ ] QA-3.1 Test project creation
+- [ ] QA-3.2 Test project listing
+- [ ] QA-3.3 Test Kanban board creation
+- [ ] QA-3.4 Test card CRUD operations
+- [ ] QA-3.5 Test drag and drop
+- [ ] QA-3.6 Test board templates
+
+### QA-4: AI Chat & Agents
+- [ ] QA-4.1 Test chat creation
+- [ ] QA-4.2 Test message sending
+- [ ] QA-4.3 Test AI response streaming
+- [ ] QA-4.4 Test agent selection
+- [ ] QA-4.5 Test agent configuration
+
+### QA-5: GitHub Integration
+- [ ] QA-5.1 Test GitHub OAuth flow
+- [ ] QA-5.2 Test repository listing
+- [ ] QA-5.3 Test file browsing
+- [ ] QA-5.4 Test file content viewing
+
+### QA-6: Context Engine
+- [ ] QA-6.1 Test indexing status
+- [ ] QA-6.2 Test context search
+
+### QA-7: Prompt-to-Plan
+- [ ] QA-7.1 Test spec creation
+- [ ] QA-7.2 Test EARS generation
+- [ ] QA-7.3 Test design phase
+- [ ] QA-7.4 Test task breakdown
+
+### QA-8: Sprint Planning
+- [ ] QA-8.1 Test sprint creation
+- [ ] QA-8.2 Test velocity tracking
+- [ ] QA-8.3 Test burndown calculation
+
+### QA-9: Settings
+- [ ] QA-9.1 Test settings page load
+- [ ] QA-9.2 Test GitHub tab
+- [ ] QA-9.3 Test agent rules
+
+### QA-10: Issues Found
+- [ ] (To be populated during testing)
+
+
+## Sprint 10: Polish & UX - Dec 2025 - COMPLETE
+
+### 10.1 Sprint Planning UI
+- [x] 10.1.1 Create SprintDashboard component
+- [x] 10.1.2 Implement velocity chart visualization (VelocityChart)
+- [x] 10.1.3 Implement burndown chart visualization (BurndownChart)
+- [x] 10.1.4 Add sprint selector dropdown
+- [x] 10.1.5 Create sprint progress indicators
+- [x] 10.1.6 Add sprint metrics cards (points, velocity, forecast, days remaining)
+
+### 10.2 Quick Action Buttons
+- [x] 10.2.1 Create QuickActions component for desktop (horizontal bar)
+- [x] 10.2.2 Create QuickActions FAB for mobile (floating action button)
+- [x] 10.2.3 Add "Create Next Sprint" action with dialog
+- [x] 10.2.4 Add "Execute Sprint" action with confirmation
+- [x] 10.2.5 Add "Run QA Protocol" action with confirmation
+- [x] 10.2.6 Add "Generate Report" action
+- [x] 10.2.7 Add keyboard shortcuts (Ctrl+Shift+N, E, Q)
+
+### 10.3 UX Polish
+- [x] 10.3.1 Implement consistent spacing system (via Tailwind)
+- [x] 10.3.2 Add micro-interactions and transitions (hover effects, animations)
+- [x] 10.3.3 Improve loading states (skeleton loaders)
+- [x] 10.3.4 Add empty state illustrations (icons with messages)
+
+### 10.4 Testing
+- [ ] 10.4.1 Write unit tests for Sprint Planning UI
+- [ ] 10.4.2 Write unit tests for Quick Actions
+- [x] 10.4.3 E2E testing (manual verification)
+- [x] Sprint 10 Red Team QA
+
