@@ -1,9 +1,9 @@
 # Hero IDE - Agent Handoff Documentation
 
 > **Last Updated:** December 21, 2025  
-> **Current Sprint:** Sprint 8 Complete  
-> **Total Tests:** 531 passing  
-> **Checkpoint Version:** efbf53f6
+> **Current Sprint:** Sprint 9 Complete  
+> **Total Tests:** 575 passing  
+> **Checkpoint Version:** Latest
 
 This document provides all information needed for any AI agent to continue development on Hero IDE from the current state.
 
@@ -55,7 +55,8 @@ Sprint 5: Context Engine ✓
 Sprint 6: Prompt-to-Plan Workflow ✓
 Sprint 7: Enhanced GitHub Integration ✓
 Sprint 8: Agent Orchestration ✓
-Sprint 9-10: Remaining (Sprint Planning, Polish)
+Sprint 9: Sprint Planning & Cost Management ✓
+Sprint 10: Remaining (Polish & Beta Prep)
 ```
 
 ### Test Coverage
@@ -216,19 +217,27 @@ hero-ide/
 - **Dependency Graph:** SVG visualization with zoom/pan, critical path highlighting
 - **Blocker Detection:** Time-based, dependency-based, resource blockers
 
+### Sprint 9: Sprint Planning & Cost Management
+
+- **Sprint CRUD:** Create, read, update, delete sprints with project association
+- **Velocity Tracking:** Story points per sprint, rolling averages (3 and 5 sprint)
+- **Burndown Charts:** Ideal vs actual burndown, daily metrics, forecasting
+- **Budget Management:** Budget CRUD, cost tracking, alerts, breakdown analytics
+- **GitHub OAuth:** Configured (Client ID: Ov23liiYaWrtah6iuULr)
+- **Prompt-to-Plan Testing:** Verified end-to-end (PM Agent generates EARS clarifying questions)
+
 ---
 
 ## Remaining Work
 
-### Sprint 9: Sprint Planning & Cost Management (2 weeks)
+### Sprint 9: Sprint Planning & Cost Management ✓ COMPLETE
 
-| Task | Priority | Effort |
-|------|----------|--------|
-| Sprint CRUD operations | High | 2 days |
-| Velocity tracking | High | 2 days |
-| Burndown charts | Medium | 3 days |
-| Budget allocation | Medium | 2 days |
-| Cost breakdown dashboard | Medium | 3 days |
+- [x] Sprint CRUD operations (sprintService.ts)
+- [x] Velocity tracking (calculateSprintVelocity, rolling averages)
+- [x] Burndown charts (calculateBurndown, sprintMetrics table)
+- [x] Budget allocation (budgetService.ts)
+- [x] Cost breakdown dashboard (costEntries, dailyCostAggregates tables)
+- [x] 41 new unit tests
 
 ### Sprint 10: Polish & Beta Prep (2 weeks)
 
@@ -341,8 +350,8 @@ pnpm test --coverage
 | Variable | Purpose | Status |
 |----------|---------|--------|
 | `GEMINI_API_KEY` | Semantic search embeddings | Configured |
-| `GITHUB_CLIENT_ID` | GitHub OAuth | Not configured |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth | Not configured |
+| `GITHUB_CLIENT_ID` | GitHub OAuth | Configured (Ov23liiYaWrtah6iuULr) |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth | Configured |
 
 ---
 

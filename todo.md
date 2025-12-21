@@ -947,3 +947,47 @@
 
 ## Critical Bugs
 - [x] BUG: Deployed website showing raw JavaScript source code instead of rendered application (added vercel.json configuration)
+
+
+## Sprint 9: Sprint Planning & Cost Management - Dec 2025
+
+### 9.0 Setup
+- [x] 9.0.1 Configure GitHub OAuth credentials (Client ID: Ov23liiYaWrtah6iuULr)
+
+### 9.1 Sprint CRUD Operations
+- [x] 9.1.1 Create sprints table schema
+- [x] 9.1.2 Implement sprint create/read/update/delete (sprintService.ts)
+- [x] 9.1.3 Add sprint-to-project association
+- [x] 9.1.4 Create sprint router with endpoints
+- [x] 9.1.5 Add card-to-sprint assignment (sprintId column in kanbanCards)
+
+### 9.2 Velocity Tracking
+- [x] 9.2.1 Create velocity calculation service (calculateSprintVelocity)
+- [x] 9.2.2 Track story points completed per sprint
+- [x] 9.2.3 Calculate rolling average velocity (3 and 5 sprint averages)
+- [x] 9.2.4 Create velocityHistory table and getProjectVelocity
+
+### 9.3 Burndown Charts
+- [x] 9.3.1 Create burndown data service (calculateBurndown)
+- [x] 9.3.2 Calculate ideal vs actual burndown
+- [x] 9.3.3 Create sprintMetrics table for daily tracking
+- [x] 9.3.4 Add sprint forecasting (forecastSprint)
+
+### 9.4 Budget Allocation
+- [x] 9.4.1 Create budgets table schema
+- [x] 9.4.2 Create costEntries table schema
+- [x] 9.4.3 Create dailyCostAggregates table schema
+- [x] 9.4.4 Implement budgetService.ts with full CRUD
+- [x] 9.4.5 Add cost tracking and recording
+- [x] 9.4.6 Add budget alerts (warning, exceeded)
+- [x] 9.4.7 Add cost breakdown analytics (by type, agent, day)
+
+### 9.5 Testing & QA
+- [x] 9.5.1 Write unit tests for sprint service (41 tests)
+- [x] 9.5.2 Write unit tests for velocity tracking
+- [x] 9.5.3 Write unit tests for burndown calculations
+- [x] 9.5.4 Integration testing (575 total tests passing)
+- [x] Sprint 9 Red Team QA
+
+### 9.6 Prompt-to-Plan Testing
+- [x] 9.6.1 Test Prompt-to-Plan workflow end-to-end (PM Agent generates EARS clarifying questions)

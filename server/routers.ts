@@ -6,6 +6,7 @@ import { driveRouter } from './drive/router';
 import { codebaseRouter } from './codebase/router';
 import { contextRouter } from './context/router';
 import { specsRouter } from './specs/router';
+import { sprintRouter } from './sprints/router';
 import { githubRouter as githubApiRouter } from './github/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -1474,6 +1475,7 @@ export const appRouter = router({
   codebase: codebaseRouter,
   context: contextRouter,
   specs: specsRouter,
+  sprints: sprintRouter,
 });
 
 export type AppRouter = typeof appRouter;

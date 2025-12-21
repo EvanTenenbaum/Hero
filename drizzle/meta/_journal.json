@@ -71,6 +71,20 @@
       "when": 1766292250365,
       "tag": "0009_amusing_slyde",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1766294840905,
+      "tag": "0010_equal_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1766294968075,
+      "tag": "0011_giant_ares",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json, bigint, mediumtext } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json, bigint, mediumtext, decimal } from "drizzle-orm/mysql-core";
 
 // ════════════════════════════════════════════════════════════════════════════
 // USERS
@@ -991,6 +991,9 @@ export const kanbanCards = mysqlTable("kanban_cards", {
   startDate: timestamp("startDate"),
   completedAt: timestamp("completedAt"),
   
+  // Sprint assignment
+  sprintId: int("sprintId"),
+  
   // Ordering within column
   position: int("position").notNull().default(0),
   
@@ -1648,3 +1651,143 @@ export const prReviewComments = mysqlTable("pr_review_comments", {
 
 export type PrReviewComment = typeof prReviewComments.$inferSelect;
 export type InsertPrReviewComment = typeof prReviewComments.$inferInsert;
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPRINTS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const sprints = mysqlTable("sprints", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  goal: text("goal"),
+  status: mysqlEnum("status", ["planning", "active", "completed", "cancelled"]).default("planning").notNull(),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  plannedPoints: int("plannedPoints").default(0),
+  completedPoints: int("completedPoints").default(0),
+  velocity: decimal("velocity", { precision: 10, scale: 2 }),
+  retrospective: text("retrospective"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Sprint = typeof sprints.$inferSelect;
+export type InsertSprint = typeof sprints.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPRINT METRICS (for velocity tracking)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const sprintMetrics = mysqlTable("sprint_metrics", {
+  id: int("id").autoincrement().primaryKey(),
+  sprintId: int("sprintId").notNull(),
+  date: timestamp("date").notNull(),
+  totalPoints: int("totalPoints").default(0),
+  completedPoints: int("completedPoints").default(0),
+  remainingPoints: int("remainingPoints").default(0),
+  addedPoints: int("addedPoints").default(0), // Scope creep tracking
+  removedPoints: int("removedPoints").default(0),
+  tasksTotal: int("tasksTotal").default(0),
+  tasksCompleted: int("tasksCompleted").default(0),
+  tasksInProgress: int("tasksInProgress").default(0),
+  blockedTasks: int("blockedTasks").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SprintMetric = typeof sprintMetrics.$inferSelect;
+export type InsertSprintMetric = typeof sprintMetrics.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// VELOCITY HISTORY (rolling averages)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const velocityHistory = mysqlTable("velocity_history", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  sprintId: int("sprintId").notNull(),
+  sprintNumber: int("sprintNumber").notNull(),
+  pointsCommitted: int("pointsCommitted").default(0),
+  pointsCompleted: int("pointsCompleted").default(0),
+  pointsCarriedOver: int("pointsCarriedOver").default(0),
+  durationDays: int("durationDays"),
+  teamSize: int("teamSize").default(1),
+  velocityPerDay: decimal("velocityPerDay", { precision: 10, scale: 2 }),
+  rollingAverage3: decimal("rollingAverage3", { precision: 10, scale: 2 }), // 3-sprint average
+  rollingAverage5: decimal("rollingAverage5", { precision: 10, scale: 2 }), // 5-sprint average
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type VelocityHistory = typeof velocityHistory.$inferSelect;
+export type InsertVelocityHistory = typeof velocityHistory.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// BUDGETS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const budgets = mysqlTable("budgets", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  sprintId: int("sprintId"), // Optional: can be project-level or sprint-level
+  name: varchar("name", { length: 255 }).notNull(),
+  type: mysqlEnum("type", ["tokens", "api_calls", "compute_hours", "storage", "custom"]).notNull(),
+  allocatedAmount: decimal("allocatedAmount", { precision: 15, scale: 4 }).notNull(),
+  usedAmount: decimal("usedAmount", { precision: 15, scale: 4 }).default("0"),
+  unit: varchar("unit", { length: 50 }).default("units"),
+  costPerUnit: decimal("costPerUnit", { precision: 10, scale: 6 }),
+  alertThreshold: decimal("alertThreshold", { precision: 5, scale: 2 }).default("80"), // Percentage
+  status: mysqlEnum("status", ["active", "warning", "exceeded", "closed"]).default("active"),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Budget = typeof budgets.$inferSelect;
+export type InsertBudget = typeof budgets.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// COST TRACKING
+// ════════════════════════════════════════════════════════════════════════════
+
+export const costEntries = mysqlTable("cost_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budgetId").notNull(),
+  projectId: int("projectId").notNull(),
+  sprintId: int("sprintId"),
+  cardId: int("cardId"), // Optional: link to specific task
+  agentId: int("agentId"), // Optional: link to agent that incurred cost
+  executionId: int("executionId"), // Optional: link to agent execution
+  type: mysqlEnum("type", ["llm_tokens", "embedding_tokens", "api_call", "compute", "storage", "other"]).notNull(),
+  description: text("description"),
+  quantity: decimal("quantity", { precision: 15, scale: 4 }).notNull(),
+  unitCost: decimal("unitCost", { precision: 10, scale: 6 }),
+  totalCost: decimal("totalCost", { precision: 15, scale: 4 }),
+  metadata: json("metadata"), // Additional details (model name, API endpoint, etc.)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CostEntry = typeof costEntries.$inferSelect;
+export type InsertCostEntry = typeof costEntries.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// DAILY COST AGGREGATES
+// ════════════════════════════════════════════════════════════════════════════
+
+export const dailyCostAggregates = mysqlTable("daily_cost_aggregates", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  sprintId: int("sprintId"),
+  date: timestamp("date").notNull(),
+  llmTokens: bigint("llmTokens", { mode: "number" }).default(0),
+  embeddingTokens: bigint("embeddingTokens", { mode: "number" }).default(0),
+  apiCalls: int("apiCalls").default(0),
+  computeMinutes: decimal("computeMinutes", { precision: 10, scale: 2 }).default("0"),
+  storageMb: decimal("storageMb", { precision: 10, scale: 2 }).default("0"),
+  totalCost: decimal("totalCost", { precision: 15, scale: 4 }).default("0"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DailyCostAggregate = typeof dailyCostAggregates.$inferSelect;
+export type InsertDailyCostAggregate = typeof dailyCostAggregates.$inferInsert;
