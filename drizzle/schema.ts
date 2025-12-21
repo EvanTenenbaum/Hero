@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json, bigint } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, json, bigint, mediumtext } from "drizzle-orm/mysql-core";
 
 // ════════════════════════════════════════════════════════════════════════════
 // USERS
@@ -1448,3 +1448,203 @@ export const specComments = mysqlTable("spec_comments", {
 
 export type SpecComment = typeof specComments.$inferSelect;
 export type InsertSpecComment = typeof specComments.$inferInsert;
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// CLONED REPOSITORIES
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tracks repositories that have been cloned to the server workspace.
+ * Supports shallow cloning, sparse checkout, and sync status tracking.
+ */
+export const clonedRepos = mysqlTable("cloned_repos", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  githubRepoId: int("githubRepoId").notNull(),
+  fullName: varchar("fullName", { length: 255 }).notNull(), // owner/repo
+  defaultBranch: varchar("defaultBranch", { length: 255 }).default("main"),
+  currentBranch: varchar("currentBranch", { length: 255 }),
+  clonePath: varchar("clonePath", { length: 500 }), // Server filesystem path
+  cloneStatus: mysqlEnum("cloneStatus", ["pending", "cloning", "ready", "error", "syncing"]).default("pending").notNull(),
+  cloneDepth: int("cloneDepth").default(1), // Shallow clone depth
+  sparseCheckoutPaths: json("sparseCheckoutPaths").$type<string[]>(), // Paths for sparse checkout
+  lastCommitSha: varchar("lastCommitSha", { length: 40 }),
+  lastSyncedAt: timestamp("lastSyncedAt"),
+  syncError: text("syncError"),
+  diskSizeBytes: bigint("diskSizeBytes", { mode: "number" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ClonedRepo = typeof clonedRepos.$inferSelect;
+export type InsertClonedRepo = typeof clonedRepos.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// WEBHOOK EVENTS
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Logs incoming GitHub webhook events for processing and audit.
+ * Uses delivery_id for idempotency and replay attack prevention.
+ */
+export const webhookEvents = mysqlTable("webhook_events", {
+  id: int("id").autoincrement().primaryKey(),
+  deliveryId: varchar("deliveryId", { length: 100 }).notNull().unique(), // X-GitHub-Delivery header
+  eventType: varchar("eventType", { length: 50 }).notNull(), // X-GitHub-Event header
+  action: varchar("action", { length: 50 }), // action field from payload
+  repoFullName: varchar("repoFullName", { length: 255 }),
+  senderId: int("senderId"), // GitHub user ID who triggered
+  senderLogin: varchar("senderLogin", { length: 255 }),
+  payload: json("payload").$type<Record<string, unknown>>(),
+  processed: boolean("processed").default(false).notNull(),
+  processedAt: timestamp("processedAt"),
+  processingError: text("processingError"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WebhookEvent = typeof webhookEvents.$inferSelect;
+export type InsertWebhookEvent = typeof webhookEvents.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// MERGE CONFLICTS
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tracks merge conflicts detected during branch operations.
+ * Stores 3-way diff content for resolution UI.
+ */
+export const mergeConflicts = mysqlTable("merge_conflicts", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  clonedRepoId: int("clonedRepoId").notNull(),
+  sourceBranch: varchar("sourceBranch", { length: 255 }).notNull(),
+  targetBranch: varchar("targetBranch", { length: 255 }).notNull(),
+  filePath: varchar("filePath", { length: 500 }).notNull(),
+  conflictType: mysqlEnum("conflictType", ["content", "rename", "delete_modify", "binary"]).default("content").notNull(),
+  baseContent: mediumtext("baseContent"), // Common ancestor
+  oursContent: mediumtext("oursContent"), // Target branch version
+  theirsContent: mediumtext("theirsContent"), // Source branch version
+  conflictMarkers: mediumtext("conflictMarkers"), // Raw conflict markers
+  resolution: mediumtext("resolution"), // Resolved content
+  resolutionStrategy: mysqlEnum("resolutionStrategy", ["ours", "theirs", "manual", "ai"]),
+  aiSuggestion: mediumtext("aiSuggestion"), // AI-suggested resolution
+  resolvedBy: int("resolvedBy"),
+  resolvedAt: timestamp("resolvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MergeConflict = typeof mergeConflicts.$inferSelect;
+export type InsertMergeConflict = typeof mergeConflicts.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// PULL REQUESTS (Local Tracking)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tracks pull requests with local metadata and AI review status.
+ * Syncs with GitHub but adds Hero IDE-specific features.
+ */
+export const pullRequests = mysqlTable("pull_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  clonedRepoId: int("clonedRepoId"),
+  githubPrNumber: int("githubPrNumber").notNull(),
+  githubPrId: bigint("githubPrId", { mode: "number" }).notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  body: mediumtext("body"),
+  state: mysqlEnum("state", ["open", "closed", "merged"]).default("open").notNull(),
+  sourceBranch: varchar("sourceBranch", { length: 255 }).notNull(),
+  targetBranch: varchar("targetBranch", { length: 255 }).notNull(),
+  authorGithubId: int("authorGithubId"),
+  authorLogin: varchar("authorLogin", { length: 255 }),
+  isDraft: boolean("isDraft").default(false),
+  mergeable: boolean("mergeable"),
+  mergeableState: varchar("mergeableState", { length: 50 }), // clean, dirty, blocked, etc.
+  additions: int("additions").default(0),
+  deletions: int("deletions").default(0),
+  changedFiles: int("changedFiles").default(0),
+  // AI Review
+  aiReviewStatus: mysqlEnum("aiReviewStatus", ["pending", "in_progress", "completed", "skipped"]),
+  aiReviewSummary: mediumtext("aiReviewSummary"),
+  aiReviewScore: int("aiReviewScore"), // 0-100 quality score
+  aiReviewedAt: timestamp("aiReviewedAt"),
+  // Linked card
+  linkedCardId: int("linkedCardId"),
+  // Timestamps
+  githubCreatedAt: timestamp("githubCreatedAt"),
+  githubUpdatedAt: timestamp("githubUpdatedAt"),
+  githubMergedAt: timestamp("githubMergedAt"),
+  githubClosedAt: timestamp("githubClosedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PullRequest = typeof pullRequests.$inferSelect;
+export type InsertPullRequest = typeof pullRequests.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// GITHUB ISSUES (Local Tracking)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tracks GitHub issues with bidirectional sync to Kanban cards.
+ */
+export const githubIssues = mysqlTable("github_issues", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  githubIssueNumber: int("githubIssueNumber").notNull(),
+  githubIssueId: bigint("githubIssueId", { mode: "number" }).notNull(),
+  repoFullName: varchar("repoFullName", { length: 255 }).notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  body: mediumtext("body"),
+  state: mysqlEnum("state", ["open", "closed"]).default("open").notNull(),
+  authorGithubId: int("authorGithubId"),
+  authorLogin: varchar("authorLogin", { length: 255 }),
+  labels: json("labels").$type<Array<{ name: string; color: string }>>(),
+  assignees: json("assignees").$type<Array<{ login: string; id: number }>>(),
+  milestone: varchar("milestone", { length: 255 }),
+  // Linked card for bidirectional sync
+  linkedCardId: int("linkedCardId"),
+  syncDirection: mysqlEnum("syncDirection", ["github_to_card", "card_to_github", "bidirectional"]).default("bidirectional"),
+  lastSyncedAt: timestamp("lastSyncedAt"),
+  // Timestamps
+  githubCreatedAt: timestamp("githubCreatedAt"),
+  githubUpdatedAt: timestamp("githubUpdatedAt"),
+  githubClosedAt: timestamp("githubClosedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GitHubIssue = typeof githubIssues.$inferSelect;
+export type InsertGitHubIssue = typeof githubIssues.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// PR REVIEW COMMENTS
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Stores PR review comments including AI-generated suggestions.
+ */
+export const prReviewComments = mysqlTable("pr_review_comments", {
+  id: int("id").autoincrement().primaryKey(),
+  pullRequestId: int("pullRequestId").notNull(),
+  githubCommentId: bigint("githubCommentId", { mode: "number" }),
+  filePath: varchar("filePath", { length: 500 }),
+  lineNumber: int("lineNumber"),
+  side: mysqlEnum("side", ["LEFT", "RIGHT"]).default("RIGHT"),
+  body: mediumtext("body").notNull(),
+  authorType: mysqlEnum("authorType", ["human", "ai"]).default("human").notNull(),
+  authorGithubId: int("authorGithubId"),
+  authorLogin: varchar("authorLogin", { length: 255 }),
+  suggestionType: mysqlEnum("suggestionType", ["bug", "security", "performance", "style", "documentation", "other"]),
+  severity: mysqlEnum("severity", ["critical", "warning", "info"]),
+  resolved: boolean("resolved").default(false),
+  resolvedAt: timestamp("resolvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PrReviewComment = typeof prReviewComments.$inferSelect;
+export type InsertPrReviewComment = typeof prReviewComments.$inferInsert;
