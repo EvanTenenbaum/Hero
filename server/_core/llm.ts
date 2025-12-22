@@ -312,14 +312,30 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  // Add 30s timeout to prevent hanging requests
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let response: Response;
+  try {
+    response = await fetch(resolveApiUrl(), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('LLM request timed out after 30 seconds');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -329,4 +345,159 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   return (await response.json()) as InvokeResult;
+}
+
+/**
+ * Streaming LLM invocation - yields chunks as they arrive
+ * Use for real-time UI updates instead of waiting for full response
+ */
+export async function* invokeLLMStream(params: InvokeParams): AsyncGenerator<{
+  type: 'chunk' | 'done' | 'error';
+  content?: string;
+  usage?: InvokeResult['usage'];
+  error?: string;
+}> {
+  assertApiKey();
+
+  const {
+    messages,
+    tools,
+    toolChoice,
+    tool_choice,
+    outputSchema,
+    output_schema,
+    responseFormat,
+    response_format,
+  } = params;
+
+  const payload: Record<string, unknown> = {
+    model: "gemini-2.5-flash",
+    messages: messages.map(normalizeMessage),
+    stream: true, // Enable streaming
+  };
+
+  if (tools && tools.length > 0) {
+    payload.tools = tools;
+  }
+
+  const normalizedToolChoice = normalizeToolChoice(
+    toolChoice || tool_choice,
+    tools
+  );
+  if (normalizedToolChoice) {
+    payload.tool_choice = normalizedToolChoice;
+  }
+
+  payload.max_tokens = 32768;
+  payload.thinking = {
+    "budget_tokens": 128
+  };
+
+  const normalizedResponseFormat = normalizeResponseFormat({
+    responseFormat,
+    response_format,
+    outputSchema,
+    output_schema,
+  });
+
+  if (normalizedResponseFormat) {
+    payload.response_format = normalizedResponseFormat;
+  }
+
+  // Add 60s timeout for streaming (longer than non-streaming)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+  let response: Response;
+  try {
+    response = await fetch(resolveApiUrl(), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      yield { type: 'error', error: 'LLM streaming request timed out after 60 seconds' };
+      return;
+    }
+    yield { type: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
+    return;
+  }
+
+  if (!response.ok) {
+    clearTimeout(timeoutId);
+    const errorText = await response.text();
+    yield { type: 'error', error: `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}` };
+    return;
+  }
+
+  if (!response.body) {
+    clearTimeout(timeoutId);
+    yield { type: 'error', error: 'No response body for streaming' };
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let totalContent = '';
+  let usage: InvokeResult['usage'] | undefined;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      
+      // Process complete SSE events
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6).trim();
+          
+          if (data === '[DONE]') {
+            yield { type: 'done', content: totalContent, usage };
+            clearTimeout(timeoutId);
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta;
+            
+            if (delta?.content) {
+              totalContent += delta.content;
+              yield { type: 'chunk', content: delta.content };
+            }
+
+            // Capture usage from final chunk
+            if (parsed.usage) {
+              usage = parsed.usage;
+            }
+          } catch {
+            // Skip malformed JSON chunks
+          }
+        }
+      }
+    }
+
+    // Final yield if we didn't get [DONE]
+    yield { type: 'done', content: totalContent, usage };
+  } catch (error) {
+    yield { type: 'error', error: error instanceof Error ? error.message : 'Stream read error' };
+  } finally {
+    clearTimeout(timeoutId);
+    reader.releaseLock();
+  }
 }

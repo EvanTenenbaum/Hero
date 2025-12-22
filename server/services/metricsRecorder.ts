@@ -42,66 +42,48 @@ function getDateKey(date?: Date): string {
 
 /**
  * Record an agent execution metric
+ * Uses INSERT ON DUPLICATE KEY UPDATE to prevent race conditions
  */
 export async function recordExecution(metrics: ExecutionMetrics): Promise<boolean> {
   try {
     const db = await getDb();
-    if (!db) return false;
+    if (!db) {
+      throw new Error('Database not available');
+    }
 
     const dateKey = getDateKey();
+    const now = new Date();
     
-    // Check if we have a record for this user/date
-    const existing = await db
-      .select()
-      .from(metricsDaily)
-      .where(
-        and(
-          eq(metricsDaily.userId, metrics.userId),
-          eq(metricsDaily.date, dateKey)
-        )
-      );
-
-    if (existing.length > 0) {
-      // Update existing record
-      const record = existing[0];
-
-      await db
-        .update(metricsDaily)
-        .set({
-          messagesCount: (record.messagesCount || 0) + 1,
-          tokensUsed: (record.tokensUsed || 0) + metrics.tokensUsed,
-          totalExecutionTimeMs: (record.totalExecutionTimeMs || 0) + metrics.durationMs,
-          agentExecutionsCount: (record.agentExecutionsCount || 0) + 1,
-          agentTasksCompleted: (record.agentTasksCompleted || 0) + (metrics.success ? 1 : 0),
-          agentTasksFailed: (record.agentTasksFailed || 0) + (metrics.success ? 0 : 1),
-          linesGenerated: (record.linesGenerated || 0) + (metrics.linesGenerated || 0),
-          filesModified: (record.filesModified || 0) + (metrics.filesModified || 0),
-          updatedAt: new Date(),
-        })
-        .where(eq(metricsDaily.id, record.id));
-    } else {
-      // Insert new record
-      await db.insert(metricsDaily).values({
-        userId: metrics.userId,
-        projectId: metrics.projectId || null,
-        date: dateKey,
-        messagesCount: 1,
-        tokensUsed: metrics.tokensUsed,
-        totalExecutionTimeMs: metrics.durationMs,
-        agentExecutionsCount: 1,
-        agentTasksCompleted: metrics.success ? 1 : 0,
-        agentTasksFailed: metrics.success ? 0 : 1,
-        linesGenerated: metrics.linesGenerated || 0,
-        filesModified: metrics.filesModified || 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
+    // Use INSERT ON DUPLICATE KEY UPDATE to atomically handle concurrent requests
+    // This prevents race conditions where two requests check for existing record simultaneously
+    await db.execute(sql`
+      INSERT INTO metrics_daily (
+        userId, projectId, date, messagesCount, tokensUsed, 
+        totalExecutionTimeMs, agentExecutionsCount, agentTasksCompleted, 
+        agentTasksFailed, linesGenerated, filesModified, createdAt, updatedAt
+      ) VALUES (
+        ${metrics.userId}, ${metrics.projectId || null}, ${dateKey}, 1, ${metrics.tokensUsed},
+        ${metrics.durationMs}, 1, ${metrics.success ? 1 : 0},
+        ${metrics.success ? 0 : 1}, ${metrics.linesGenerated || 0}, ${metrics.filesModified || 0},
+        ${now}, ${now}
+      )
+      ON DUPLICATE KEY UPDATE
+        messagesCount = messagesCount + 1,
+        tokensUsed = tokensUsed + ${metrics.tokensUsed},
+        totalExecutionTimeMs = totalExecutionTimeMs + ${metrics.durationMs},
+        agentExecutionsCount = agentExecutionsCount + 1,
+        agentTasksCompleted = agentTasksCompleted + ${metrics.success ? 1 : 0},
+        agentTasksFailed = agentTasksFailed + ${metrics.success ? 0 : 1},
+        linesGenerated = linesGenerated + ${metrics.linesGenerated || 0},
+        filesModified = filesModified + ${metrics.filesModified || 0},
+        updatedAt = ${now}
+    `);
 
     return true;
   } catch (error) {
-    console.error('Error recording execution metrics:', error);
-    return false;
+    // Re-throw with context for better debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to record execution metrics: ${errorMessage}`);
   }
 }
 

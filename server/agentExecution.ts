@@ -28,11 +28,60 @@ export interface ExecutionState {
   uncertaintyLevel?: number;
 }
 
-// In-memory store for active executions (in production, use Redis)
+// In-memory cache for active executions (backed by database for persistence)
+// This cache is used for fast access during execution, but state is always persisted to DB
 const activeExecutions = new Map<number, ExecutionState>();
 
 // Event emitters for SSE connections
 const executionListeners = new Map<number, Set<(event: AgentStep) => void>>();
+
+/**
+ * Persist execution state to database
+ * Called after every state change to ensure recoverability
+ */
+async function persistExecutionState(state: ExecutionState): Promise<void> {
+  try {
+    await db.updateAgentExecution(state.executionId, {
+      state: state.status === "running" ? "executing" : 
+             state.status === "paused" ? "halted" :
+             state.status === "completed" ? "completed" :
+             state.status === "failed" ? "failed" :
+             state.status === "awaiting_approval" ? "waiting_approval" : "halted",
+      currentStep: state.currentStep,
+      totalTokensUsed: state.tokensUsed,
+      totalCostUsd: state.costIncurred.toString(),
+      // Store steps as JSON in metadata or a separate field
+    });
+  } catch (error) {
+    console.error('Failed to persist execution state:', error);
+  }
+}
+
+/**
+ * Recover active executions from database on server restart
+ * Call this during server initialization
+ */
+export async function recoverActiveExecutions(): Promise<number> {
+  try {
+    // Find all executions that were running when server stopped
+    const runningExecutions = await db.getRunningExecutions();
+    let recovered = 0;
+    
+    for (const execution of runningExecutions) {
+      // Mark as halted - user can manually resume if needed
+      await db.updateAgentExecution(execution.id, {
+        state: 'halted',
+      });
+      recovered++;
+    }
+    
+    console.log(`Recovered ${recovered} interrupted executions (marked as halted)`);
+    return recovered;
+  } catch (error) {
+    console.error('Failed to recover active executions:', error);
+    return 0;
+  }
+}
 
 /**
  * Subscribe to execution updates
@@ -126,6 +175,18 @@ async function executeStep(
   state.steps.push(thinkingStep);
   
   try {
+    // Pre-validate budget before making LLM call to avoid wasted requests
+    const estimatedCostPerCall = 0.002; // ~2000 tokens average
+    if (state.costIncurred + estimatedCostPerCall > state.budgetLimit) {
+      const errorStep: AgentStep = {
+        id: stepId,
+        type: "error",
+        content: `Budget limit would be exceeded. Current: $${state.costIncurred.toFixed(4)}, Limit: $${state.budgetLimit.toFixed(2)}`,
+        timestamp: new Date(),
+      };
+      return errorStep;
+    }
+    
     // Build the prompt based on agent type
     const systemPrompt = buildAgentSystemPrompt(agent);
     const userPrompt = buildUserPrompt(state, context);
@@ -146,6 +207,9 @@ async function executeStep(
     state.tokensUsed += tokensUsed;
     state.costIncurred = calculateCost(state.tokensUsed);
     state.currentStep++;
+    
+    // Persist state after each step for recoverability
+    await persistExecutionState(state);
     
     // Parse uncertainty from response if mentioned
     const uncertaintyMatch = content.match(/uncertainty[:\s]+(\d+)%/i);
@@ -258,6 +322,9 @@ export async function startExecution(
   };
   
   activeExecutions.set(execution.id, state);
+  
+  // Persist initial state
+  await persistExecutionState(state);
   
   // Start execution loop (non-blocking)
   runExecutionLoop(state, agent, context || "").catch(console.error);

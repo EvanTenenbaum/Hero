@@ -97,12 +97,13 @@ export async function createProject(project: InsertProject) {
   return { id: Number(result[0].insertId) };
 }
 
-export async function getProjectsByUserId(userId: number) {
+export async function getProjectsByUserId(userId: number, limit = 100) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(projects)
     .where(and(eq(projects.userId, userId), eq(projects.status, "active")))
-    .orderBy(desc(projects.lastActivityAt));
+    .orderBy(desc(projects.lastActivityAt))
+    .limit(limit);
 }
 
 export async function getProjectById(id: number, userId: number) {
@@ -187,12 +188,13 @@ export async function createAgent(agent: InsertAgent) {
   return { id: Number(result[0].insertId) };
 }
 
-export async function getAgentsByUserId(userId: number) {
+export async function getAgentsByUserId(userId: number, limit = 100) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(agents)
     .where(eq(agents.userId, userId))
-    .orderBy(desc(agents.updatedAt));
+    .orderBy(desc(agents.updatedAt))
+    .limit(limit);
 }
 
 export async function getAgentById(id: number, userId: number) {
@@ -250,6 +252,14 @@ export async function updateAgentExecution(id: number, data: Partial<InsertAgent
   const db = await getDb();
   if (!db) return;
   await db.update(agentExecutions).set(data).where(eq(agentExecutions.id, id));
+}
+
+export async function getRunningExecutions() {
+  const db = await getDb();
+  if (!db) return [];
+  // Find executions that were running when server stopped
+  return db.select().from(agentExecutions)
+    .where(eq(agentExecutions.state, 'executing'));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

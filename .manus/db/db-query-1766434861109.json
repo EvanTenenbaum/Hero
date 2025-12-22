@@ -1,0 +1,9 @@
+{
+  "query": "-- Add unique index for metrics_daily to support ON DUPLICATE KEY UPDATE\nCREATE UNIQUE INDEX IF NOT EXISTS idx_metrics_daily_userId_date ON metrics_daily(userId, date);\n-- Add indexes for kanban performance\nCREATE INDEX IF NOT EXISTS idx_kanban_boards_projectId ON kanban_boards(projectId);\nCREATE INDEX IF NOT EXISTS idx_card_history_cardId ON card_history(cardId);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3nCV3SBgEpfe2fx.b872c450d345 --database 6QfHsGWDNgj8AHbMgcj8qN --execute -- Add unique index for metrics_daily to support ON DUPLICATE KEY UPDATE\nCREATE UNIQUE INDEX IF NOT EXISTS idx_metrics_daily_userId_date ON metrics_daily(userId, date);\n-- Add indexes for kanban performance\nCREATE INDEX IF NOT EXISTS idx_kanban_boards_projectId ON kanban_boards(projectId);\nCREATE INDEX IF NOT EXISTS idx_card_history_cardId ON card_history(cardId);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1480
+}

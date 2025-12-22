@@ -67,16 +67,33 @@ interface GitHubCommit {
 async function githubFetch<T>(
   endpoint: string,
   accessToken: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  timeoutMs: number = 30000
 ): Promise<T> {
-  const response = await fetch(`${GITHUB_API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Accept": "application/vnd.github.v3+json",
-      ...options.headers,
-    },
-  });
+  // Add timeout to prevent hanging requests
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(`${GITHUB_API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/vnd.github.v3+json",
+        ...options.headers,
+      },
+      signal: controller.signal,
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`GitHub API request timed out after ${timeoutMs / 1000} seconds`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));

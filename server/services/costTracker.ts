@@ -110,6 +110,7 @@ export function calculateCost(usage: TokenUsage): CostEstimate {
 
 /**
  * Record token usage for an execution
+ * Uses INSERT ON DUPLICATE KEY UPDATE to prevent race conditions
  */
 export async function recordTokenUsage(
   userId: number,
@@ -118,57 +119,35 @@ export async function recordTokenUsage(
 ): Promise<boolean> {
   try {
     const db = await getDb();
-    if (!db) return false;
+    if (!db) {
+      throw new Error('Database not available');
+    }
 
     const cost = calculateCost(usage);
     const dateKey = new Date().toISOString().split('T')[0];
+    const now = new Date();
 
-    // Check for existing record
-    const existing = await db
-      .select()
-      .from(metricsDaily)
-      .where(
-        and(
-          eq(metricsDaily.userId, userId),
-          eq(metricsDaily.date, dateKey)
-        )
-      );
-
-    if (existing.length > 0) {
-      const record = existing[0];
-      const currentCost = parseFloat(record.costUsd || '0');
-      
-      await db
-        .update(metricsDaily)
-        .set({
-          tokensUsed: (record.tokensUsed || 0) + usage.totalTokens,
-          costUsd: (currentCost + cost.totalCost).toFixed(4),
-          updatedAt: new Date(),
-        })
-        .where(eq(metricsDaily.id, record.id));
-    } else {
-      await db.insert(metricsDaily).values({
-        userId,
-        projectId,
-        date: dateKey,
-        tokensUsed: usage.totalTokens,
-        costUsd: cost.totalCost.toFixed(4),
-        messagesCount: 0,
-        agentExecutionsCount: 0,
-        agentTasksCompleted: 0,
-        agentTasksFailed: 0,
-        linesGenerated: 0,
-        filesModified: 0,
-        totalExecutionTimeMs: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
+    // Use INSERT ON DUPLICATE KEY UPDATE to atomically handle concurrent requests
+    await db.execute(sql`
+      INSERT INTO metrics_daily (
+        userId, projectId, date, tokensUsed, costUsd,
+        messagesCount, agentExecutionsCount, agentTasksCompleted,
+        agentTasksFailed, linesGenerated, filesModified,
+        totalExecutionTimeMs, createdAt, updatedAt
+      ) VALUES (
+        ${userId}, ${projectId}, ${dateKey}, ${usage.totalTokens}, ${cost.totalCost.toFixed(4)},
+        0, 0, 0, 0, 0, 0, 0, ${now}, ${now}
+      )
+      ON DUPLICATE KEY UPDATE
+        tokensUsed = tokensUsed + ${usage.totalTokens},
+        costUsd = CAST(costUsd AS DECIMAL(10,4)) + ${cost.totalCost},
+        updatedAt = ${now}
+    `);
 
     return true;
   } catch (error) {
-    console.error('Error recording token usage:', error);
-    return false;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to record token usage: ${errorMessage}`);
   }
 }
 

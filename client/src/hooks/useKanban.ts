@@ -30,8 +30,13 @@ export function useKanban(projectId: number | null) {
 
   // Mutations
   const createBoardMutation = trpc.kanban.createBoard.useMutation({
-    onSuccess: () => {
+    onSuccess: (newBoard) => {
+      // Invalidate and refetch boards list
       utils.kanban.getBoardsByProject.invalidate();
+      // Auto-select the newly created board
+      if (newBoard?.id) {
+        setSelectedBoardId(newBoard.id);
+      }
     },
   });
 

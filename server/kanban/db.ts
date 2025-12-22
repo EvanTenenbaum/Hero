@@ -111,14 +111,17 @@ export async function deleteColumn(id: number) {
 export async function reorderColumns(boardId: number, columnIds: number[]) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  for (let i = 0; i < columnIds.length; i++) {
-    await db.update(kanbanColumns)
-      .set({ position: i })
-      .where(and(
-        eq(kanbanColumns.id, columnIds[i]),
-        eq(kanbanColumns.boardId, boardId)
-      ));
-  }
+  
+  if (columnIds.length === 0) return;
+  
+  // Use batch UPDATE with CASE statement to avoid N+1 queries
+  // This updates all columns in a single query instead of one per column
+  const caseStatements = columnIds.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
+  await db.execute(sql`
+    UPDATE kanban_columns 
+    SET position = CASE id ${sql.raw(caseStatements)} END
+    WHERE boardId = ${boardId} AND id IN (${sql.raw(columnIds.join(','))});
+  `);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -218,26 +221,29 @@ export async function moveCard(
   
   const fromColumnId = card.columnId;
   
-  // Update positions in source column
-  await db.execute(sql`
-    UPDATE kanban_cards 
-    SET position = position - 1 
-    WHERE columnId = ${fromColumnId} AND position > ${card.position}
-  `);
+  // Use transaction to prevent race conditions when multiple cards are moved simultaneously
+  await db.transaction(async (tx) => {
+    // Update positions in source column
+    await tx.execute(sql`
+      UPDATE kanban_cards 
+      SET position = position - 1 
+      WHERE columnId = ${fromColumnId} AND position > ${card.position}
+    `);
+    
+    // Update positions in target column
+    await tx.execute(sql`
+      UPDATE kanban_cards 
+      SET position = position + 1 
+      WHERE columnId = ${targetColumnId} AND position >= ${targetPosition}
+    `);
+    
+    // Move the card
+    await tx.update(kanbanCards)
+      .set({ columnId: targetColumnId, position: targetPosition })
+      .where(eq(kanbanCards.id, cardId));
+  });
   
-  // Update positions in target column
-  await db.execute(sql`
-    UPDATE kanban_cards 
-    SET position = position + 1 
-    WHERE columnId = ${targetColumnId} AND position >= ${targetPosition}
-  `);
-  
-  // Move the card
-  await db.update(kanbanCards)
-    .set({ columnId: targetColumnId, position: targetPosition })
-    .where(eq(kanbanCards.id, cardId));
-  
-  // Record history
+  // Record history (outside transaction - non-critical)
   await recordCardHistory({
     cardId,
     userId,
@@ -431,63 +437,73 @@ export async function getBoardWithData(boardId: number) {
 // ════════════════════════════════════════════════════════════════════════════
 
 export async function createDefaultBoard(projectId: number, userId: number) {
-  // Create board
-  const board = await createBoard({
-    projectId,
-    userId,
-    name: "Project Board",
-    description: "Default project kanban board",
-    isDefault: true,
-    settings: {
-      defaultView: "board",
-      showLabels: true,
-      showAssignees: true,
-      showDueDates: true,
-      swimlaneBy: "none",
-      cardSize: "normal",
-    },
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Use transaction to ensure all-or-nothing board creation
+  let boardId: number;
+  
+  await db.transaction(async (tx) => {
+    // Create board
+    const [boardResult] = await tx.insert(kanbanBoards).values({
+      projectId,
+      userId,
+      name: "Project Board",
+      description: "Default project kanban board",
+      isDefault: true,
+      settings: {
+        defaultView: "board",
+        showLabels: true,
+        showAssignees: true,
+        showDueDates: true,
+        swimlaneBy: "none",
+        cardSize: "normal",
+      },
+    });
+    boardId = boardResult.insertId;
+    
+    // Create default columns
+    const defaultColumns = [
+      { name: "Backlog", columnType: "backlog" as const, color: "#6B7280", position: 0 },
+      { name: "Spec Writing", columnType: "spec_writing" as const, color: "#8B5CF6", position: 1 },
+      { name: "Design", columnType: "design" as const, color: "#EC4899", position: 2 },
+      { name: "Ready", columnType: "ready" as const, color: "#3B82F6", position: 3 },
+      { name: "In Progress", columnType: "in_progress" as const, color: "#F59E0B", wipLimit: 3, position: 4 },
+      { name: "Review", columnType: "review" as const, color: "#10B981", position: 5 },
+      { name: "Done", columnType: "done" as const, color: "#059669", position: 6 },
+    ];
+    
+    for (const col of defaultColumns) {
+      await tx.insert(kanbanColumns).values({
+        boardId,
+        name: col.name,
+        columnType: col.columnType,
+        color: col.color,
+        wipLimit: col.wipLimit,
+        position: col.position,
+      });
+    }
+    
+    // Create default labels
+    const defaultLabels = [
+      { name: "bug", color: "#EF4444" },
+      { name: "feature", color: "#3B82F6" },
+      { name: "enhancement", color: "#8B5CF6" },
+      { name: "documentation", color: "#6B7280" },
+      { name: "high-priority", color: "#F59E0B" },
+      { name: "blocked", color: "#DC2626" },
+    ];
+    
+    for (const label of defaultLabels) {
+      await tx.insert(boardLabels).values({
+        boardId,
+        name: label.name,
+        color: label.color,
+      });
+    }
   });
   
-  // Create default columns
-  const defaultColumns = [
-    { name: "Backlog", columnType: "backlog" as const, color: "#6B7280" },
-    { name: "Spec Writing", columnType: "spec_writing" as const, color: "#8B5CF6" },
-    { name: "Design", columnType: "design" as const, color: "#EC4899" },
-    { name: "Ready", columnType: "ready" as const, color: "#3B82F6" },
-    { name: "In Progress", columnType: "in_progress" as const, color: "#F59E0B", wipLimit: 3 },
-    { name: "Review", columnType: "review" as const, color: "#10B981" },
-    { name: "Done", columnType: "done" as const, color: "#059669" },
-  ];
-  
-  for (const col of defaultColumns) {
-    await createColumn({
-      boardId: board.id!,
-      name: col.name,
-      columnType: col.columnType,
-      color: col.color,
-      wipLimit: col.wipLimit,
-    });
-  }
-  
-  // Create default labels
-  const defaultLabels = [
-    { name: "bug", color: "#EF4444" },
-    { name: "feature", color: "#3B82F6" },
-    { name: "enhancement", color: "#8B5CF6" },
-    { name: "documentation", color: "#6B7280" },
-    { name: "high-priority", color: "#F59E0B" },
-    { name: "blocked", color: "#DC2626" },
-  ];
-  
-  for (const label of defaultLabels) {
-    await createLabel({
-      boardId: board.id!,
-      name: label.name,
-      color: label.color,
-    });
-  }
-  
-  return getBoardWithData(board.id!);
+  return getBoardWithData(boardId!);
 }
 
 

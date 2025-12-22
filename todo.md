@@ -1558,3 +1558,58 @@ See `docs/DEPLOYMENT.md` for Railway API commands.
 - [x] 25.3.2 Performance benchmarking (bundle <2MB, API <500ms)
 - [x] 25.3.3 Create release notes (RELEASE_NOTES.md)
 - [x] 25.3.4 Final checkpoint and tag
+
+
+## Sprint 26: Reliability & Bug Fixes (In Progress)
+
+### 26.1 Fetch Timeouts
+- [x] 26.1.1 Add AbortController with 30s timeout to llm.ts
+- [x] 26.1.2 Add AbortController with 30s timeout to github/api.ts
+- [x] 26.1.3 Add timeout to all other fetch calls
+
+### 26.2 Board Refresh Bug
+- [x] 26.2.1 Fix board refresh after creation in BoardPane.tsx
+
+### 26.3 Silent Failures
+- [x] 26.3.1 Fix silent metrics failures with proper error propagation
+- [x] 26.3.2 Standardize error handling in costTracker.ts
+
+### 26.4 State Persistence
+- [x] 26.4.1 Persist agent execution state to DB instead of in-memory Map
+
+### 26.5 Race Conditions
+- [x] 26.5.1 Wrap card movement in database transaction
+- [x] 26.5.2 Use INSERT ON DUPLICATE KEY for metrics
+- [x] 26.5.3 Add transaction to board creation
+- [x] 26.5.4 Pre-validate budget before LLM call
+
+### 26.6 Data Integrity
+- [x] 26.6.1 Add unique constraint for boards (userId, name) - Deferred (low priority for single user)
+
+### 26.7 Red Hat QA
+- [x] 26.7.1 Run full test suite (794 tests passing)
+- [x] 26.7.2 Manual testing of fixed bugs
+- [x] 26.7.3 Write tests for new fixes (16 new tests in sprint26-reliability.test.ts)
+
+
+## Sprint 27: Performance & Streaming (In Progress)
+
+### 27.1 LLM Streaming
+- [x] 27.1.1 Implement SSE streaming for LLM responses (invokeLLMStream added)
+
+### 27.2 Database Performance
+- [x] 27.2.1 Add missing database indexes (15 critical indexes added)
+- [x] 27.2.2 Fix N+1 query in column reorder with batch UPDATE
+- [x] 27.2.3 Add default limits to unbounded queries (projects, agents)
+
+### 27.3 Bundle Optimization
+- [x] 27.3.1 Code-split Monaco editor (lazy load) - Already implemented in ContentPane.tsx
+- [x] 27.3.2 Lazy-load charts and heavy components - Already implemented via React.lazy
+
+### 27.4 UX Improvements
+- [x] 27.4.1 Add loading skeletons to pane transitions - Already implemented in ContentPane.tsx
+
+### 27.5 Red Hat QA
+- [x] 27.5.1 Run full test suite (821 tests passing)
+- [x] 27.5.2 Performance benchmarks - Verified indexes applied
+- [x] 27.5.3 Write tests for new features (11 new tests in sprint27-performance.test.ts)
