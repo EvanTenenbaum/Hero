@@ -278,3 +278,92 @@ The sprint sequence is designed for efficient single-agent execution:
 ---
 
 *This plan supersedes all previous sprint definitions. Execute sprints sequentially for optimal efficiency.*
+
+
+---
+
+### Sprint 27: DevOps & Infrastructure Strategy (Week 10-11)
+
+**Rationale:** Before beta launch, establish a clear deployment strategy and evaluate infrastructure providers to ensure Hero IDE can be deployed flexibly and iterated quickly.
+
+| ID | Task | Effort | Dependencies |
+|----|------|--------|--------------|
+| 27.1.1 | Evaluate staging environment necessity | 3h | None |
+| 27.1.2 | Research preview deployments (Vercel, Netlify) | 3h | None |
+| 27.1.3 | Design branch-based deployment strategy | 2h | 27.1.2 |
+| 27.1.4 | Evaluate feature flags vs staging | 2h | 27.1.1 |
+| 27.1.5 | Document deployment decision matrix | 2h | 27.1.4 |
+| 27.2.1 | Research hot-reload patterns for cloud | 2h | None |
+| 27.2.2 | Design CI/CD pipeline (< 5 min deploy) | 4h | 27.1.3 |
+| 27.2.3 | Evaluate canary vs blue-green deployments | 2h | None |
+| 27.2.4 | Research zero-downtime migration strategies | 3h | None |
+| 27.2.5 | Design rollback automation | 3h | 27.2.3 |
+| 27.2.6 | Create testing strategy document | 3h | None |
+| 27.3.1 | Evaluate compute providers | 4h | None |
+| 27.3.2 | Evaluate database providers | 4h | None |
+| 27.3.3 | Evaluate storage providers | 2h | None |
+| 27.3.4 | Evaluate AI/LLM providers | 3h | None |
+| 27.3.5 | Evaluate monitoring providers | 2h | None |
+| 27.3.6 | Evaluate auth providers | 2h | None |
+| 27.4.1 | Design provider abstraction interfaces | 6h | 27.3.1-6 |
+| 27.4.2 | Create provider configuration schema | 3h | 27.4.1 |
+| 27.4.3 | Implement provider adapter pattern | 8h | 27.4.2 |
+| 27.4.4 | Create provider comparison matrix | 3h | 27.3.1-6 |
+| 27.4.5 | Design multi-provider fallback strategy | 3h | 27.4.3 |
+| 27.5.1 | Create ADR: Deployment strategy | 2h | 27.1.5 |
+| 27.5.2 | Create ADR: Infrastructure selection | 2h | 27.4.4 |
+| 27.5.3 | Create self-hosting setup guide | 4h | 27.4.3 |
+| 27.5.4 | Create provider migration playbook | 3h | 27.4.3 |
+
+**Key Questions to Answer:**
+
+1. **Do we need staging?** For cloud-native apps with preview deployments, traditional staging may be unnecessary. Preview deployments per PR provide isolated testing environments automatically.
+
+2. **Quick iteration strategies:**
+   - Preview deployments for every PR (instant feedback)
+   - Feature flags for gradual rollouts (test in production safely)
+   - Canary deployments for high-risk changes (1% → 10% → 100%)
+   - Automated rollback on error rate spike
+
+3. **Infrastructure flexibility:**
+   - Abstract provider interfaces allow swapping backends
+   - Configuration-driven provider selection
+   - Multi-provider fallback for resilience
+
+**Deliverables:**
+- Deployment strategy decision document
+- Provider comparison matrix
+- Provider abstraction layer implementation
+- Self-hosting guide
+- CI/CD pipeline configuration
+
+---
+
+## Updated Sprint Summary
+
+| Sprint | Focus | Duration | Status |
+|--------|-------|----------|--------|
+| 21 | Design System Implementation | 2 weeks | Pending |
+| 22 | Agent Kickoff Protocol | 2 weeks | Pending |
+| 23 | Self-Modifying IDE | 2 weeks | Pending |
+| 24 | QA & Testing Consolidation | 1 week | Pending |
+| 25 | Cleanup & Documentation | 1 week | Pending |
+| 26 | Beta Launch (Optional) | 1 week | Pending |
+| **27** | **DevOps & Infrastructure** | **1-2 weeks** | **NEW** |
+
+**Total: 7 sprints, 10-12 weeks**
+
+---
+
+## Recommended Sprint Order
+
+For optimal efficiency, Sprint 27 can be executed in parallel with or after Sprint 25:
+
+**Option A (Sequential):**
+21 → 22 → 23 → 24 → 25 → 27 → 26
+
+**Option B (Parallel Research):**
+- Main track: 21 → 22 → 23 → 24 → 25 → 26
+- Research track: 27 (can start anytime, results inform Sprint 26)
+
+Sprint 27's research outputs directly inform the Beta Launch sprint, so completing it before Sprint 26 is recommended.
