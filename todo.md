@@ -1118,5 +1118,41 @@
 - [x] 19.5.3 Write history service tests
 - [x] 19.5.4 Run full test suite (575 tests passing)
 - [x] 19.5.5 Red Team QA audit (QA_SPRINT_19_FINDINGS.md)
-- [ ] 19.5.6 Push to GitHub
+- [x] 19.5.6 Push to GitHub (already synced)
+
+
+## Sprint 20: GitHub Integration Polish - Dec 21, 2025
+
+### 20.1 Issue Sync System
+- [x] 20.1.1 Create issueSync table schema (already exists in schema.ts)
+- [x] 20.1.2 Implement listIssues API endpoint
+- [x] 20.1.3 Implement getIssue API endpoint
+- [x] 20.1.4 Implement createIssue API endpoint
+- [x] 20.1.5 Implement updateIssue API endpoint
+- [x] 20.1.6 Create issueSyncService.ts for bi-directional sync
+- [x] 20.1.7 Add issue-to-card linking in Kanban
+- [x] 20.1.8 Add card-to-issue creation workflow
+
+### 20.2 Enhanced PR Management
+- [x] 20.2.1 Add PR diff viewer endpoint (getPRFiles, getPRDiff)
+- [x] 20.2.2 Add PR comments listing endpoint (listPRComments, listPRReviewComments)
+- [x] 20.2.3 Add PR comment creation endpoint (createPRComment, createPRReviewComment)
+- [x] 20.2.4 Implement PR merge endpoint (mergePR, checkMergeability)
+- [x] 20.2.5 Add PR review request endpoint (requestReviewers, createPRReview)
+- [x] 20.2.6 Create PRDetailPanel UI component
+
+### 20.3 Clone Service Enhancements
+- [x] 20.3.1 Add cloneRepo tRPC endpoint
+- [x] 20.3.2 Add syncRepo tRPC endpoint
+- [x] 20.3.3 Add getCloneStatus tRPC endpoint
+- [x] 20.3.4 Create CloneProgress UI component
+- [x] 20.3.5 Wire clone service to project creation (endpoints ready)
+
+### 20.4 Testing & QA
+- [x] 20.4.1 Write issue sync tests
+- [x] 20.4.2 Write PR management tests
+- [x] 20.4.3 Write clone service tests
+- [x] 20.4.4 Run full test suite (655 tests passing)
+- [x] 20.4.5 Red Team QA audit (QA_SPRINT_20_FINDINGS.md)
+- [ ] 20.4.6 Push to GitHub
 

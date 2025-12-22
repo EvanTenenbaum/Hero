@@ -33,6 +33,39 @@ import {
   createPullRequest,
   createBranch,
 } from "./api";
+import {
+  listIssues,
+  getIssue,
+  createIssue,
+  updateIssue,
+  syncIssuesToDb,
+  getSyncedIssues,
+  linkIssueToCard,
+  createCardFromIssue,
+  createIssueFromCard,
+} from "./issueSyncService";
+import {
+  getPRFiles,
+  getPRDiff,
+  listPRComments,
+  listPRReviewComments,
+  createPRComment,
+  createPRReviewComment,
+  listPRReviews,
+  createPRReview,
+  checkMergeability,
+  mergePR,
+  requestReviewers,
+  listPRCommits,
+} from "./prManagementService";
+import {
+  cloneAndTrack,
+  syncTrackedRepo,
+  getClonedRepoByProject,
+  getClonedRepoById,
+  listBranches as listLocalBranches,
+  getCurrentBranch,
+} from "./gitService";
 
 export const githubRouter = router({
   // ============================================================================
@@ -495,5 +528,544 @@ export const githubRouter = router({
         input.branchName,
         input.sourceSha
       );
+    }),
+
+  // ============================================================================
+  // Issue Procedures (Sprint 20)
+  // ============================================================================
+
+  /**
+   * List issues for a repository
+   */
+  listIssues: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      state: z.enum(["open", "closed", "all"]).optional(),
+      labels: z.string().optional(),
+      page: z.number().min(1).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return listIssues(connection.accessToken, input.owner, input.repo, {
+        state: input.state,
+        labels: input.labels,
+        page: input.page,
+      });
+    }),
+
+  /**
+   * Get a specific issue
+   */
+  getIssue: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      issueNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return getIssue(connection.accessToken, input.owner, input.repo, input.issueNumber);
+    }),
+
+  /**
+   * Create a new issue
+   */
+  createIssue: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      title: z.string(),
+      body: z.string().optional(),
+      labels: z.array(z.string()).optional(),
+      assignees: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return createIssue(connection.accessToken, input.owner, input.repo, {
+        title: input.title,
+        body: input.body,
+        labels: input.labels,
+        assignees: input.assignees,
+      });
+    }),
+
+  /**
+   * Update an issue
+   */
+  updateIssue: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      issueNumber: z.number(),
+      title: z.string().optional(),
+      body: z.string().optional(),
+      state: z.enum(["open", "closed"]).optional(),
+      labels: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return updateIssue(connection.accessToken, input.owner, input.repo, input.issueNumber, {
+        title: input.title,
+        body: input.body,
+        state: input.state,
+        labels: input.labels,
+      });
+    }),
+
+  /**
+   * Sync issues from GitHub to local database
+   */
+  syncIssues: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      owner: z.string(),
+      repo: z.string(),
+      state: z.enum(["open", "closed", "all"]).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return syncIssuesToDb(input.projectId, connection.accessToken, input.owner, input.repo, {
+        state: input.state,
+      });
+    }),
+
+  /**
+   * Get synced issues from local database
+   */
+  getSyncedIssues: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      state: z.enum(["open", "closed"]).optional(),
+      limit: z.number().optional(),
+      offset: z.number().optional(),
+    }))
+    .query(async ({ input }) => {
+      return getSyncedIssues(input.projectId, {
+        state: input.state,
+        limit: input.limit,
+        offset: input.offset,
+      });
+    }),
+
+  /**
+   * Link a GitHub issue to a Kanban card
+   */
+  linkIssueToCard: protectedProcedure
+    .input(z.object({
+      issueId: z.number(),
+      cardId: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const success = await linkIssueToCard(input.issueId, input.cardId);
+      if (!success) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to link issue to card" });
+      }
+      return { success: true };
+    }),
+
+  /**
+   * Create a Kanban card from a GitHub issue
+   */
+  createCardFromIssue: protectedProcedure
+    .input(z.object({
+      issueId: z.number(),
+      boardId: z.number(),
+      columnId: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const cardId = await createCardFromIssue(input.issueId, input.boardId, input.columnId);
+      if (!cardId) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create card from issue" });
+      }
+      return { cardId };
+    }),
+
+  /**
+   * Create a GitHub issue from a Kanban card
+   */
+  createIssueFromCard: protectedProcedure
+    .input(z.object({
+      cardId: z.number(),
+      owner: z.string(),
+      repo: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      const issue = await createIssueFromCard(input.cardId, connection.accessToken, input.owner, input.repo);
+      if (!issue) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create issue from card" });
+      }
+      return issue;
+    }),
+
+  // ============================================================================
+  // Enhanced PR Procedures (Sprint 20)
+  // ============================================================================
+
+  /**
+   * Get files changed in a PR
+   */
+  getPRFiles: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return getPRFiles(connection.accessToken, input.owner, input.repo, input.pullNumber);
+    }),
+
+  /**
+   * Get the full diff for a PR
+   */
+  getPRDiff: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      const diff = await getPRDiff(connection.accessToken, input.owner, input.repo, input.pullNumber);
+      return { diff };
+    }),
+
+  /**
+   * List comments on a PR
+   */
+  listPRComments: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+      page: z.number().min(1).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return listPRComments(connection.accessToken, input.owner, input.repo, input.pullNumber, {
+        page: input.page,
+      });
+    }),
+
+  /**
+   * List review comments on a PR (inline code comments)
+   */
+  listPRReviewComments: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+      page: z.number().min(1).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return listPRReviewComments(connection.accessToken, input.owner, input.repo, input.pullNumber, {
+        page: input.page,
+      });
+    }),
+
+  /**
+   * Create a comment on a PR
+   */
+  createPRComment: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+      body: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return createPRComment(connection.accessToken, input.owner, input.repo, input.pullNumber, input.body);
+    }),
+
+  /**
+   * Create an inline review comment on a PR
+   */
+  createPRReviewComment: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+      body: z.string(),
+      commitId: z.string(),
+      path: z.string(),
+      line: z.number(),
+      side: z.enum(["LEFT", "RIGHT"]).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return createPRReviewComment(
+        connection.accessToken,
+        input.owner,
+        input.repo,
+        input.pullNumber,
+        input.body,
+        input.commitId,
+        input.path,
+        input.line,
+        input.side
+      );
+    }),
+
+  /**
+   * List reviews on a PR
+   */
+  listPRReviews: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return listPRReviews(connection.accessToken, input.owner, input.repo, input.pullNumber);
+    }),
+
+  /**
+   * Create a review on a PR
+   */
+  createPRReview: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+      event: z.enum(["APPROVE", "REQUEST_CHANGES", "COMMENT"]),
+      body: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return createPRReview(
+        connection.accessToken,
+        input.owner,
+        input.repo,
+        input.pullNumber,
+        input.event,
+        input.body
+      );
+    }),
+
+  /**
+   * Check if a PR is mergeable
+   */
+  checkMergeability: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return checkMergeability(connection.accessToken, input.owner, input.repo, input.pullNumber);
+    }),
+
+  /**
+   * Merge a PR
+   */
+  mergePR: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+      commitTitle: z.string().optional(),
+      commitMessage: z.string().optional(),
+      mergeMethod: z.enum(["merge", "squash", "rebase"]).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return mergePR(connection.accessToken, input.owner, input.repo, input.pullNumber, {
+        commit_title: input.commitTitle,
+        commit_message: input.commitMessage,
+        merge_method: input.mergeMethod,
+      });
+    }),
+
+  /**
+   * Request reviewers for a PR
+   */
+  requestReviewers: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+      reviewers: z.array(z.string()).optional(),
+      teamReviewers: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return requestReviewers(
+        connection.accessToken,
+        input.owner,
+        input.repo,
+        input.pullNumber,
+        input.reviewers,
+        input.teamReviewers
+      );
+    }),
+
+  /**
+   * List commits on a PR
+   */
+  listPRCommits: protectedProcedure
+    .input(z.object({
+      owner: z.string(),
+      repo: z.string(),
+      pullNumber: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      return listPRCommits(connection.accessToken, input.owner, input.repo, input.pullNumber);
+    }),
+
+  // ============================================================================
+  // Clone Service Procedures (Sprint 20)
+  // ============================================================================
+
+  /**
+   * Clone a repository
+   */
+  cloneRepo: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      owner: z.string(),
+      repo: z.string(),
+      githubRepoId: z.number(),
+      branch: z.string().optional(),
+      depth: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const connection = await getGitHubConnection(ctx.user.id);
+      if (!connection) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "GitHub not connected" });
+      }
+
+      const result = await cloneAndTrack(
+        input.projectId,
+        ctx.user.id,
+        `${input.owner}/${input.repo}`,
+        input.githubRepoId,
+        {
+          branch: input.branch,
+          depth: input.depth,
+          accessToken: connection.accessToken,
+        }
+      );
+
+      if (!result.success) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Clone failed" });
+      }
+
+      return result.clonedRepo;
+    }),
+
+  /**
+   * Sync a cloned repository
+   */
+  syncRepo: protectedProcedure
+    .input(z.object({
+      clonedRepoId: z.number(),
+    }))
+    .mutation(async ({ input }) => {
+      const result = await syncTrackedRepo(input.clonedRepoId);
+      if (!result.success) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Sync failed" });
+      }
+      return result;
+    }),
+
+  /**
+   * Get clone status for a project
+   */
+  getCloneStatus: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+    }))
+    .query(async ({ input }) => {
+      const clonedRepo = await getClonedRepoByProject(input.projectId);
+      if (!clonedRepo) {
+        return { cloned: false };
+      }
+      return {
+        cloned: true,
+        status: clonedRepo.cloneStatus,
+        currentBranch: clonedRepo.currentBranch,
+        lastSyncedAt: clonedRepo.lastSyncedAt,
+        lastCommitSha: clonedRepo.lastCommitSha,
+        error: clonedRepo.syncError,
+      };
     }),
 });
