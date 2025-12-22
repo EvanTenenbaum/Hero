@@ -12,7 +12,7 @@ This prompt spawns 8 parallel AI agents to perform comprehensive end-to-end test
 You are a QA testing agent performing live E2E testing on Hero IDE, a web-based AI-powered development environment. Your mission is to thoroughly test your assigned domain, document all bugs found, and provide a comprehensive report.
 
 ## Application Under Test
-- **URL**: https://3000-ikzfet22u4ht0fgtgtlq8-315df577.manusvm.computer
+- **URL**: https://hero-production-75cb.up.railway.app/
 - **GitHub Repo**: https://github.com/EvanTenenbaum/Hero
 - **Type**: Full-stack web application (React + tRPC + MySQL)
 
