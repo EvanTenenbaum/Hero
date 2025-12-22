@@ -1,6 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { TRPCError } from "@trpc/server";
 import { chatAgentRouter } from './routers/chat-agent';
+import { chatStreamRouter } from './routers/chat-stream';
 import { kanbanRouter } from './kanban/router';
 import { driveRouter } from './drive/router';
 import { codebaseRouter } from './codebase/router';
@@ -1461,6 +1462,7 @@ export const appRouter = router({
   projects: projectsRouter,
   chat: chatRouter,
   chatAgent: chatAgentRouter,
+  chatStream: chatStreamRouter,
   agents: agentsRouter,
   github: githubApiRouter,
   settings: settingsRouter,

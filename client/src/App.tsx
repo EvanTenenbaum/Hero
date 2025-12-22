@@ -19,6 +19,7 @@ import ExecutionHistory from "./pages/ExecutionHistory";
 import Board from "./pages/Board";
 import WorkspacePage from "./pages/WorkspacePage";
 import DashboardLayout from "./components/DashboardLayout";
+import { CommandPalette, useCommandPalette } from "./components/CommandPalette";
 
 function Router() {
   return (
@@ -47,11 +48,14 @@ function Router() {
 }
 
 function App() {
+  const { open: commandPaletteOpen, setOpen: setCommandPaletteOpen } = useCommandPalette();
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

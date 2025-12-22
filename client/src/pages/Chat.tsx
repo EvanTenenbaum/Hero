@@ -123,8 +123,10 @@ export default function Chat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentType>("pm");
   const [optimisticMessage, setOptimisticMessage] = useState<Message | null>(null);
+  const [streamingContent, setStreamingContent] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const utils = trpc.useUtils();
   const { data: conversations, refetch: refetchConversations } = trpc.chat.conversations.useQuery();
@@ -205,12 +207,71 @@ export default function Chat() {
     const messageContent = input;
     setInput("");
     setIsStreaming(true);
-
-    sendMessage.mutate({
-      conversationId: targetConversationId,
+    setStreamingContent("");
+    
+    // Show user message optimistically
+    const tempMessage: Message = {
+      id: Date.now(),
+      role: "user",
       content: messageContent,
-      agentType: selectedAgent,
-    });
+      createdAt: new Date(),
+    };
+    setOptimisticMessage(tempMessage);
+
+    // Use streaming endpoint via fetch with SSE
+    try {
+      abortControllerRef.current = new AbortController();
+      const response = await fetch('/api/trpc/chat.sendMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          json: {
+            conversationId: targetConversationId,
+            content: messageContent,
+            agentType: selectedAgent,
+          }
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const result = await response.json();
+      
+      // Handle safety check responses
+      if (result.result?.data?.json?.blocked) {
+        toast.error(
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-red-400" />
+            <span>Message blocked: {result.result?.data?.json?.safetyReason || "Safety violation detected"}</span>
+          </div>,
+          { duration: 5000 }
+        );
+      } else if (result.result?.data?.json?.requiresConfirmation) {
+        toast.warning(
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-yellow-400" />
+            <span>This action requires confirmation</span>
+          </div>,
+          { duration: 5000 }
+        );
+      }
+      
+      setOptimisticMessage(null);
+      setStreamingContent("");
+      refetchMessages();
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // User cancelled
+        return;
+      }
+      toast.error(error instanceof Error ? error.message : 'Failed to send message');
+    } finally {
+      setIsStreaming(false);
+      abortControllerRef.current = null;
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -220,10 +281,16 @@ export default function Chat() {
     }
   };
 
-  // Combine real messages with optimistic message
+  // Combine real messages with optimistic message and streaming content
   const displayMessages = [
     ...(messages || []),
     ...(optimisticMessage ? [optimisticMessage] : []),
+    ...(isStreaming && streamingContent ? [{
+      id: Date.now() + 1,
+      role: "assistant" as const,
+      content: streamingContent,
+      createdAt: new Date(),
+    }] : []),
   ];
 
   return (
@@ -343,13 +410,17 @@ export default function Chat() {
                       )}
                     </div>
                   ))}
-                  {isStreaming && !optimisticMessage && (
+                  {isStreaming && !streamingContent && (
                     <div className="flex gap-3">
                       <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                         <Bot className="h-4 w-4" />
                       </div>
-                      <div className="bg-secondary rounded-lg px-4 py-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <div className="bg-secondary rounded-lg px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
                       </div>
                     </div>
                   )}

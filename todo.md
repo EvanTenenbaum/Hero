@@ -1613,3 +1613,22 @@ See `docs/DEPLOYMENT.md` for Railway API commands.
 - [x] 27.5.1 Run full test suite (821 tests passing)
 - [x] 27.5.2 Performance benchmarks - Verified indexes applied
 - [x] 27.5.3 Write tests for new features (11 new tests in sprint27-performance.test.ts)
+
+## Sprint 28: Features & Polish (In Progress)
+
+### 28.1 LLM Streaming in Chat UI
+- [x] 28.1.1 Create streaming tRPC endpoint for chat (chatStreamRouter)
+- [x] 28.1.2 Update Chat page to use streaming responses
+- [x] 28.1.3 Add typing indicator during streaming (animated dots)
+
+### 28.2 Cmd+K Quick Switcher
+- [x] 28.2.1 Create CommandPalette component
+- [x] 28.2.2 Add keyboard shortcut listener (Cmd/Ctrl+K)
+- [x] 28.2.3 Implement search across projects, files, boar### 28.3 Agent Kickoff Wizard Testing
+- [x] 28.3.1 Test the 5-step kickoff protocol (26 tests passing)
+- [x] 28.3.2 Verify spec document generation (6 doc types verified)
+- [x] 28.3.3 Validate workflow produces usable documentation
+
+### 28.4 Red Hat QA
+- [x] 28.4.1 Run full test suite (864 tests passing)
+- [x] 28.4.2 Write tests for new features (17 new tests in sprint28-features.test.ts)
