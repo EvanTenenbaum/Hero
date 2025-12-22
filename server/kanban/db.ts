@@ -114,13 +114,21 @@ export async function reorderColumns(boardId: number, columnIds: number[]) {
   
   if (columnIds.length === 0) return;
   
+  // Validate all columnIds are valid numbers to prevent SQL injection
+  // Even though TypeScript types them as number[], runtime validation is important
+  const validatedIds = columnIds.filter(id => Number.isInteger(id) && id > 0);
+  if (validatedIds.length !== columnIds.length) {
+    throw new Error("Invalid column IDs provided");
+  }
+  
   // Use batch UPDATE with CASE statement to avoid N+1 queries
   // This updates all columns in a single query instead of one per column
-  const caseStatements = columnIds.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
+  // Safe because we validated all IDs are integers above
+  const caseStatements = validatedIds.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
   await db.execute(sql`
     UPDATE kanban_columns 
     SET position = CASE id ${sql.raw(caseStatements)} END
-    WHERE boardId = ${boardId} AND id IN (${sql.raw(columnIds.join(','))});
+    WHERE boardId = ${boardId} AND id IN (${sql.raw(validatedIds.join(','))});
   `);
 }
 
