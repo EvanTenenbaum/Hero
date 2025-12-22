@@ -2,7 +2,8 @@
  * ChangePreviewPanel - Shows a diff preview of proposed code changes
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getLanguageFromPath, highlightDiff } from "@/lib/syntax-highlight";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,26 @@ export function ChangePreviewPanel({
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(
     new Set(previews.map((p) => p.filePath))
   );
+  const [highlightedDiffs, setHighlightedDiffs] = useState<Map<string, Array<{ type: 'add' | 'remove' | 'context'; html: string; lineNumber: number }>>>(new Map());
+
+  // Highlight diffs when files are expanded
+  useEffect(() => {
+    const highlightExpandedFiles = async () => {
+      for (const filePath of Array.from(expandedFiles)) {
+        if (highlightedDiffs.has(filePath)) continue;
+        
+        const preview = previews.find(p => p.filePath === filePath);
+        if (!preview) continue;
+        
+        const language = getLanguageFromPath(filePath);
+        const highlighted = await highlightDiff(preview.diff.lines, language, 'dark');
+        
+        setHighlightedDiffs(prev => new Map(prev).set(filePath, highlighted));
+      }
+    };
+    
+    highlightExpandedFiles();
+  }, [expandedFiles, previews]);
 
   const protectedFiles = previews.filter((p) => p.isProtected);
   const allProtectedConfirmed = protectedFiles.every((p) =>
@@ -174,32 +195,34 @@ export function ChangePreviewPanel({
                   </div>
                 )}
 
-                {/* Diff view */}
+                {/* Diff view with syntax highlighting */}
                 {expandedFiles.has(preview.filePath) && (
-                  <div className="border-t bg-muted/30">
+                  <div className="border-t bg-zinc-900">
                     <pre className="p-3 text-xs font-mono overflow-x-auto">
-                      {preview.diff.lines.map((line, idx) => (
+                      {(highlightedDiffs.get(preview.filePath) || preview.diff.lines.map(l => ({ ...l, html: l.content }))).map((line, idx) => (
                         <div
                           key={idx}
                           className={`${
                             line.type === "add"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-green-900/30 border-l-2 border-green-500"
                               : line.type === "remove"
-                              ? "bg-red-100 text-red-800"
-                              : "text-muted-foreground"
+                              ? "bg-red-900/30 border-l-2 border-red-500"
+                              : "border-l-2 border-transparent"
                           }`}
                         >
-                          <span className="inline-block w-8 text-right pr-2 select-none opacity-50">
+                          <span className="inline-block w-8 text-right pr-2 select-none text-zinc-500">
                             {line.lineNumber}
                           </span>
-                          <span className="inline-block w-4 select-none">
+                          <span className={`inline-block w-4 select-none ${
+                            line.type === "add" ? "text-green-400" : line.type === "remove" ? "text-red-400" : "text-zinc-500"
+                          }`}>
                             {line.type === "add"
                               ? "+"
                               : line.type === "remove"
                               ? "-"
                               : " "}
                           </span>
-                          {line.content}
+                          <span dangerouslySetInnerHTML={{ __html: line.html }} />
                         </div>
                       ))}
                     </pre>

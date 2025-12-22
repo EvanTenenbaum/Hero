@@ -218,12 +218,17 @@ export default function Chat() {
     };
     setOptimisticMessage(tempMessage);
 
-    // Use streaming endpoint via fetch with SSE
+    // Use streaming endpoint via EventSource for real-time responses
     try {
       abortControllerRef.current = new AbortController();
-      const response = await fetch('/api/trpc/chat.sendMessage', {
+      
+      // Create EventSource-like connection using fetch with streaming
+      const response = await fetch('/api/trpc/chatStream.streamMessage', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
         body: JSON.stringify({
           json: {
             conversationId: targetConversationId,
@@ -235,28 +240,88 @@ export default function Chat() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        // Fall back to regular mutation if streaming not available
+        sendMessage.mutate({
+          conversationId: targetConversationId,
+          content: messageContent,
+          agentType: selectedAgent,
+        });
+        return;
       }
 
-      const result = await response.json();
-      
-      // Handle safety check responses
-      if (result.result?.data?.json?.blocked) {
-        toast.error(
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-red-400" />
-            <span>Message blocked: {result.result?.data?.json?.safetyReason || "Safety violation detected"}</span>
-          </div>,
-          { duration: 5000 }
-        );
-      } else if (result.result?.data?.json?.requiresConfirmation) {
-        toast.warning(
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-yellow-400" />
-            <span>This action requires confirmation</span>
-          </div>,
-          { duration: 5000 }
-        );
+      // Check if response is streaming
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('text/event-stream') || contentType?.includes('application/x-ndjson')) {
+        // Handle SSE streaming
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedContent = '';
+        
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const text = decoder.decode(value, { stream: true });
+            const lines = text.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.type === 'chunk' && data.content) {
+                    accumulatedContent += data.content;
+                    setStreamingContent(accumulatedContent);
+                  } else if (data.type === 'blocked') {
+                    toast.error(
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-red-400" />
+                        <span>Message blocked: {data.reason || "Safety violation detected"}</span>
+                      </div>,
+                      { duration: 5000 }
+                    );
+                  } else if (data.type === 'confirmation_required') {
+                    toast.warning(
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                        <span>This action requires confirmation</span>
+                      </div>,
+                      { duration: 5000 }
+                    );
+                  } else if (data.type === 'done') {
+                    // Streaming complete
+                    break;
+                  } else if (data.type === 'error') {
+                    toast.error(data.error || 'Streaming error');
+                  }
+                } catch {
+                  // Ignore parse errors for incomplete chunks
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Handle regular JSON response (fallback)
+        const result = await response.json();
+        
+        if (result.result?.data?.json?.blocked) {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-red-400" />
+              <span>Message blocked: {result.result?.data?.json?.safetyReason || "Safety violation detected"}</span>
+            </div>,
+            { duration: 5000 }
+          );
+        } else if (result.result?.data?.json?.requiresConfirmation) {
+          toast.warning(
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-400" />
+              <span>This action requires confirmation</span>
+            </div>,
+            { duration: 5000 }
+          );
+        }
       }
       
       setOptimisticMessage(null);
@@ -267,7 +332,12 @@ export default function Chat() {
         // User cancelled
         return;
       }
-      toast.error(error instanceof Error ? error.message : 'Failed to send message');
+      // Fall back to regular mutation on error
+      sendMessage.mutate({
+        conversationId: targetConversationId,
+        content: messageContent,
+        agentType: selectedAgent,
+      });
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;

@@ -9,7 +9,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Github, Folder, FileCode, ChevronRight, RefreshCw, ExternalLink } from "lucide-react";
+import { Github, Folder, FileCode, ChevronRight, RefreshCw, ExternalLink, Download, GitPullRequest } from "lucide-react";
+import { CloneRepoDialog } from "@/components/github/CloneRepoDialog";
+import { PRListPanel } from "@/components/github/PRListPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface GitHubPaneProps {
   owner?: string;
@@ -32,6 +35,9 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
   const [selectedBranch, setSelectedBranch] = useState(branch || "main");
   const [currentPath, setCurrentPath] = useState("");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"files" | "prs">("files");
+  const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
 
   // Check GitHub connection
   const { data: connectionData, isLoading: connectionLoading } = trpc.github.getConnection.useQuery();
@@ -87,6 +93,9 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
       setCurrentPath("");
       setSelectedFile(null);
       setSelectedBranch("main");
+      // Find repo ID for cloning
+      const selectedRepoData = repos?.find(r => r.full_name === repoFullName);
+      setSelectedRepoId(selectedRepoData?.id || null);
     }
   };
 
@@ -173,9 +182,45 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
         >
           <RefreshCw className="h-4 w-4" />
         </Button>
+        {selectedRepo && selectedRepoId && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={() => setCloneDialogOpen(true)}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Clone
+          </Button>
+        )}
+      </div>
+
+      {/* Tab switcher */}
+      <div className="px-3 py-2 border-b">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "files" | "prs")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="files" className="text-xs">
+              <Folder className="h-3 w-3 mr-1" />
+              Files
+            </TabsTrigger>
+            <TabsTrigger value="prs" className="text-xs">
+              <GitPullRequest className="h-3 w-3 mr-1" />
+              Pull Requests
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Content area */}
+      {activeTab === "prs" ? (
+        <PRListPanel
+          owner={selectedOwner}
+          repo={selectedRepo}
+          onSelectPR={(prNumber) => {
+            window.open(`https://github.com/${selectedOwner}/${selectedRepo}/pull/${prNumber}`, "_blank");
+          }}
+        />
+      ) : (
       <div className="flex-1 flex overflow-hidden">
         {/* File tree */}
         <div className="w-64 border-r flex flex-col shrink-0">
@@ -288,6 +333,18 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
           )}
         </div>
       </div>
+      )}
+
+      {/* Clone dialog */}
+      {selectedRepoId && (
+        <CloneRepoDialog
+          open={cloneDialogOpen}
+          onOpenChange={setCloneDialogOpen}
+          owner={selectedOwner}
+          repo={selectedRepo}
+          repoId={selectedRepoId}
+        />
+      )}
     </div>
   );
 }

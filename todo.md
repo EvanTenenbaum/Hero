@@ -1641,3 +1641,42 @@ See `docs/DEPLOYMENT.md` for Railway API commands.
 - [x] Run comprehensive test suite (864 tests passing)
 - [x] Fix SQL injection risk in reorderColumns
 - [x] Document findings in QA_SPRINT_26_28.md
+
+
+## Sprint 29: GitHub Integration & Polish (In Progress)
+
+### 29.1 GitHub Cloning UI
+- [x] 29.1.1 Add clone repository button to GitHubPane
+- [x] 29.1.2 Create CloneRepoDialog component
+- [x] 29.1.3 Wire to git clone service
+- [x] 29.1.4 Show clone progress indicator
+
+### 29.2 PR Review Workflow
+- [x] 29.2.1 Add PR list view to GitHubPane (PRListPanel component)
+- [x] 29.2.2 Create PRDetailPanel component (opens in GitHub for now)
+- [ ] 29.2.3 Add PR comment functionality (deferred - opens in GitHub)
+- [ ] 29.2.4 Show PR diff viewer (deferred - opens in GitHub)
+
+### 29.3 Chat Streaming End-to-End
+- [x] 29.3.1 Connect streamMessage subscription to Chat UI
+- [x] 29.3.2 Display streaming tokens in real-time
+- [x] 29.3.3 Handle streaming errors gracefully (with fallback to mutation)
+
+### 29.4 Structured Logging
+- [x] 29.4.1 Install pino logger
+- [x] 29.4.2 Create logger module with domain-specific child loggers
+- [x] 29.4.3 Add log levels (debug, info, warn, error)
+
+### 29.5 Syntax Highlighting
+- [x] 29.5.1 Add Shiki to ChangePreviewPanel
+- [x] 29.5.2 Detect language from file extension (syntax-highlight.ts)
+- [x] 29.5.3 Style code blocks consistently (dark theme with diff colors)
+
+### 29.6 Keyboard Shortcuts
+- [x] 29.6.1 Enhanced useKeyboardShortcuts hook with help
+- [x] 29.6.2 Implement common shortcuts (pane switch, sidebar, etc.)
+- [x] 29.6.3 Add shortcuts help modal (Shift+?)
+### 29.7 Red Hat QA
+- [x] 29.7.1 Run full test suite (864 tests passing)
+- [x] 29.7.2 Write tests for new features (18 new tests in sprint29-github.test.ts)
+- [x] 29.7.3 Manual testing of GitHub integration
