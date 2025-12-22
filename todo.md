@@ -1240,3 +1240,160 @@
 - [ ] 22.3.3 Store kickoff docs in project /docs folder
 - [ ] 22.3.4 Link agent-brief to agent execution context
 - [ ] 22.3.5 Add slice-to-ticket conversion in Kanban
+
+
+---
+
+# OPTIMIZED SEQUENTIAL ROADMAP (Dec 21, 2025)
+
+*Reorganized for efficient single-agent execution. See docs/OPTIMIZED_SPRINT_PLAN.md for full details.*
+
+## Sprint 21: Design System Implementation (2 weeks)
+
+### 21.1 Foundation
+- [ ] 21.1.1 Update index.css with Slate Blue color palette (#5B7C99)
+- [ ] 21.1.2 Update Tailwind config with new design tokens
+- [ ] 21.1.3 Update typography scale (Libre Baskerville headings, Inter body)
+- [ ] 21.1.4 Update spacing system to 4px base unit
+
+### 21.2 Component Refactoring
+- [ ] 21.2.1 Refactor Button component variants
+- [ ] 21.2.2 Refactor Card component with new styling
+- [ ] 21.2.3 Refactor Input/Form components
+- [ ] 21.2.4 Refactor Sidebar navigation
+- [ ] 21.2.5 Update status indicators (colored dots)
+
+### 21.3 Mobile Implementation
+- [ ] 21.3.1 Implement mobile bottom tab navigation
+- [ ] 21.3.2 Implement mobile bottom sheet pattern
+- [ ] 21.3.3 Add touch target sizing (44px minimum)
+- [ ] 21.3.4 Implement responsive breakpoint system
+
+### 21.4 Theme & Testing
+- [ ] 21.4.1 Add dark/light theme toggle
+- [ ] 21.4.2 Test all pages with new design system
+- [ ] 21.5.1 Write design system tests
+- [ ] 21.5.2 Red Team QA audit
+
+## Sprint 22: Agent Kickoff Protocol (2 weeks)
+
+### 22.1 Backend Services
+- [ ] 22.1.1 Add project_kickoff table to schema
+- [ ] 22.1.2 Add project_docs table to schema
+- [ ] 22.1.3 Create kickoffService.ts with wizard data types
+- [ ] 22.1.4 Create document generation prompts
+- [ ] 22.1.5 Implement generateNorthStar()
+- [ ] 22.1.6 Implement generateProductBrief()
+- [ ] 22.1.7 Implement generateArchitecture()
+- [ ] 22.1.8 Implement generateQualityBar()
+- [ ] 22.1.9 Implement generateSliceMap()
+- [ ] 22.1.10 Implement generateAgentBrief()
+
+### 22.2 Wizard UI
+- [ ] 22.2.1 Create KickoffWizard.tsx shell component
+- [ ] 22.2.2 Create NorthStarStep.tsx
+- [ ] 22.2.3 Create ProductBriefStep.tsx
+- [ ] 22.2.4 Create ArchitectureStep.tsx
+- [ ] 22.2.5 Create QualityBarStep.tsx
+- [ ] 22.2.6 Create SliceMapStep.tsx
+
+### 22.3 Integration
+- [ ] 22.3.1 Integrate wizard into project creation flow
+- [ ] 22.3.2 Add "Skip kickoff" option
+- [ ] 22.3.3 Update contextBuilder.ts to include kickoff docs
+- [ ] 22.3.4 Implement slice-to-Kanban card creation
+
+### 22.4 Testing
+- [ ] 22.4.1 Write unit tests for kickoff service
+- [ ] 22.4.2 Red Team QA audit
+
+## Sprint 23: Self-Modifying IDE (2 weeks)
+
+### 23.1 Foundation
+- [ ] 23.1.1 Create system_project record for Hero IDE codebase
+- [ ] 23.1.2 Define protected file list (auth, db core, build config)
+- [ ] 23.1.3 Create metaAgentPrompt.ts with IDE-specific system prompt
+- [ ] 23.1.4 Index Hero IDE codebase in context engine
+
+### 23.2 Modification Service
+- [ ] 23.2.1 Create fileModificationService.ts
+- [ ] 23.2.2 Implement change validation pipeline (TypeScript, lint)
+- [ ] 23.2.3 Implement diff preview generation
+- [ ] 23.2.4 Implement hot-reload trigger mechanism
+
+### 23.3 UI Components
+- [ ] 23.3.1 Add "Meta Mode" toggle to chat interface
+- [ ] 23.3.2 Create ChangePreviewPanel.tsx component
+- [ ] 23.3.3 Add "Apply Changes" action with confirmation
+- [ ] 23.3.4 Create IDE checkpoint/rollback integration
+
+### 23.4 Safety
+- [ ] 23.4.1 Implement protected file warning system
+- [ ] 23.4.2 Add audit logging for IDE modifications
+
+### 23.5 Testing
+- [ ] 23.5.1 Write unit tests for modification service
+- [ ] 23.5.2 Red Team QA audit
+
+## Sprint 24: QA & Testing Consolidation (1 week)
+
+### 24.1 Feature Testing
+- [ ] 24.1.1 Complete QA-2 Authentication tests
+- [ ] 24.1.2 Complete QA-3 Project Management tests
+- [ ] 24.1.3 Complete QA-4 AI Chat & Agents tests
+- [ ] 24.1.4 Complete QA-5 GitHub Integration tests
+- [ ] 24.1.5 Complete QA-6 Context Engine tests
+- [ ] 24.1.6 Complete QA-7 Prompt-to-Plan tests
+- [ ] 24.1.7 Complete QA-8 Sprint Planning tests
+- [ ] 24.1.8 Complete QA-9 Settings tests
+
+### 24.2 Component Testing
+- [ ] 24.2.1 Complete QA-SO Sprint Orchestrator tests
+- [ ] 24.2.2 Complete QA-CC Card Creation tests
+- [ ] 24.2.3 Complete QA-CV Card Views tests
+
+### 24.3 Security & Performance
+- [ ] 24.3.1 Security audit (SQL injection, XSS, CSRF)
+- [ ] 24.3.2 Performance audit (load times, memory)
+- [ ] 24.3.3 Accessibility audit (WCAG compliance)
+
+### 24.4 Fixes
+- [ ] 24.4.1 Fix all issues found
+- [ ] 24.4.2 Final test suite run
+
+## Sprint 25: Cleanup & Documentation (1 week)
+
+### 25.1 Code Cleanup
+- [ ] 25.1.1 Remove duplicate/obsolete code
+- [ ] 25.1.2 Consolidate redundant router endpoints
+- [ ] 25.1.3 Clean up unused database tables
+- [ ] 25.1.4 Remove deprecated components
+
+### 25.2 Documentation
+- [ ] 25.2.1 Update README.md with current features
+- [ ] 25.2.2 Create user documentation
+- [ ] 25.2.3 Create API documentation
+- [ ] 25.2.4 Create deployment guide
+
+### 25.3 Release Preparation
+- [ ] 25.3.1 Final integration testing
+- [ ] 25.3.2 Performance benchmarking
+- [ ] 25.3.3 Create release notes
+- [ ] 25.3.4 Final checkpoint and tag
+
+## Sprint 26: Beta Launch (Optional - 1 week)
+
+### 26.1 Onboarding
+- [ ] 26.1.1 Create onboarding flow for new users
+- [ ] 26.1.2 Add feature discovery tooltips
+- [ ] 26.1.3 Create welcome email templates
+
+### 26.2 Monitoring
+- [ ] 26.2.1 Set up error monitoring
+- [ ] 26.2.2 Set up analytics tracking
+- [ ] 26.2.3 Create admin dashboard for monitoring
+
+### 26.3 Launch
+- [ ] 26.3.1 Beta user invitation system
+- [ ] 26.3.2 Feedback collection mechanism
+- [ ] 26.3.3 Launch checklist verification
