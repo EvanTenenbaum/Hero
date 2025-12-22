@@ -1,17 +1,17 @@
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
-// Generate login URL at runtime so redirect URI reflects the current origin.
+/**
+ * Get Google OAuth login URL
+ * Redirects to server-side OAuth initiation endpoint
+ */
 export const getLoginUrl = () => {
-  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
-  const appId = import.meta.env.VITE_APP_ID;
-  const redirectUri = `${window.location.origin}/api/oauth/callback`;
-  const state = btoa(redirectUri);
-
-  const url = new URL(`${oauthPortalUrl}/app-auth`);
-  url.searchParams.set("appId", appId);
-  url.searchParams.set("redirectUri", redirectUri);
-  url.searchParams.set("state", state);
-  url.searchParams.set("type", "signIn");
-
-  return url.toString();
+  // Use server-side endpoint to initiate Google OAuth flow
+  // This avoids exposing client credentials and handles redirect properly
+  const currentUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const redirectAfterLogin = typeof window !== "undefined" ? window.location.pathname : "/";
+  
+  // Encode the redirect path to return user to their original location after login
+  const state = btoa(JSON.stringify({ redirect: redirectAfterLogin }));
+  
+  return `${currentUrl}/api/auth/google?state=${encodeURIComponent(state)}`;
 };
