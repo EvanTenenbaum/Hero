@@ -1154,5 +1154,61 @@
 - [x] 20.4.3 Write clone service tests
 - [x] 20.4.4 Run full test suite (655 tests passing)
 - [x] 20.4.5 Red Team QA audit (QA_SPRINT_20_FINDINGS.md)
-- [ ] 20.4.6 Push to GitHub
+- [x] 20.4.6 Push to GitHub (synced via checkpoint)
+
+
+
+## Sprint 21: Self-Modifying IDE (Meta-Development)
+
+### 21.1 Core Concept
+- [ ] 21.1.1 Design "Hero IDE as a Project" architecture
+- [ ] 21.1.2 Create special system project for IDE codebase
+- [ ] 21.1.3 Define safe modification boundaries
+- [ ] 21.1.4 Design hot-reload mechanism for live changes
+
+### 21.2 Chat-Driven Development
+- [ ] 21.2.1 Add "Develop Hero IDE" mode to chat
+- [ ] 21.2.2 Create IDE-aware agent with codebase knowledge
+- [ ] 21.2.3 Implement change preview before applying
+- [ ] 21.2.4 Add rollback capability for IDE changes
+
+### 21.3 Safety & Governance
+- [ ] 21.3.1 Define protected core files
+- [ ] 21.3.2 Implement change validation
+- [ ] 21.3.3 Add approval workflow for critical changes
+- [ ] 21.3.4 Create backup/restore mechanism
+
+### 21.4 User Experience
+- [ ] 21.4.1 Design "Meta Mode" UI indicator
+- [ ] 21.4.2 Create change diff preview panel
+- [ ] 21.4.3 Add "Apply to IDE" action button
+- [ ] 21.4.4 Implement live preview of changes
+
+
+
+## Mobile Web App Design Audit
+
+### Phase 1: Current State Audit
+- [ ] Test all pages on mobile viewport
+- [ ] Document responsive breakpoints
+- [ ] Identify non-functional mobile features
+- [ ] Screenshot current mobile state
+
+### Phase 2: Research
+- [ ] Research mobile IDE UX patterns
+- [ ] Research touch interaction guidelines
+- [ ] Research mobile code editing solutions
+- [ ] Document findings
+
+### Phase 3: Mobile Design System
+- [ ] Create mobile feature inventory
+- [ ] Design mobile user journeys
+- [ ] Define mobile component specifications
+- [ ] Create mobile mockups
+
+### Phase 4: QA Report
+- [ ] Evidence-based mobile QA audit
+- [ ] Accessibility compliance check
+- [ ] Performance considerations
+- [ ] Final recommendations
 
