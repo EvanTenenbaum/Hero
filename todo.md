@@ -1212,3 +1212,31 @@
 - [ ] Performance considerations
 - [ ] Final recommendations
 
+
+
+## Design System Consolidation & Agent Protocol Integration
+
+### Design Consolidation
+- [x] Consolidate desktop and mobile design systems into unified document (HERO_IDE_UNIFIED_DESIGN_SYSTEM.md)
+- [x] Replace orange/amber accent with neutral color (Slate Blue #5B7C99)
+- [x] Merge QA reports into single comprehensive document
+- [x] Update color palette specifications across all documents
+
+### Agent Kickoff Protocol Integration (Sprint 22)
+- [ ] 22.1.1 Create project kickoff wizard UI flow
+- [ ] 22.1.2 Implement north-star.md template generation
+- [ ] 22.1.3 Implement product-brief.md template generation
+- [ ] 22.1.4 Implement architecture.md template generation
+- [ ] 22.1.5 Implement quality-bar.md template generation
+- [ ] 22.1.6 Implement slice-map.md template generation
+- [ ] 22.2.1 Create agent-brief.md for agent operating contract
+- [ ] 22.2.2 Implement ticket-template.md for slice tickets
+- [ ] 22.2.3 Implement definition-of-done.md checklist
+- [ ] 22.2.4 Add risk-tiers.md for verification levels
+- [ ] 22.2.5 Add decision-request.md for ambiguity handling
+- [ ] 22.2.6 Add diff-budget.md for PR size limits
+- [ ] 22.3.1 Integrate kickoff wizard into project creation flow
+- [ ] 22.3.2 Add "Skip kickoff" option for quick starts
+- [ ] 22.3.3 Store kickoff docs in project /docs folder
+- [ ] 22.3.4 Link agent-brief to agent execution context
+- [ ] 22.3.5 Add slice-to-ticket conversion in Kanban
