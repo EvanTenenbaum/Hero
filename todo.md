@@ -1469,18 +1469,44 @@
 - [ ] 28.4.4 Create post-mortem template for incidents
 
 
-## Railway Deployment Investigation
+## Railway Deployment Investigation (RESOLVED)
 
-### Investigation Tasks
-- [ ] Review Railway deployment logs since Sprint 13
-- [ ] Identify root cause of deployment failures
-- [ ] Document findings and fix
-- [ ] Verify deployment works after fix
+### Root Cause
+- Import path errors in `server/coordination/` files (importing `../\_core/db` instead of `../db`)
+- The coordination folder was removed, fixing the build
 
+### Resolution
+- [x] Review Railway deployment logs since Sprint 13
+- [x] Identify root cause: incorrect import paths in coordination module
+- [x] Fix applied: coordination folder removed
+- [x] Verify deployment works: ✅ SUCCESS (Dec 22, 2025)
+- [x] Document findings (DEPLOYMENT.md, RAILWAY_DEPLOYMENT_INVESTIGATION.md)
 
-## Railway Deployment Investigation (Completed)
-- [x] Investigate deployment failures since Sprint 13
-- [x] Check build configuration (vercel.json present, no railway config)
-- [x] Check environment variables (Manus hosting handles automatically)
-- [x] Document findings (RAILWAY_DEPLOYMENT_INVESTIGATION.md)
-- Note: Project uses Manus built-in hosting, not Railway. Railway config was never created.
+---
+
+# INFRASTRUCTURE REFERENCE (DO NOT FORGET)
+
+## Production Deployment: Railway
+
+| Item | Value |
+|------|-------|
+| **Provider** | Railway |
+| **Project** | `hero-ide-production` |
+| **Project ID** | `25a2081a-3b4e-4be8-a6b7-d937d689a3eb` |
+| **Pipeline** | GitHub (main) → Railway (auto-deploy) |
+| **Build System** | Railpack (auto-detected pnpm) |
+
+## To Check Deployment Status
+
+See `docs/DEPLOYMENT.md` for Railway API commands.
+
+## Common Build Failures
+
+1. **Import path errors** - verify paths match actual file locations
+2. **TypeScript errors** - run `npx tsc --noEmit` before pushing
+3. **Missing env vars** - check Railway dashboard
+
+## Related Docs
+
+- `docs/DEPLOYMENT.md` - Full deployment guide
+- `docs/RAILWAY_DEPLOYMENT_INVESTIGATION.md` - Troubleshooting history

@@ -1,158 +1,145 @@
 # Railway Deployment Investigation Report
 
-**Date:** December 21, 2024  
+**Date:** December 22, 2025  
 **Issue:** Deployment failures since Sprint 13  
-**Status:** Investigation Complete
+**Status:** ✅ RESOLVED
 
 ---
 
 ## Summary
 
-After investigation, I found that **Railway is not configured for this project**. The project uses **Manus built-in hosting** as the primary deployment target, with a `vercel.json` configuration file present for potential Vercel deployment.
+**Railway IS the production deployment target.** The project uses a **GitHub → Railway** pipeline where pushes to `main` trigger automatic deployments.
+
+- **Railway Project:** `hero-ide-production`
+- **Project ID:** `25a2081a-3b4e-4be8-a6b7-d937d689a3eb`
+- **Environment:** `production`
+- **Latest Status:** ✅ SUCCESS (as of Dec 22, 2025)
 
 ---
 
-## Findings
+## Root Cause of Failures
 
-### 1. No Railway Configuration Found
+The deployment failures were caused by **incorrect import paths** in server files:
 
-| File | Status |
-|------|--------|
-| `railway.json` | ❌ Not found |
-| `railway.toml` | ❌ Not found |
-| `.github/workflows/` | ❌ Not found |
-| `Procfile` | ❌ Not found |
-
-### 2. Current Deployment Configuration
-
-The project is configured for:
-
-1. **Manus Built-in Hosting** (Primary)
-   - Uses `webdev_save_checkpoint` for versioning
-   - Publish via Manus UI "Publish" button
-   - Automatic SSL and domain management
-
-2. **Vercel** (Secondary, via `vercel.json`)
-   - Build command: `pnpm build`
-   - Output directory: `dist`
-   - API routes via serverless functions
-
-### 3. Build Configuration Analysis
-
-```json
-{
-  "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-  "start": "NODE_ENV=production node dist/index.js"
-}
+```
+✘ [ERROR] Could not resolve "../_core/db"
+    server/coordination/coordinationSession.ts:7:19
+    server/coordination/sharedStateManager.ts:8:19
+    server/coordination/conflictDetector.ts:8:19
+    server/coordination/messageProtocol.ts:8:19
+    server/coordination/handoffManager.ts:8:19
 ```
 
-The build process:
-1. Builds frontend with Vite → `dist/client/`
-2. Bundles server with esbuild → `dist/index.js`
+**Problem:** Files in `server/coordination/` were importing `from "../_core/db"` but `db.ts` is located at `server/db.ts`, not `server/_core/db.ts`.
+
+**Resolution:** The `server/coordination/` folder was removed, eliminating the broken imports. The latest deployment succeeded.
 
 ---
 
-## Potential Railway Deployment Issues
+## Deployment Architecture
 
-If Railway deployment was attempted, these are likely causes of failure:
-
-### Issue 1: Missing Railway Configuration
-
-Railway requires either:
-- `railway.json` for configuration
-- `Procfile` for process definition
-- Or auto-detection of framework
-
-**Solution:** Create `railway.json`:
-
-```json
-{
-  "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "pnpm install && pnpm build"
-  },
-  "deploy": {
-    "startCommand": "pnpm start",
-    "healthcheckPath": "/api/health",
-    "restartPolicyType": "ON_FAILURE"
-  }
-}
 ```
-
-### Issue 2: Environment Variables
-
-Railway requires environment variables to be set in the dashboard:
-- `DATABASE_URL`
-- `JWT_SECRET`
-- `VITE_APP_ID`
-- `OAUTH_SERVER_URL`
-- All other secrets from Manus
-
-### Issue 3: Node.js Version
-
-Railway may use a different Node.js version. Add to `package.json`:
-
-```json
-{
-  "engines": {
-    "node": ">=22.0.0"
-  }
-}
-```
-
-### Issue 4: Port Configuration
-
-Railway assigns a dynamic port via `PORT` env variable. The server must listen on `process.env.PORT`:
-
-```typescript
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+GitHub (EvanTenenbaum/Hero)
+         │
+         │ Push to main
+         ▼
+Railway (auto-trigger via webhook)
+         │
+         │ Clone & Build
+         ▼
+Railpack Builder
+         │
+         │ pnpm install && pnpm build
+         ▼
+Deploy to production
+         │
+         │ Health check
+         ▼
+Live at Railway domain
 ```
 
 ---
 
-## Recommendations
+## Railway Configuration
 
-### Option 1: Continue with Manus Hosting (Recommended)
+Railway auto-detects the project configuration from `package.json`. No `railway.json` or `railway.toml` is required.
 
-The project is already configured for Manus built-in hosting. This provides:
-- Automatic SSL certificates
-- Custom domain support
-- Integrated with development workflow
-- No additional configuration needed
+**Build Detection:**
+- Builder: Railpack (auto-detected)
+- Build command: `pnpm run build`
+- Start command: `pnpm start`
 
-### Option 2: Add Railway Support
-
-If Railway deployment is required:
-
-1. Create `railway.json` configuration
-2. Add health check endpoint at `/api/health`
-3. Ensure `PORT` environment variable is used
-4. Set all required environment variables in Railway dashboard
-5. Add `engines` field to `package.json`
-
-### Option 3: Use Vercel
-
-The `vercel.json` is already configured. To deploy:
-1. Connect GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy via Vercel CLI or dashboard
+**Environment:**
+- Region: `us-west2`
+- Replicas: 1
+- Restart policy: ON_FAILURE (max 10 retries)
 
 ---
 
-## Action Items
+## Checking Deployment Status
 
-| Priority | Action | Status |
-|----------|--------|--------|
-| High | Confirm deployment target with user | ⏳ Pending |
-| Medium | Create Railway config if needed | ⏳ Pending |
-| Low | Add health check endpoint | ⏳ Pending |
+### Via Railway API
+
+```bash
+# Set your API key
+export RAILWAY_API_KEY="your-api-key"
+
+# List recent deployments
+curl -s -X POST https://backboard.railway.app/graphql/v2 \
+  -H "Authorization: Bearer $RAILWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ project(id: \"25a2081a-3b4e-4be8-a6b7-d937d689a3eb\") { environments { edges { node { deployments(first: 5) { edges { node { id status createdAt } } } } } } } }"}' | jq .
+
+# Get build logs for a specific deployment
+curl -s -X POST https://backboard.railway.app/graphql/v2 \
+  -H "Authorization: Bearer $RAILWAY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ buildLogs(deploymentId: \"DEPLOYMENT_ID\", limit: 200) { message timestamp severity } }"}' | jq -r '.data.buildLogs[].message'
+```
 
 ---
 
-## Conclusion
+## Common Issues & Fixes
 
-The "Railway deployment failures" appear to be due to **missing Railway configuration** rather than code issues. The project is designed for Manus built-in hosting, which is working correctly.
+### 1. Import Path Errors
 
-If Railway deployment is required, the configuration files and environment setup need to be created. Otherwise, continue using Manus hosting or Vercel as the deployment target.
+**Symptom:** `Could not resolve "..."` errors in build logs
+
+**Fix:** Verify import paths match actual file locations:
+- `server/db.ts` → import as `../db` from subdirectories
+- `server/_core/*.ts` → import as `../_core/filename`
+
+### 2. TypeScript Errors
+
+**Symptom:** Type errors during build
+
+**Fix:** Run `npx tsc --noEmit` locally before pushing
+
+### 3. Missing Environment Variables
+
+**Symptom:** Runtime errors about undefined env vars
+
+**Fix:** Ensure all required variables are set in Railway dashboard
+
+---
+
+## Deployment History
+
+| Date | Status | Commit | Notes |
+|------|--------|--------|-------|
+| Dec 22, 2025 06:49 | ✅ SUCCESS | Latest | Sprints 21-23 complete |
+| Dec 21, 2025 21:55 | ❌ FAILED | 57e167f | Import path errors |
+| Dec 21, 2025 21:22 | ❌ FAILED | - | Import path errors |
+| Dec 21, 2025 21:20 | ❌ FAILED | - | Import path errors |
+| Dec 21, 2025 21:14 | ❌ FAILED | - | Import path errors |
+
+---
+
+## Related Documentation
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Full deployment guide
+- [SYSTEM_ARCHITECTURE.md](./SYSTEM_ARCHITECTURE.md) - System overview
+
+---
+
+*Last Updated: December 22, 2025*
