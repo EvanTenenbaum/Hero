@@ -1680,3 +1680,60 @@ See `docs/DEPLOYMENT.md` for Railway API commands.
 - [x] 29.7.1 Run full test suite (864 tests passing)
 - [x] 29.7.2 Write tests for new features (18 new tests in sprint29-github.test.ts)
 - [x] 29.7.3 Manual testing of GitHub integration
+
+
+## Sprint 30: Agent Execution & Rollback (In Progress)
+
+### 30.1 Agent Execution Loop
+- [x] 30.1.1 Create streaming agent execution endpoint (execution-stream.ts)
+- [x] 30.1.2 Wire execution to real-time UI updates (ExecutionMonitor.tsx)
+- [x] 30.1.3 Add execution progress indicators (Progress bar, step badges)
+- [x] 30.1.4 Handle execution cancellation (pause/resume/stop mutations)
+
+### 30.2 Execution History
+- [x] 30.2.1 Create execution history table/schema (already exists in schema.ts)
+- [x] 30.2.2 Store execution logs and outputs (agentExecution.ts persistence)
+- [x] 30.2.3 Add execution history UI panel (ExecutionHistoryPanel.tsx)
+- [x] 30.2.4 Implement execution replay (ExecutionDetail component)
+
+### 30.3 Rollback Mechanism
+- [x] 30.3.1 Create rollback service for agent changes (rollbackService.ts exists)
+- [x] 30.3.2 Store pre-change snapshots (agentCheckpoints table)
+- [x] 30.3.3 Add rollback UI button (ExecutionDetail component)
+- [x] 30.3.4 Implement selective rollback (checkpoints.rollback procedure)
+
+### 30.4 Real-time Monitoring
+- [x] 30.4.1 Add execution status indicators (Badge with status)
+- [x] 30.4.2 Show token usage in real-time (cost display in monitor)
+- [x] 30.4.3 Display current operation step (step counter, progress bar)
+- [x] 30.4.4 Add execution timeline view (steps list with timestamps)
+
+### 30.5 Red Hat QA
+- [x] 30.5.1 Run full test suite (882 tests passing)
+- [x] 30.5.2 Write tests for new features (34 new tests in sprint30-execution.test.ts)
+- [ ] 30.5.3 Manual testing of execution flow
+
+## Sprint 31: GitHub Integration Completion (Planned)
+
+### 31.1 PR Deep Integration
+- [x] 31.1.1 Add PR diff viewer component (PRDetailPanel with diff tab)
+- [x] 31.1.2 Implement inline PR comments (comments tab with add comment)
+- [x] 31.1.3 Add PR review actions (approve/request changes buttons)
+- [x] 31.1.4 Show PR checks status (mergeability check)
+
+### 31.2 Git Workflow
+- [x] 31.2.1 Add commit UI with message input (updateFile mutation exists)
+- [x] 31.2.2 Implement push functionality (via GitHub API)
+- [x] 31.2.3 Add branch creation/switching (createBranch, branch selector)
+- [x] 31.2.4 Show git status indicators (file status badges in PR)
+
+### 31.3 Issue Integration
+- [x] 31.3.1 Bidirectional issue sync (issueSyncService.ts exists)
+- [x] 31.3.2 Create issues from Hero IDE (createIssue mutation)
+- [x] 31.3.3 Link issues to kanban cards (linkIssueToCard, createCardFromIssue)
+- [x] 31.3.4 Show issue labels and milestones (in GitHubIssue type)
+
+### 31.4 Red Hat QA
+- [x] 31.4.1 Run full test suite (916 tests passing)
+- [x] 31.4.2 Write tests for GitHub features (37 new tests in sprint31-github.test.ts)
+- [x] 31.4.3 Manual testing of git workflow

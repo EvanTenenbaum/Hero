@@ -445,6 +445,68 @@ const agentsRouter = router({
       
       return { success: true };
     }),
+
+  pauseExecution: protectedProcedure
+    .input(z.object({ executionId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const exec = await db.getAgentExecutionById(input.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      await db.updateAgentExecution(input.executionId, {
+        state: "halted",
+        haltReason: "user_requested",
+        haltMessage: "Paused by user",
+      });
+      
+      return { success: true };
+    }),
+
+  resumeExecution: protectedProcedure
+    .input(z.object({ executionId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const exec = await db.getAgentExecutionById(input.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      await db.updateAgentExecution(input.executionId, {
+        state: "executing",
+        haltReason: null,
+        haltMessage: null,
+      });
+      
+      return { success: true };
+    }),
+
+  stopExecution: protectedProcedure
+    .input(z.object({ executionId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const exec = await db.getAgentExecutionById(input.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      await db.updateAgentExecution(input.executionId, {
+        state: "halted",
+        haltReason: "user_requested",
+        haltMessage: "Stopped by user",
+        completedAt: new Date(),
+      });
+      
+      return { success: true };
+    }),
+
+  approveExecution: protectedProcedure
+    .input(z.object({ executionId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const exec = await db.getAgentExecutionById(input.executionId, ctx.user.id);
+      if (!exec) throw new TRPCError({ code: "NOT_FOUND" });
+      if (exec.state !== "waiting_approval") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Execution is not waiting for approval" });
+      }
+      
+      await db.updateAgentExecution(input.executionId, {
+        state: "executing",
+      });
+      
+      return { success: true };
+    }),
 });
 
 // ════════════════════════════════════════════════════════════════════════════

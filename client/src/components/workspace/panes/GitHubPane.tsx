@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Github, Folder, FileCode, ChevronRight, RefreshCw, ExternalLink, Download, GitPullRequest } from "lucide-react";
 import { CloneRepoDialog } from "@/components/github/CloneRepoDialog";
 import { PRListPanel } from "@/components/github/PRListPanel";
+import { PRDetailPanel } from "@/components/github/PRDetailPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface GitHubPaneProps {
@@ -38,6 +39,7 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"files" | "prs">("files");
   const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
+  const [selectedPR, setSelectedPR] = useState<number | null>(null);
 
   // Check GitHub connection
   const { data: connectionData, isLoading: connectionLoading } = trpc.github.getConnection.useQuery();
@@ -213,13 +215,20 @@ export default function GitHubPane({ owner, repo, branch, onRepoChange }: GitHub
 
       {/* Content area */}
       {activeTab === "prs" ? (
-        <PRListPanel
-          owner={selectedOwner}
-          repo={selectedRepo}
-          onSelectPR={(prNumber) => {
-            window.open(`https://github.com/${selectedOwner}/${selectedRepo}/pull/${prNumber}`, "_blank");
-          }}
-        />
+        selectedPR ? (
+          <PRDetailPanel
+            owner={selectedOwner}
+            repo={selectedRepo}
+            pullNumber={selectedPR}
+            onClose={() => setSelectedPR(null)}
+          />
+        ) : (
+          <PRListPanel
+            owner={selectedOwner}
+            repo={selectedRepo}
+            onSelectPR={(prNumber) => setSelectedPR(prNumber)}
+          />
+        )
       ) : (
       <div className="flex-1 flex overflow-hidden">
         {/* File tree */}
