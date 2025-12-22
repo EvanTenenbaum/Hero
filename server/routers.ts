@@ -7,6 +7,8 @@ import { codebaseRouter } from './codebase/router';
 import { contextRouter } from './context/router';
 import { specsRouter } from './specs/router';
 import { sprintRouter } from './sprints/router';
+import { kickoffRouter } from './kickoff/router';
+import { metaRouter } from './meta/router';
 import { githubRouter as githubApiRouter } from './github/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -1476,6 +1478,8 @@ export const appRouter = router({
   context: contextRouter,
   specs: specsRouter,
   sprints: sprintRouter,
+  kickoff: kickoffRouter,
+  meta: metaRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -281,7 +281,7 @@ export default function AgentConfig() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${config.color}`}>
-                          <Icon className="h-5 w-5 text-white" />
+                          <Icon className="h-5 w-5 text-foreground" />
                         </div>
                         <div>
                           <CardTitle className="text-base">{config.label}</CardTitle>

@@ -60,7 +60,7 @@ export default function AgentDetail() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </DashboardLayout>
     );
@@ -70,11 +70,11 @@ export default function AgentDetail() {
     return (
       <DashboardLayout>
         <div className="p-6">
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-card border-border">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <h3 className="text-lg font-medium text-white mb-2">Agent not found</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">Agent not found</h3>
               <Link href="/agents">
-                <Button variant="outline" className="border-slate-700 mt-4">
+                <Button variant="outline" className="border-border mt-4">
                   <ArrowLeft className="h-4 w-4 mr-2" /> Back to Agents
                 </Button>
               </Link>
@@ -92,17 +92,17 @@ export default function AgentDetail() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/agents">
-              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div className="h-12 w-12 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400">
+            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
               <Bot className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">{agent.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{agent.name}</h1>
               {agent.description && (
-                <p className="text-slate-400 text-sm">{agent.description}</p>
+                <p className="text-muted-foreground text-sm">{agent.description}</p>
               )}
             </div>
           </div>
@@ -111,29 +111,29 @@ export default function AgentDetail() {
               checked={agent.enabled ?? false}
               onCheckedChange={(enabled) => updateMutation.mutate({ id: agentId, enabled })}
             />
-            <span className="text-sm text-slate-400">{agent.enabled ? "Enabled" : "Disabled"}</span>
+            <span className="text-sm text-muted-foreground">{agent.enabled ? "Enabled" : "Disabled"}</span>
           </div>
         </div>
 
         {/* Run Agent Card */}
-        <Card className="bg-slate-900/50 border-slate-800">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Zap className="h-5 w-5 text-violet-400" />
+            <CardTitle className="text-foreground flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
               Run Agent
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-muted-foreground">
               Define a goal and let the agent work autonomously
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Goal</Label>
+              <Label className="text-foreground">Goal</Label>
               <Textarea
                 placeholder="Describe what you want the agent to accomplish..."
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white min-h-[100px]"
+                className="bg-secondary border-border text-foreground min-h-[100px]"
                 disabled={isRunning}
               />
             </div>
@@ -141,7 +141,7 @@ export default function AgentDetail() {
               <Button
                 onClick={handleRun}
                 disabled={isRunning || !agent.enabled}
-                className="bg-violet-600 hover:bg-violet-700 gap-2"
+                className="bg-primary hover:bg-primary/90 gap-2"
               >
                 {isRunning ? (
                   <>
@@ -165,35 +165,35 @@ export default function AgentDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="config" className="space-y-4">
-          <TabsList className="bg-slate-800/50 border border-slate-700">
-            <TabsTrigger value="config" className="data-[state=active]:bg-violet-600">
+          <TabsList className="bg-secondary/50 border border-border">
+            <TabsTrigger value="config" className="data-[state=active]:bg-primary">
               <Settings className="h-4 w-4 mr-2" /> Configuration
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-violet-600">
+            <TabsTrigger value="history" className="data-[state=active]:bg-primary">
               <History className="h-4 w-4 mr-2" /> Execution History
             </TabsTrigger>
-            <TabsTrigger value="rollback" className="data-[state=active]:bg-violet-600">
+            <TabsTrigger value="rollback" className="data-[state=active]:bg-primary">
               <RotateCcw className="h-4 w-4 mr-2" /> Checkpoints
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="config">
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className="text-white">Agent Configuration</CardTitle>
+                <CardTitle className="text-foreground">Agent Configuration</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Type</Label>
+                    <Label className="text-foreground">Type</Label>
                     <Select
                       value={agent.type}
                       onValueChange={() => toast.info("Agent type cannot be changed after creation")}
                     >
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-secondary border-border">
                         <SelectItem value="coder">Coder</SelectItem>
                         <SelectItem value="reviewer">Reviewer</SelectItem>
                         <SelectItem value="planner">Planner</SelectItem>
@@ -202,15 +202,15 @@ export default function AgentDetail() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Project</Label>
+                    <Label className="text-foreground">Project</Label>
                     <Select
                       value=""
                       onValueChange={() => toast.info("Project assignment coming soon")}
                     >
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
                         <SelectValue placeholder="Select a project" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-secondary border-border">
                         {projects?.map((p) => (
                           <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
                         ))}
@@ -220,48 +220,48 @@ export default function AgentDetail() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-300">System Prompt</Label>
+                  <Label className="text-foreground">System Prompt</Label>
                   <Textarea
                     value={agent.systemPrompt || ""}
                     onChange={(e) => updateMutation.mutate({ id: agentId, systemPrompt: e.target.value })}
-                    className="bg-slate-800 border-slate-700 text-white min-h-[120px]"
+                    className="bg-secondary border-border text-foreground min-h-[120px]"
                     placeholder="Instructions for the agent..."
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Max Steps</Label>
+                    <Label className="text-foreground">Max Steps</Label>
                     <Input
                       type="number"
                       value={agent.maxSteps ?? 10}
                       onChange={(e) => updateMutation.mutate({ id: agentId, maxSteps: parseInt(e.target.value) || 10 })}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Uncertainty Threshold (%)</Label>
+                    <Label className="text-foreground">Uncertainty Threshold (%)</Label>
                     <Input
                       type="number"
                       value={agent.uncertaintyThreshold ?? 70}
                       onChange={(e) => updateMutation.mutate({ id: agentId, uncertaintyThreshold: parseInt(e.target.value) || 70 })}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Budget Limit (USD)</Label>
+                    <Label className="text-foreground">Budget Limit (USD)</Label>
                     <Input
                       value={agent.budgetLimitUsd ?? ""}
                       onChange={(e) => updateMutation.mutate({ id: agentId, budgetLimitUsd: e.target.value })}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
                   <div>
-                    <Label className="text-slate-300">Require Approval for Changes</Label>
-                    <p className="text-xs text-slate-500">Agent will pause before applying changes</p>
+                    <Label className="text-foreground">Require Approval for Changes</Label>
+                    <p className="text-xs text-muted-foreground">Agent will pause before applying changes</p>
                   </div>
                   <Switch
                     checked={agent.requireApprovalForChanges ?? false}
@@ -293,9 +293,9 @@ function ExecutionHistoryTab({ agentId }: { agentId: number }) {
 
   if (isLoading) {
     return (
-      <Card className="bg-slate-900/50 border-slate-800">
+      <Card className="bg-card border-border">
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
@@ -303,25 +303,25 @@ function ExecutionHistoryTab({ agentId }: { agentId: number }) {
 
   if (!executions || executions.length === 0) {
     return (
-      <Card className="bg-slate-900/50 border-slate-800">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Execution History</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Execution History</CardTitle>
+          <CardDescription className="text-muted-foreground">
             View past agent executions and their results
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-slate-400 text-sm">No execution history yet. Run the agent to see results here.</p>
+          <p className="text-muted-foreground text-sm">No execution history yet. Run the agent to see results here.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-slate-900/50 border-slate-800">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">Execution History</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardTitle className="text-foreground">Execution History</CardTitle>
+        <CardDescription className="text-muted-foreground">
           View past agent executions and their results
         </CardDescription>
       </CardHeader>
@@ -330,20 +330,20 @@ function ExecutionHistoryTab({ agentId }: { agentId: number }) {
           {executions.map((exec) => (
             <div
               key={exec.id}
-              className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700"
+              className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg border border-border"
             >
               <div className="flex items-center gap-3">
                 <div className={`h-3 w-3 rounded-full ${
                   exec.state === 'completed' ? 'bg-green-500' :
                   exec.state === 'failed' ? 'bg-red-500' :
                   exec.state === 'executing' ? 'bg-yellow-500 animate-pulse' :
-                  'bg-slate-500'
+                  'bg-background0'
                 }`} />
                 <div>
-                  <p className="text-sm font-medium text-white truncate max-w-md">
+                  <p className="text-sm font-medium text-foreground truncate max-w-md">
                     {exec.goal || 'No goal specified'}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     {new Date(exec.createdAt).toLocaleString()} • Step {exec.currentStep || 0}/{exec.totalSteps || 0}
                   </p>
                 </div>
@@ -353,7 +353,7 @@ function ExecutionHistoryTab({ agentId }: { agentId: number }) {
                   exec.state === 'completed' ? 'bg-green-500/20 text-green-400' :
                   exec.state === 'failed' ? 'bg-red-500/20 text-red-400' :
                   exec.state === 'executing' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-slate-500/20 text-slate-400'
+                  'bg-background0/20 text-muted-foreground'
                 }`}>
                   {exec.state}
                 </span>
@@ -386,15 +386,15 @@ function RollbackTab({ agentId }: { agentId: number }) {
 
   if (!latestExecution) {
     return (
-      <Card className="bg-slate-900/50 border-slate-800">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Checkpoints & Rollback</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-foreground">Checkpoints & Rollback</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Manage execution checkpoints and rollback to previous states
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-slate-400 text-sm">No executions yet. Run the agent to create checkpoints.</p>
+          <p className="text-muted-foreground text-sm">No executions yet. Run the agent to create checkpoints.</p>
         </CardContent>
       </Card>
     );
@@ -429,19 +429,19 @@ function RollbackTab({ agentId }: { agentId: number }) {
   };
 
   return (
-    <Card className="bg-slate-900/50 border-slate-800">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">Checkpoints & Rollback</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardTitle className="text-foreground">Checkpoints & Rollback</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Manage execution checkpoints and rollback to previous states
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 p-3 bg-slate-800/50 rounded-lg">
-          <p className="text-sm text-slate-300">
+        <div className="mb-4 p-3 bg-secondary/50 rounded-lg">
+          <p className="text-sm text-foreground">
             <span className="font-medium">Current Execution:</span> {latestExecution.goal || 'No goal'}
           </p>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Step {latestExecution.currentStep || 0} of {latestExecution.totalSteps || 0} • Status: {latestExecution.state}
           </p>
         </div>

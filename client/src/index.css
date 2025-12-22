@@ -1,13 +1,17 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Google Fonts - loaded in index.html */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Border Radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  
+  /* Color Mappings */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -40,86 +44,214 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Typography */
+  --font-display: 'Libre Baskerville', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Spacing (4px base unit) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
 }
 
+/* ============================================
+   LIGHT MODE (Default)
+   Clean, warm, typography-first aesthetic
+   Inspired by Notion and Bear
+   ============================================ */
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  /* Base radius */
+  --radius: 0.5rem;
+  
+  /* Primary - Slate Blue (neutral, professional) */
+  --primary: #5B7C99;
+  --primary-foreground: #FFFFFF;
+  
+  /* Background - Warm off-white */
+  --background: #FAFAF9;
+  --foreground: #1C1917;
+  
+  /* Cards & Surfaces */
+  --card: #FFFFFF;
+  --card-foreground: #1C1917;
+  --popover: #FFFFFF;
+  --popover-foreground: #1C1917;
+  
+  /* Secondary - Subtle warm gray */
+  --secondary: #F5F5F4;
+  --secondary-foreground: #57534E;
+  
+  /* Muted - For less prominent elements */
+  --muted: #F5F5F4;
+  --muted-foreground: #78716C;
+  
+  /* Accent - Slate Blue tint */
+  --accent: #E8EEF3;
+  --accent-foreground: #1C1917;
+  
+  /* Destructive - Soft red */
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  
+  /* Borders - Subtle warm gray */
+  --border: #E7E5E4;
+  --input: #E7E5E4;
+  --ring: #5B7C99;
+  
+  /* Charts - Slate Blue palette */
+  --chart-1: #5B7C99;
+  --chart-2: #7BA3C4;
+  --chart-3: #4A6A85;
+  --chart-4: #8FB4D4;
+  --chart-5: #3A5A75;
+  
+  /* Sidebar */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1C1917;
+  --sidebar-primary: #5B7C99;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F5F5F4;
+  --sidebar-accent-foreground: #1C1917;
+  --sidebar-border: #E7E5E4;
+  --sidebar-ring: #5B7C99;
+  
+  /* Semantic Colors */
+  --success: #22C55E;
+  --warning: #EAB308;
+  --error: #EF4444;
+  --info: #3B82F6;
 }
 
+/* ============================================
+   DARK MODE
+   Warm dark grays, not harsh black
+   Cozy and easy on the eyes
+   ============================================ */
 .dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  /* Primary - Lighter Slate Blue for dark mode */
+  --primary: #7BA3C4;
+  --primary-foreground: #0F1419;
+  
+  /* Background - Warm dark */
+  --background: #1C1917;
+  --foreground: #FAFAF9;
+  
+  /* Cards & Surfaces - Elevated warm dark */
+  --card: #292524;
+  --card-foreground: #FAFAF9;
+  --popover: #292524;
+  --popover-foreground: #FAFAF9;
+  
+  /* Secondary */
+  --secondary: #3D3836;
+  --secondary-foreground: #A8A29E;
+  
+  /* Muted */
+  --muted: #3D3836;
+  --muted-foreground: #A8A29E;
+  
+  /* Accent - Slate Blue dark tint */
+  --accent: #2A3A4A;
+  --accent-foreground: #FAFAF9;
+  
+  /* Destructive */
+  --destructive: #F87171;
+  --destructive-foreground: #0F1419;
+  
+  /* Borders */
+  --border: #44403C;
+  --input: #44403C;
+  --ring: #7BA3C4;
+  
+  /* Charts */
+  --chart-1: #7BA3C4;
+  --chart-2: #5B7C99;
+  --chart-3: #8FB4D4;
+  --chart-4: #4A6A85;
+  --chart-5: #9FC4E4;
+  
+  /* Sidebar */
+  --sidebar: #292524;
+  --sidebar-foreground: #FAFAF9;
+  --sidebar-primary: #7BA3C4;
+  --sidebar-primary-foreground: #0F1419;
+  --sidebar-accent: #3D3836;
+  --sidebar-accent-foreground: #FAFAF9;
+  --sidebar-border: #44403C;
+  --sidebar-ring: #7BA3C4;
+  
+  /* Semantic Colors - Adjusted for dark mode */
+  --success: #4ADE80;
+  --warning: #FACC15;
+  --error: #F87171;
+  --info: #60A5FA;
 }
 
+/* ============================================
+   BASE STYLES
+   ============================================ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  
+  html {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    font-size: 16px;
+    line-height: 1.6;
   }
+  
+  /* Typography - Serif for large headings only */
+  h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+  }
+  
+  h2 {
+    font-family: var(--font-body);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  
+  h3 {
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  
+  h4, h5, h6 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  
+  /* Code blocks */
+  code, pre {
+    font-family: var(--font-mono);
+  }
+  
+  /* Interactive elements */
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   [type="button"]:not(:disabled),
@@ -131,47 +263,304 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
+  
+  /* Focus styles - visible but not intrusive */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  
+  /* Selection color */
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
 }
 
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
+  /* Container - auto-centered with responsive padding */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
-    padding-right: 1rem;
-  }
-
-  .flex {
-    min-height: 0;
-    min-width: 0;
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
   }
 
   @media (min-width: 640px) {
     .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
+      padding-left: var(--space-6);
+      padding-right: var(--space-6);
     }
   }
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      padding-left: var(--space-8);
+      padding-right: var(--space-8);
+      max-width: 1280px;
     }
+  }
+
+  /* Flex defaults - prevent overflow issues */
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+  
+  /* Card styling - clean, minimal shadow */
+  .card-clean {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-5);
+  }
+  
+  /* Status dots - simple colored indicators */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .status-dot-success { background-color: var(--success); }
+  .status-dot-warning { background-color: var(--warning); }
+  .status-dot-error { background-color: var(--error); }
+  .status-dot-info { background-color: var(--info); }
+  .status-dot-muted { background-color: var(--muted-foreground); }
+  
+  /* Text link - subtle underline on hover */
+  .text-link {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  
+  .text-link:hover {
+    color: var(--ring);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  
+  /* Prose styling for content areas */
+  .prose-clean {
+    color: var(--foreground);
+    line-height: 1.7;
+  }
+  
+  .prose-clean p {
+    margin-bottom: var(--space-4);
+  }
+  
+  .prose-clean h1, .prose-clean h2, .prose-clean h3 {
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-4);
+  }
+  
+  /* Subtle hover effect for interactive cards */
+  .hover-lift {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  .dark .hover-lift:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ============================================
+   MOBILE STYLES
+   Touch-friendly, bottom navigation ready
+   ============================================ */
+@layer utilities {
+  /* Touch target minimum size (44px) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Safe area padding for mobile */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  /* Hide on mobile, show on desktop */
+  .desktop-only {
+    display: none;
+  }
+  
+  @media (min-width: 768px) {
+    .desktop-only {
+      display: flex;
+    }
+  }
+  
+  /* Show on mobile, hide on desktop */
+  .mobile-only {
+    display: flex;
+  }
+  
+  @media (min-width: 768px) {
+    .mobile-only {
+      display: none;
+    }
+  }
+  
+  /* Bottom sheet styling */
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .dark .bottom-sheet {
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Bottom navigation bar */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 50;
+  }
+  
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--space-2);
+    min-width: 64px;
+    color: var(--muted-foreground);
+    transition: color 0.15s ease;
+  }
+  
+  .bottom-nav-item.active,
+  .bottom-nav-item:hover {
+    color: var(--primary);
+  }
+  
+  .bottom-nav-item span {
+    font-size: 10px;
+    font-weight: 500;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   Subtle, purposeful motion
+   ============================================ */
+@layer utilities {
+  /* Fade in */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  /* Slide up (for bottom sheets, modals) */
+  .animate-slide-up {
+    animation: slideUp 0.25s ease-out;
+  }
+  
+  @keyframes slideUp {
+    from { 
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Subtle scale (for buttons, cards) */
+  .animate-scale {
+    transition: transform 0.1s ease;
+  }
+  
+  .animate-scale:active {
+    transform: scale(0.98);
+  }
+  
+  /* Skeleton loading */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--muted) 25%,
+      var(--secondary) 50%,
+      var(--muted) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+  }
+  
+  @keyframes skeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   Minimal, unobtrusive
+   ============================================ */
+@layer base {
+  /* Webkit scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+  
+  /* Firefox scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
 }

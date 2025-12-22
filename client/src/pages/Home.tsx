@@ -10,44 +10,44 @@ import { Link } from "wouter";
 
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Header */}
-      <header className="border-b border-slate-800/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex h-16 items-center justify-between">
+    <div className="min-h-screen bg-background">
+      {/* Header - Clean, minimal */}
+      <header className="border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
+        <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-              <Code2 className="h-5 w-5 text-white" />
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <Code2 className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-xl text-white">Hero IDE</span>
+            <span className="font-semibold text-lg">Hero IDE</span>
           </div>
-          <Button asChild variant="default" className="bg-violet-600 hover:bg-violet-700">
+          <Button asChild size="sm">
             <a href={getLoginUrl()}>Sign In</a>
           </Button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container py-24 md:py-32">
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-6">
-            <Sparkles className="h-4 w-4" />
-            AI-Powered Development Platform
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
-            Build Faster with
-            <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent"> Autonomous Agents</span>
-          </h1>
-          <p className="mt-6 text-lg text-slate-400 max-w-2xl mx-auto">
-            Hero IDE combines AI chat, autonomous coding agents, and GitHub integration 
-            with built-in governance and safety controls. Ship code faster while staying in control.
+      {/* Hero Section - Typography-first, warm and inviting */}
+      <section className="container py-20 md:py-28">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-medium text-primary mb-4 tracking-wide uppercase">
+            AI-Powered Development
           </p>
-          <div className="mt-10 flex items-center justify-center gap-4">
-            <Button asChild size="lg" className="bg-violet-600 hover:bg-violet-700 gap-2">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl mb-6" style={{ fontFamily: 'var(--font-display)' }}>
+            Build software with
+            <br />
+            <span className="text-primary">autonomous agents</span>
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            Hero IDE combines intelligent chat, autonomous coding agents, and GitHub integration 
+            with built-in governance. Ship code faster while staying in control.
+          </p>
+          <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
+            <Button asChild size="lg" className="gap-2">
               <a href={getLoginUrl()}>
                 Get Started <ArrowRight className="h-4 w-4" />
               </a>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">
+            <Button asChild size="lg" variant="outline">
               <a href="https://github.com/EvanTenenbaum/Hero" target="_blank" rel="noopener">
                 <GitBranch className="h-4 w-4 mr-2" /> View on GitHub
               </a>
@@ -56,52 +56,52 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="container py-24 border-t border-slate-800/50">
+      {/* Features Grid - Clean cards, subtle borders */}
+      <section className="container py-20 border-t border-border">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-white mb-4">Everything You Need</h2>
-          <p className="text-slate-400 max-w-2xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-semibold mb-3">Everything you need</h2>
+          <p className="text-muted-foreground max-w-lg mx-auto">
             A complete development environment with AI assistance at every step
           </p>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
           <FeatureCard
-            icon={<MessageSquare className="h-6 w-6" />}
+            icon={<MessageSquare className="h-5 w-5" />}
             title="AI Chat"
-            description="Intelligent coding assistant powered by Gemini. Get help with code, debugging, and architecture decisions."
+            description="Intelligent coding assistant powered by Gemini. Get help with code, debugging, and architecture."
           />
           <FeatureCard
-            icon={<Bot className="h-6 w-6" />}
+            icon={<Bot className="h-5 w-5" />}
             title="Autonomous Agents"
             description="Configure agents to work on your codebase with defined goals, budgets, and safety constraints."
           />
           <FeatureCard
-            icon={<FolderGit2 className="h-6 w-6" />}
+            icon={<FolderGit2 className="h-5 w-5" />}
             title="GitHub Integration"
-            description="Connect your repositories, browse code, create branches, and manage pull requests."
+            description="Connect repositories, browse code, create branches, and manage pull requests seamlessly."
           />
           <FeatureCard
-            icon={<Shield className="h-6 w-6" />}
+            icon={<Shield className="h-5 w-5" />}
             title="Governance Controls"
             description="8-step change lifecycle with approval workflows, risk assessment, and violation detection."
           />
           <FeatureCard
-            icon={<Zap className="h-6 w-6" />}
+            icon={<Zap className="h-5 w-5" />}
             title="Budget Management"
             description="Track token usage, set spending limits, and monitor costs across all AI operations."
           />
           <FeatureCard
-            icon={<Settings className="h-6 w-6" />}
+            icon={<Settings className="h-5 w-5" />}
             title="Flexible Configuration"
             description="Customize agent behavior, model routing, safety thresholds, and notification preferences."
           />
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/50 py-8">
-        <div className="container text-center text-sm text-slate-500">
-          Built with Manus • Powered by Gemini
+      {/* Footer - Minimal */}
+      <footer className="border-t border-border py-8">
+        <div className="container text-center text-sm text-muted-foreground">
+          Built with Manus · Powered by Gemini
         </div>
       </footer>
     </div>
@@ -110,15 +110,15 @@ function LandingPage() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <Card className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors">
-      <CardHeader>
-        <div className="h-12 w-12 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 mb-4">
+    <Card className="hover-lift">
+      <CardHeader className="pb-3">
+        <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center text-primary mb-3">
           {icon}
         </div>
-        <CardTitle className="text-white">{title}</CardTitle>
+        <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <CardDescription className="text-slate-400">{description}</CardDescription>
+      <CardContent className="pt-0">
+        <CardDescription className="text-sm leading-relaxed">{description}</CardDescription>
       </CardContent>
     </Card>
   );
@@ -126,13 +126,17 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
 
 function Dashboard() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-8">
+      {/* Welcome Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Welcome to Hero IDE</h1>
-        <p className="text-slate-400 mt-1">Your AI-powered development platform</p>
+        <h1 className="text-2xl md:text-3xl" style={{ fontFamily: 'var(--font-display)' }}>
+          Welcome to Hero IDE
+        </h1>
+        <p className="text-muted-foreground mt-1">Your AI-powered development platform</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Quick Actions - Clean grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <QuickActionCard
           href="/projects"
           icon={<FolderGit2 className="h-5 w-5" />}
@@ -159,32 +163,41 @@ function Dashboard() {
         />
       </div>
 
+      {/* Info Cards */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-slate-900/50 border-slate-800">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white">Recent Activity</CardTitle>
+            <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-400 text-sm">No recent activity yet. Start by creating a project or chatting with the AI.</p>
+            <p className="text-muted-foreground text-sm">
+              No recent activity yet. Start by creating a project or chatting with the AI.
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900/50 border-slate-800">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white">Quick Start</CardTitle>
+            <CardTitle className="text-lg font-semibold">Quick Start</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3 text-sm">
-              <div className="h-6 w-6 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 text-xs">1</div>
-              <span className="text-slate-300">Create or import a project</span>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
+                1
+              </div>
+              <span className="text-sm">Create or import a project</span>
             </div>
-            <div className="flex items-center gap-3 text-sm">
-              <div className="h-6 w-6 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 text-xs">2</div>
-              <span className="text-slate-300">Configure an AI agent</span>
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
+                2
+              </div>
+              <span className="text-sm">Configure an AI agent</span>
             </div>
-            <div className="flex items-center gap-3 text-sm">
-              <div className="h-6 w-6 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 text-xs">3</div>
-              <span className="text-slate-300">Start coding with AI assistance</span>
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
+                3
+              </div>
+              <span className="text-sm">Start coding with AI assistance</span>
             </div>
           </CardContent>
         </Card>
@@ -196,14 +209,14 @@ function Dashboard() {
 function QuickActionCard({ href, icon, title, description }: { href: string; icon: React.ReactNode; title: string; description: string }) {
   return (
     <Link href={href}>
-      <Card className="bg-slate-900/50 border-slate-800 hover:border-violet-500/50 hover:bg-slate-800/50 transition-all cursor-pointer">
+      <Card className="hover-lift cursor-pointer h-full">
         <CardContent className="p-4 flex items-center gap-4">
-          <div className="h-10 w-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400">
+          <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center text-primary flex-shrink-0">
             {icon}
           </div>
-          <div>
-            <h3 className="font-medium text-white">{title}</h3>
-            <p className="text-sm text-slate-400">{description}</p>
+          <div className="min-w-0">
+            <h3 className="font-medium">{title}</h3>
+            <p className="text-sm text-muted-foreground truncate">{description}</p>
           </div>
         </CardContent>
       </Card>
@@ -216,8 +229,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -227,9 +240,5 @@ export default function Home() {
   }
 
   // Authenticated users see dashboard
-  return (
-    <div className="min-h-screen bg-slate-950">
-      <Dashboard />
-    </div>
-  );
+  return <Dashboard />;
 }

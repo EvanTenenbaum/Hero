@@ -61,43 +61,43 @@ export default function Agents() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Agents</h1>
-            <p className="text-slate-400 mt-1">Configure and manage autonomous AI agents</p>
+            <h1 className="text-2xl font-semibold">Agents</h1>
+            <p className="text-muted-foreground mt-1">Configure and manage autonomous AI agents</p>
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-violet-600 hover:bg-violet-700 gap-2">
+              <Button className="bg-primary hover:bg-primary/90 gap-2">
                 <Plus className="h-4 w-4" /> New Agent
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-800 max-w-2xl">
+            <DialogContent className="bg-card border-border max-w-2xl">
               <DialogHeader>
-                <DialogTitle className="text-white">Create New Agent</DialogTitle>
-                <DialogDescription className="text-slate-400">
+                <DialogTitle className="text-foreground">Create New Agent</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
                   Configure an AI agent to work on your projects autonomously.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Agent Name</Label>
+                    <Label className="text-foreground">Agent Name</Label>
                     <Input
                       placeholder="Code Assistant"
                       value={newAgent.name}
                       onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Type</Label>
+                    <Label className="text-foreground">Type</Label>
                     <Select
                       value={newAgent.type}
                       onValueChange={(v) => setNewAgent({ ...newAgent, type: v as any })}
                     >
-                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-secondary border-border">
                         <SelectItem value="coder">Coder</SelectItem>
                         <SelectItem value="reviewer">Reviewer</SelectItem>
                         <SelectItem value="planner">Planner</SelectItem>
@@ -108,64 +108,64 @@ export default function Agents() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Description</Label>
+                  <Label className="text-foreground">Description</Label>
                   <Textarea
                     placeholder="A brief description of what this agent does..."
                     value={newAgent.description}
                     onChange={(e) => setNewAgent({ ...newAgent, description: e.target.value })}
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-300">System Prompt</Label>
+                  <Label className="text-foreground">System Prompt</Label>
                   <Textarea
                     placeholder="Instructions for the agent..."
                     value={newAgent.systemPrompt}
                     onChange={(e) => setNewAgent({ ...newAgent, systemPrompt: e.target.value })}
-                    className="bg-slate-800 border-slate-700 text-white min-h-[100px]"
+                    className="bg-secondary border-border text-foreground min-h-[100px]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Max Steps</Label>
+                    <Label className="text-foreground">Max Steps</Label>
                     <Input
                       type="number"
                       min={1}
                       max={100}
                       value={newAgent.maxSteps}
                       onChange={(e) => setNewAgent({ ...newAgent, maxSteps: parseInt(e.target.value) || 10 })}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-300">Uncertainty Threshold (%)</Label>
+                    <Label className="text-foreground">Uncertainty Threshold (%)</Label>
                     <Input
                       type="number"
                       min={0}
                       max={100}
                       value={newAgent.uncertaintyThreshold}
                       onChange={(e) => setNewAgent({ ...newAgent, uncertaintyThreshold: parseInt(e.target.value) || 70 })}
-                      className="bg-slate-800 border-slate-700 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Budget Limit (USD)</Label>
+                  <Label className="text-foreground">Budget Limit (USD)</Label>
                   <Input
                     placeholder="1.00"
                     value={newAgent.budgetLimitUsd}
                     onChange={(e) => setNewAgent({ ...newAgent, budgetLimitUsd: e.target.value })}
-                    className="bg-slate-800 border-slate-700 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-300">Require Approval for Changes</Label>
-                    <p className="text-xs text-slate-500">Agent will pause before applying changes</p>
+                    <Label className="text-foreground">Require Approval for Changes</Label>
+                    <p className="text-xs text-muted-foreground">Agent will pause before applying changes</p>
                   </div>
                   <Switch
                     checked={newAgent.requireApprovalForChanges}
@@ -174,10 +174,10 @@ export default function Agents() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="border-slate-700">
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="border-border">
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-violet-600 hover:bg-violet-700">
+                <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary hover:bg-primary/90">
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Agent"}
                 </Button>
               </DialogFooter>
@@ -187,33 +187,33 @@ export default function Agents() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : agents && agents.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {agents.map((agent) => (
               <Link key={agent.id} href={`/agents/${agent.id}`}>
-                <Card className="bg-slate-900/50 border-slate-800 hover:border-violet-500/50 transition-colors cursor-pointer h-full">
+                <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <div className="h-10 w-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <Bot className="h-5 w-5" />
                       </div>
                       <div className={`px-2 py-1 rounded-full text-xs ${
-                        agent.enabled ? "bg-green-500/20 text-green-400" : "bg-slate-700 text-slate-400"
+                        agent.enabled ? "bg-green-500/20 text-green-400" : "bg-foreground text-muted-foreground"
                       }`}>
                         {agent.enabled ? "Active" : "Disabled"}
                       </div>
                     </div>
-                    <CardTitle className="text-white mt-3">{agent.name}</CardTitle>
+                    <CardTitle className="text-foreground mt-3">{agent.name}</CardTitle>
                     {agent.description && (
-                      <CardDescription className="text-slate-400 line-clamp-2">
+                      <CardDescription className="text-muted-foreground line-clamp-2">
                         {agent.description}
                       </CardDescription>
                     )}
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Zap className="h-3 w-3" />
                         {agent.maxSteps} steps
@@ -233,16 +233,16 @@ export default function Agents() {
             ))}
           </div>
         ) : (
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-card border-border">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="h-16 w-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-                <Bot className="h-8 w-8 text-slate-500" />
+              <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <Bot className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-medium text-white mb-2">No agents yet</h3>
-              <p className="text-slate-400 text-sm text-center mb-4">
+              <h3 className="text-lg font-medium text-foreground mb-2">No agents yet</h3>
+              <p className="text-muted-foreground text-sm text-center mb-4">
                 Create your first AI agent to automate development tasks.
               </p>
-              <Button onClick={() => setIsCreateOpen(true)} className="bg-violet-600 hover:bg-violet-700 gap-2">
+              <Button onClick={() => setIsCreateOpen(true)} className="bg-primary hover:bg-primary/90 gap-2">
                 <Plus className="h-4 w-4" /> Create Agent
               </Button>
             </CardContent>

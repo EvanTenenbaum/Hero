@@ -253,7 +253,7 @@ export function SpecPanel({ projectId }: SpecPanelProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge className={`${statusColors[spec.status as SpecStatus]} text-white text-xs`}>
+                      <Badge className={`${statusColors[spec.status as SpecStatus]} text-foreground text-xs`}>
                         {spec.status}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
@@ -337,7 +337,7 @@ function SpecDetail({ specId, onDelete }: SpecDetailProps) {
           <div>
             <h1 className="text-xl font-semibold">{spec.title}</h1>
             <div className="flex items-center gap-2 mt-2">
-              <Badge className={`${statusColors[spec.status as SpecStatus]} text-white`}>
+              <Badge className={`${statusColors[spec.status as SpecStatus]} text-foreground`}>
                 {spec.status}
               </Badge>
               <Badge variant="outline">{spec.priority}</Badge>

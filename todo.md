@@ -1251,89 +1251,89 @@
 ## Sprint 21: Design System Implementation (2 weeks)
 
 ### 21.1 Foundation
-- [ ] 21.1.1 Update index.css with Slate Blue color palette (#5B7C99)
-- [ ] 21.1.2 Update Tailwind config with new design tokens
-- [ ] 21.1.3 Update typography scale (Libre Baskerville headings, Inter body)
-- [ ] 21.1.4 Update spacing system to 4px base unit
+- [x] 21.1.1 Update index.css with Slate Blue color palette (#5B7C99)
+- [x] 21.1.2 Update Tailwind config with new design tokens
+- [x] 21.1.3 Update typography scale (Libre Baskerville headings, Inter body)
+- [x] 21.1.4 Update spacing system to 4px base unit
 
 ### 21.2 Component Refactoring
-- [ ] 21.2.1 Refactor Button component variants
-- [ ] 21.2.2 Refactor Card component with new styling
-- [ ] 21.2.3 Refactor Input/Form components
-- [ ] 21.2.4 Refactor Sidebar navigation
-- [ ] 21.2.5 Update status indicators (colored dots)
+- [x] 21.2.1 Refactor Button component variants (semantic colors)
+- [x] 21.2.2 Refactor Card component with new styling
+- [x] 21.2.3 Refactor Input/Form components
+- [x] 21.2.4 Refactor Sidebar navigation (DashboardLayout updated)
+- [x] 21.2.5 Update status indicators (colored dots)
 
 ### 21.3 Mobile Implementation
-- [ ] 21.3.1 Implement mobile bottom tab navigation
-- [ ] 21.3.2 Implement mobile bottom sheet pattern
-- [ ] 21.3.3 Add touch target sizing (44px minimum)
-- [ ] 21.3.4 Implement responsive breakpoint system
+- [x] 21.3.1 Implement mobile bottom tab navigation (MobileBottomNav.tsx)
+- [x] 21.3.2 Implement mobile bottom sheet pattern (MobileBottomSheet.tsx)
+- [x] 21.3.3 Add touch target sizing (44px minimum)
+- [x] 21.3.4 Implement responsive breakpoint system
 
 ### 21.4 Theme & Testing
-- [ ] 21.4.1 Add dark/light theme toggle
-- [ ] 21.4.2 Test all pages with new design system
-- [ ] 21.5.1 Write design system tests
-- [ ] 21.5.2 Red Team QA audit
+- [x] 21.4.1 Add dark/light theme toggle (ThemeToggle.tsx, updated ThemeContext)
+- [x] 21.4.2 Test all pages with new design system
+- [x] 21.5.1 Write design system tests (670 tests passing)
+- [x] 21.5.2 Red Team QA audit (QA_SPRINT_21_DESIGN_SYSTEM.md - PASS)
 
 ## Sprint 22: Agent Kickoff Protocol (2 weeks)
 
 ### 22.1 Backend Services
-- [ ] 22.1.1 Add project_kickoff table to schema
-- [ ] 22.1.2 Add project_docs table to schema
-- [ ] 22.1.3 Create kickoffService.ts with wizard data types
-- [ ] 22.1.4 Create document generation prompts
-- [ ] 22.1.5 Implement generateNorthStar()
-- [ ] 22.1.6 Implement generateProductBrief()
-- [ ] 22.1.7 Implement generateArchitecture()
-- [ ] 22.1.8 Implement generateQualityBar()
-- [ ] 22.1.9 Implement generateSliceMap()
-- [ ] 22.1.10 Implement generateAgentBrief()
+- [x] 22.1.1 Add project_kickoff table to schema (kickoff-schema.ts)
+- [x] 22.1.2 Add project_docs table to schema (kickoff-schema.ts)
+- [x] 22.1.3 Create kickoffService.ts with wizard data types
+- [x] 22.1.4 Create document generation prompts
+- [x] 22.1.5 Implement generateNorthStar()
+- [x] 22.1.6 Implement generateProductBrief()
+- [x] 22.1.7 Implement generateArchitecture()
+- [x] 22.1.8 Implement generateQualityBar()
+- [x] 22.1.9 Implement generateSliceMap()
+- [x] 22.1.10 Implement generateAgentBrief()
 
 ### 22.2 Wizard UI
-- [ ] 22.2.1 Create KickoffWizard.tsx shell component
-- [ ] 22.2.2 Create NorthStarStep.tsx
-- [ ] 22.2.3 Create ProductBriefStep.tsx
-- [ ] 22.2.4 Create ArchitectureStep.tsx
-- [ ] 22.2.5 Create QualityBarStep.tsx
-- [ ] 22.2.6 Create SliceMapStep.tsx
+- [x] 22.2.1 Create KickoffWizard.tsx shell component
+- [x] 22.2.2 Create NorthStarStep.tsx (integrated in KickoffWizard)
+- [x] 22.2.3 Create ProductBriefStep.tsx (integrated in KickoffWizard)
+- [x] 22.2.4 Create ArchitectureStep.tsx (integrated in KickoffWizard)
+- [x] 22.2.5 Create QualityBarStep.tsx (integrated in KickoffWizard)
+- [x] 22.2.6 Create SliceMapStep.tsx (integrated in KickoffWizard)
 
 ### 22.3 Integration
-- [ ] 22.3.1 Integrate wizard into project creation flow
-- [ ] 22.3.2 Add "Skip kickoff" option
-- [ ] 22.3.3 Update contextBuilder.ts to include kickoff docs
-- [ ] 22.3.4 Implement slice-to-Kanban card creation
+- [x] 22.3.1 Integrate wizard into project creation flow (Projects.tsx updated)
+- [x] 22.3.2 Add "Skip kickoff" option (onSkip handler)
+- [x] 22.3.3 Update contextBuilder.ts to include kickoff docs (via kickoffService)
+- [x] 22.3.4 Implement slice-to-Kanban card creation (generateSliceMap)
 
 ### 22.4 Testing
-- [ ] 22.4.1 Write unit tests for kickoff service
-- [ ] 22.4.2 Red Team QA audit
+- [x] 22.4.1 Write unit tests for kickoff service (27 tests passing)
+- [x] 22.4.2 Red Team QA audit (QA_SPRINT_22_KICKOFF.md - PASS)
 
 ## Sprint 23: Self-Modifying IDE (2 weeks)
 
 ### 23.1 Foundation
-- [ ] 23.1.1 Create system_project record for Hero IDE codebase
-- [ ] 23.1.2 Define protected file list (auth, db core, build config)
-- [ ] 23.1.3 Create metaAgentPrompt.ts with IDE-specific system prompt
-- [ ] 23.1.4 Index Hero IDE codebase in context engine
+- [x] 23.1.1 Create system_project record for Hero IDE codebase (via meta router)
+- [x] 23.1.2 Define protected file list (auth, db core, build config)
+- [x] 23.1.3 Create metaAgentPrompt.ts with IDE-specific system prompt
+- [x] 23.1.4 Index Hero IDE codebase in context engine (CODEBASE_STRUCTURE)
 
 ### 23.2 Modification Service
-- [ ] 23.2.1 Create fileModificationService.ts
-- [ ] 23.2.2 Implement change validation pipeline (TypeScript, lint)
-- [ ] 23.2.3 Implement diff preview generation
-- [ ] 23.2.4 Implement hot-reload trigger mechanism
+- [x] 23.2.1 Create fileModificationService.ts
+- [x] 23.2.2 Implement change validation pipeline (TypeScript, lint)
+- [x] 23.2.3 Implement diff preview generation
+- [x] 23.2.4 Implement hot-reload trigger mechanism
 
 ### 23.3 UI Components
-- [ ] 23.3.1 Add "Meta Mode" toggle to chat interface
-- [ ] 23.3.2 Create ChangePreviewPanel.tsx component
-- [ ] 23.3.3 Add "Apply Changes" action with confirmation
-- [ ] 23.3.4 Create IDE checkpoint/rollback integration
+- [x] 23.3.1 Add "Meta Mode" toggle to chat interface (MetaModeChat.tsx)
+- [x] 23.3.2 Create ChangePreviewPanel.tsx component
+- [x] 23.3.3 Add "Apply Changes" action with confirmation
+- [x] 23.3.4 Create IDE checkpoint/rollback integration (via agentLogs)
 
 ### 23.4 Safety
-- [ ] 23.4.1 Implement protected file warning system
-- [ ] 23.4.2 Add audit logging for IDE modifications
+- [x] 23.4.1 Implement protected file warning system (isProtectedFile, getProtectionReason)
+- [x] 23.4.2 Add audit logging for IDE modifications (agentLogs)
 
 ### 23.5 Testing
-- [ ] 23.5.1 Write unit tests for modification service
-- [ ] 23.5.2 Red Team QA audit
+- [x] 23.5.1 Write unit tests for modification service (737 tests passing)
+- [x] 23.5.2 Red Team QA audit (QA_SPRINT_23_META.md - PASS)
 
 ## Sprint 24: QA & Testing Consolidation (1 week)
 
@@ -1436,3 +1436,51 @@
 - [ ] 27.5.2 Create ADR: Infrastructure provider selection
 - [ ] 27.5.3 Create infrastructure setup guide for self-hosting
 - [ ] 27.5.4 Create provider migration playbook
+
+
+## Sprint 28: QA Protocol Development (1 week)
+
+### 28.1 Automated Testing Framework
+- [ ] 28.1.1 Design comprehensive test pyramid (unit → integration → E2E → smoke)
+- [ ] 28.1.2 Create test coverage requirements per module (>80% target)
+- [ ] 28.1.3 Implement pre-commit hooks for test validation
+- [ ] 28.1.4 Set up CI test gates (block merge on failure)
+- [ ] 28.1.5 Create test data factories and fixtures
+
+### 28.2 Red Team QA Protocol
+- [ ] 28.2.1 Define Red Team QA checklist template
+- [ ] 28.2.2 Create security audit checklist (OWASP top 10)
+- [ ] 28.2.3 Create accessibility audit checklist (WCAG 2.1 AA)
+- [ ] 28.2.4 Create performance audit checklist (Core Web Vitals)
+- [ ] 28.2.5 Create UX audit checklist (heuristic evaluation)
+- [ ] 28.2.6 Define severity levels and fix SLAs
+
+### 28.3 Self-Healing QA
+- [ ] 28.3.1 Implement automated error detection from logs
+- [ ] 28.3.2 Create error-to-fix suggestion pipeline (AI-powered)
+- [ ] 28.3.3 Implement regression detection on deploys
+- [ ] 28.3.4 Create automated rollback triggers
+- [ ] 28.3.5 Build QA dashboard for issue tracking
+
+### 28.4 QA Documentation
+- [ ] 28.4.1 Create QA runbook for each feature area
+- [ ] 28.4.2 Document edge cases and known limitations
+- [ ] 28.4.3 Create bug report template
+- [ ] 28.4.4 Create post-mortem template for incidents
+
+
+## Railway Deployment Investigation
+
+### Investigation Tasks
+- [ ] Review Railway deployment logs since Sprint 13
+- [ ] Identify root cause of deployment failures
+- [ ] Document findings and fix
+- [ ] Verify deployment works after fix
+
+
+## Railway Deployment Investigation (Completed)
+- [x] Investigate deployment failures since Sprint 13
+- [x] Check build configuration (vercel.json present, no railway config)
+- [x] Check environment variables (Manus hosting handles automatically)
+- [x] Document findings (RAILWAY_DEPLOYMENT_INVESTIGATION.md)
+- Note: Project uses Manus built-in hosting, not Railway. Railway config was never created.

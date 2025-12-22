@@ -52,7 +52,7 @@ const cardTypes = [
   { value: "task", label: "Task", color: "bg-gray-500" },
   { value: "bug", label: "Bug", color: "bg-red-500" },
   { value: "spike", label: "Spike", color: "bg-yellow-500" },
-  { value: "chore", label: "Chore", color: "bg-slate-500" },
+  { value: "chore", label: "Chore", color: "bg-muted-foreground" },
 ];
 
 const priorities = [

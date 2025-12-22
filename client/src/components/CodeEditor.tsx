@@ -231,7 +231,7 @@ export function CodeEditor({
             size="sm"
             onClick={handleUndo}
             disabled={readOnly}
-            className="h-7 px-2 text-gray-400 hover:text-white hover:bg-[#333]"
+            className="h-7 px-2 text-gray-400 hover:text-foreground hover:bg-[#333]"
           >
             <Undo className="w-4 h-4" />
           </Button>
@@ -240,7 +240,7 @@ export function CodeEditor({
             size="sm"
             onClick={handleRedo}
             disabled={readOnly}
-            className="h-7 px-2 text-gray-400 hover:text-white hover:bg-[#333]"
+            className="h-7 px-2 text-gray-400 hover:text-foreground hover:bg-[#333]"
           >
             <Redo className="w-4 h-4" />
           </Button>
@@ -248,7 +248,7 @@ export function CodeEditor({
             variant="ghost"
             size="sm"
             onClick={handleCopy}
-            className="h-7 px-2 text-gray-400 hover:text-white hover:bg-[#333]"
+            className="h-7 px-2 text-gray-400 hover:text-foreground hover:bg-[#333]"
           >
             {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
           </Button>
@@ -259,7 +259,7 @@ export function CodeEditor({
               onClick={handleSave}
               disabled={!isDirty}
               className={cn(
-                "h-7 px-2 text-gray-400 hover:text-white hover:bg-[#333]",
+                "h-7 px-2 text-gray-400 hover:text-foreground hover:bg-[#333]",
                 isDirty && "text-blue-400"
               )}
             >

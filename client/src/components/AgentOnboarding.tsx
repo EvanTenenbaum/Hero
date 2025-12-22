@@ -272,7 +272,7 @@ export function AgentOnboarding({ onComplete, onSkip }: AgentOnboardingProps) {
                         onCheckedChange={() => toggleAgent(agent.id)}
                       />
                       <div className={`p-2 rounded-lg ${agent.color}`}>
-                        <Icon className="h-4 w-4 text-white" />
+                        <Icon className="h-4 w-4 text-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <Label className="font-medium cursor-pointer">{agent.label}</Label>

@@ -87,7 +87,7 @@ function CheckpointItem({
       {/* Timeline dot */}
       <div className={`absolute left-0 top-1.5 w-6 h-6 rounded-full flex items-center justify-center ${
         isCurrent ? 'bg-primary text-primary-foreground' : 
-        isLatest ? 'bg-green-500 text-white' : 
+        isLatest ? 'bg-green-500 text-foreground' : 
         'bg-muted border-2 border-border'
       }`}>
         {isCurrent ? (

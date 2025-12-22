@@ -51,7 +51,7 @@ const cardTypeColors: Record<string, string> = {
   task: "bg-gray-500/20 text-gray-400 border-gray-500/30",
   bug: "bg-red-500/20 text-red-400 border-red-500/30",
   spike: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  chore: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+  chore: "bg-muted/20 text-muted-foreground border-muted-foreground/30",
 };
 
 const priorityColors: Record<string, string> = {

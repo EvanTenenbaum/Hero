@@ -102,7 +102,7 @@ function CopyButton({ text }: { text: string }) {
             {copied ? (
               <Check className="h-3 w-3 text-green-400" />
             ) : (
-              <Copy className="h-3 w-3 text-slate-400" />
+              <Copy className="h-3 w-3 text-muted-foreground" />
             )}
           </Button>
         </TooltipTrigger>
@@ -230,9 +230,9 @@ export default function Chat() {
     <DashboardLayout>
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Sidebar - Conversation List */}
-        <div className="w-64 border-r border-slate-800 flex flex-col">
-          <div className="p-4 border-b border-slate-800">
-            <Button onClick={handleNewChat} className="w-full bg-violet-600 hover:bg-violet-700 gap-2">
+        <div className="w-64 border-r border-border bg-card flex flex-col">
+          <div className="p-4 border-b border-border">
+            <Button onClick={handleNewChat} className="w-full bg-primary hover:bg-primary/90 gap-2">
               <Plus className="h-4 w-4" /> New Chat
             </Button>
           </div>
@@ -244,8 +244,8 @@ export default function Chat() {
                   onClick={() => setLocation(`/chat/${conv.id}`)}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                     conversationId === conv.id
-                      ? "bg-violet-600/20 text-violet-300"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -255,7 +255,7 @@ export default function Chat() {
                 </button>
               ))}
               {(!conversations || conversations.length === 0) && (
-                <p className="text-slate-500 text-sm text-center py-4">No conversations yet</p>
+                <p className="text-muted-foreground text-sm text-center py-4">No conversations yet</p>
               )}
             </div>
           </ScrollArea>
@@ -266,19 +266,19 @@ export default function Chat() {
           {conversationId ? (
             <>
               {/* Agent Selector Header */}
-              <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/50">
+              <div className="px-4 py-2 border-b border-border bg-card/50">
                 <div className="max-w-3xl mx-auto flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Bot className="h-4 w-4" />
                     <span>Active Agent:</span>
                   </div>
                   <Select value={selectedAgent} onValueChange={(v) => setSelectedAgent(v as AgentType)}>
-                    <SelectTrigger className="w-[180px] h-8 bg-slate-800 border-slate-700">
+                    <SelectTrigger className="w-[180px] h-8 bg-secondary border-border">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectContent className="bg-secondary border-border">
                       {Object.entries(AGENT_CONFIG).map(([key, config]) => (
-                        <SelectItem key={key} value={key} className="text-white">
+                        <SelectItem key={key} value={key} className="text-foreground">
                           <div className="flex items-center gap-2">
                             {config.icon}
                             <span>{config.label}</span>
@@ -288,7 +288,7 @@ export default function Chat() {
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="max-w-3xl mx-auto text-xs text-slate-500 mt-1">
+                <p className="max-w-3xl mx-auto text-xs text-muted-foreground mt-1">
                   {AGENT_CONFIG[selectedAgent].description}
                 </p>
               </div>
@@ -302,7 +302,7 @@ export default function Chat() {
                       className={`group flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
                     >
                       {msg.role === "assistant" && (
-                        <div className="h-8 w-8 rounded-lg bg-violet-500/20 flex items-center justify-center text-violet-400 shrink-0">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                           <Bot className="h-4 w-4" />
                         </div>
                       )}
@@ -310,10 +310,10 @@ export default function Chat() {
                         <div
                           className={`rounded-lg px-4 py-2 ${
                             msg.role === "user"
-                              ? "bg-violet-600 text-white"
+                              ? "bg-primary text-primary-foreground"
                               : "blocked" in msg && msg.blocked
                               ? "bg-red-900/50 text-red-200 border border-red-700"
-                              : "bg-slate-800 text-slate-200"
+                              : "bg-secondary text-foreground"
                           }`}
                         >
                           {"blocked" in msg && msg.blocked && (
@@ -329,7 +329,7 @@ export default function Chat() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 px-1">
-                          <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatRelativeTime(msg.createdAt)}
                           </span>
@@ -337,7 +337,7 @@ export default function Chat() {
                         </div>
                       </div>
                       {msg.role === "user" && (
-                        <div className="h-8 w-8 rounded-lg bg-slate-700 flex items-center justify-center text-slate-300 shrink-0">
+                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
                           <User className="h-4 w-4" />
                         </div>
                       )}
@@ -345,11 +345,11 @@ export default function Chat() {
                   ))}
                   {isStreaming && !optimisticMessage && (
                     <div className="flex gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-violet-500/20 flex items-center justify-center text-violet-400 shrink-0">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                         <Bot className="h-4 w-4" />
                       </div>
-                      <div className="bg-slate-800 rounded-lg px-4 py-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
+                      <div className="bg-secondary rounded-lg px-4 py-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
                       </div>
                     </div>
                   )}
@@ -357,7 +357,7 @@ export default function Chat() {
               </ScrollArea>
 
               {/* Input */}
-              <div className="p-4 border-t border-slate-800">
+              <div className="p-4 border-t border-border">
                 <div className="max-w-3xl mx-auto flex gap-2">
                   <Input
                     ref={inputRef}
@@ -366,12 +366,12 @@ export default function Chat() {
                     onKeyDown={handleKeyDown}
                     placeholder={`Ask ${AGENT_CONFIG[selectedAgent].label}...`}
                     disabled={isStreaming}
-                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                    className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                   />
                   <Button
                     onClick={handleSend}
                     disabled={!input.trim() || isStreaming}
-                    className="bg-violet-600 hover:bg-violet-700"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     {isStreaming ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -384,13 +384,13 @@ export default function Chat() {
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <Card className="bg-slate-900/50 border-slate-800 max-w-lg">
+              <Card className="bg-card/50 border-border max-w-lg">
                 <CardContent className="flex flex-col items-center py-12">
-                  <div className="h-16 w-16 rounded-full bg-violet-500/20 flex items-center justify-center mb-4">
-                    <MessageSquare className="h-8 w-8 text-violet-400" />
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <MessageSquare className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="text-lg font-medium text-white mb-2">Start a Conversation</h3>
-                  <p className="text-slate-400 text-sm text-center mb-6">
+                  <h3 className="text-lg font-medium text-foreground mb-2">Start a Conversation</h3>
+                  <p className="text-muted-foreground text-sm text-center mb-6">
                     Chat with Hero IDE's specialized AI agents for help with coding, planning, testing, and more.
                   </p>
                   
@@ -403,20 +403,20 @@ export default function Chat() {
                           setSelectedAgent(key as AgentType);
                           handleNewChat();
                         }}
-                        className="flex items-center gap-2 p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-violet-500/50 transition-colors text-left"
+                        className="flex items-center gap-2 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-border hover:border-primary/50 transition-colors text-left"
                       >
-                        <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                           {config.icon}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-white">{config.label}</p>
-                          <p className="text-xs text-slate-500 line-clamp-1">{config.description}</p>
+                          <p className="text-sm font-medium text-foreground">{config.label}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{config.description}</p>
                         </div>
                       </button>
                     ))}
                   </div>
 
-                  <Button onClick={handleNewChat} className="bg-violet-600 hover:bg-violet-700 gap-2">
+                  <Button onClick={handleNewChat} className="bg-primary hover:bg-primary/90 gap-2">
                     <Plus className="h-4 w-4" /> New Chat
                   </Button>
                 </CardContent>

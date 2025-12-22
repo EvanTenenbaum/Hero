@@ -159,7 +159,7 @@ export function PromptToPlanWorkflow({ projectId, specId, onSpecCreated }: Promp
                   <div className="flex flex-col items-center">
                     <div className={`
                       w-10 h-10 rounded-full flex items-center justify-center
-                      ${isComplete ? "bg-green-500 text-white" : ""}
+                      ${isComplete ? "bg-green-500 text-foreground" : ""}
                       ${isActive ? "bg-primary text-primary-foreground" : ""}
                       ${isFuture ? "bg-muted text-muted-foreground" : ""}
                     `}>
