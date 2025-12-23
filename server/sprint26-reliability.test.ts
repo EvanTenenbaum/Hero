@@ -36,7 +36,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
     it('should have useKanban hook with board selection', async () => {
       // Verify the hook module exists and exports the hook
       const fs = await import('fs');
-      const hookPath = '/home/ubuntu/hero-ide/client/src/hooks/useKanban.ts';
+      const hookPath = '/home/ubuntu/Hero/client/src/hooks/useKanban.ts';
       const content = fs.readFileSync(hookPath, 'utf-8');
       
       // Verify the fix: onSuccess should auto-select new board
@@ -52,7 +52,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
       
       // Verify the function signature - it should throw on error now
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/services/metricsRecorder.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/services/metricsRecorder.ts', 'utf-8');
       expect(content).toContain('throw new Error');
       expect(content).toContain('Failed to record execution metrics');
     });
@@ -62,7 +62,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
       expect(costTracker.recordTokenUsage).toBeDefined();
       
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/services/costTracker.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/services/costTracker.ts', 'utf-8');
       expect(content).toContain('throw new Error');
       expect(content).toContain('Failed to record token usage');
     });
@@ -71,7 +71,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
   describe('26.4 State Persistence', () => {
     it('should have persistExecutionState function', async () => {
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/agentExecution.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/agentExecution.ts', 'utf-8');
       
       expect(content).toContain('async function persistExecutionState');
       expect(content).toContain('await persistExecutionState(state)');
@@ -91,7 +91,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
   describe('26.5 Race Conditions', () => {
     it('should use transaction for card movement', async () => {
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/kanban/db.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/kanban/db.ts', 'utf-8');
       
       // Verify moveCard uses transaction
       expect(content).toContain('await db.transaction(async (tx)');
@@ -100,8 +100,8 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
 
     it('should use INSERT ON DUPLICATE KEY for metrics', async () => {
       const fs = await import('fs');
-      const metricsContent = fs.readFileSync('/home/ubuntu/hero-ide/server/services/metricsRecorder.ts', 'utf-8');
-      const costContent = fs.readFileSync('/home/ubuntu/hero-ide/server/services/costTracker.ts', 'utf-8');
+      const metricsContent = fs.readFileSync('/home/ubuntu/Hero/server/services/metricsRecorder.ts', 'utf-8');
+      const costContent = fs.readFileSync('/home/ubuntu/Hero/server/services/costTracker.ts', 'utf-8');
       
       expect(metricsContent).toContain('ON DUPLICATE KEY UPDATE');
       expect(costContent).toContain('ON DUPLICATE KEY UPDATE');
@@ -109,7 +109,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
 
     it('should use transaction for board creation', async () => {
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/kanban/db.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/kanban/db.ts', 'utf-8');
       
       // Verify createDefaultBoard uses transaction
       expect(content).toContain('// Use transaction to ensure all-or-nothing board creation');
@@ -117,7 +117,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
 
     it('should pre-validate budget before LLM call', async () => {
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/agentExecution.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/agentExecution.ts', 'utf-8');
       
       expect(content).toContain('// Pre-validate budget before making LLM call');
       expect(content).toContain('estimatedCostPerCall');
@@ -128,7 +128,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
   describe('26.6 Error Handling', () => {
     it('should have proper error context in metrics recording', async () => {
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/services/metricsRecorder.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/services/metricsRecorder.ts', 'utf-8');
       
       // Verify error messages include context
       expect(content).toContain('errorMessage');
@@ -137,7 +137,7 @@ describe('Sprint 26: Reliability & Bug Fixes', () => {
 
     it('should handle AbortError specifically in LLM module', async () => {
       const fs = await import('fs');
-      const content = fs.readFileSync('/home/ubuntu/hero-ide/server/_core/llm.ts', 'utf-8');
+      const content = fs.readFileSync('/home/ubuntu/Hero/server/_core/llm.ts', 'utf-8');
       
       expect(content).toContain("error.name === 'AbortError'");
       expect(content).toContain('LLM request timed out');
