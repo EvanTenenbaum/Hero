@@ -360,9 +360,28 @@ export class ExecutionEngine {
       throw new Error('No step awaiting confirmation');
     }
     
-    step.status = 'pending';
-    step.requiresConfirmation = false; // Already confirmed
+    // Mark as running (not pending) to avoid re-entering safety checks
+    step.status = 'running';
+    step.requiresConfirmation = false; // Already confirmed - skip re-checking
+    
+    // Clear safety check to prevent re-blocking on confirmed step
+    if (step.safetyCheck) {
+      step.safetyCheck.allowed = true;
+    }
+    
     this.setState('executing');
+    
+    // Execute this specific step directly instead of re-entering the loop
+    await this.executeStep(step);
+    
+    // Check if step failed (executeStep can set status to 'failed')
+    if (step.result && !step.result.success) {
+      this.setState('failed');
+      return;
+    }
+    
+    // Move to next step and continue
+    this.currentStepIndex++;
     await this.executeSteps();
   }
   

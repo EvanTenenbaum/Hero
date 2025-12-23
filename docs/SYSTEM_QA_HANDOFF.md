@@ -96,7 +96,7 @@ App.tsx
 | API Layer | tRPC | 11.x |
 | Database ORM | Drizzle | Latest |
 | Database | MySQL/TiDB | 8.x compatible |
-| Authentication | Manus OAuth + JWT | Custom |
+| Authentication | Google OAuth + JWT | Custom |
 | LLM Integration | Gemini API | 2.5-flash |
 | Testing | Vitest | Latest |
 | Build Tool | Vite | Latest |
@@ -364,7 +364,7 @@ The API is organized into tRPC routers. All endpoints use either `publicProcedur
 
 ### Authentication Flow
 
-1. User clicks "Login" → Redirected to Manus OAuth portal
+1. User clicks "Login" → Redirected to Google OAuth portal
 2. User authenticates → Redirected back with auth code
 3. Server exchanges code for tokens → Creates/updates user record
 4. Server issues JWT session cookie → User is authenticated
@@ -978,8 +978,8 @@ hero-ide/
 |----------|-------------|----------|
 | `DATABASE_URL` | MySQL/TiDB connection string | Yes |
 | `JWT_SECRET` | Session signing secret | Yes |
-| `VITE_APP_ID` | Manus OAuth app ID | Yes |
-| `OAUTH_SERVER_URL` | Manus OAuth backend URL | Yes |
+| `VITE_APP_ID` | Google OAuth app ID | Yes |
+| `OAUTH_SERVER_URL` | Google OAuth backend URL | Yes |
 | `VITE_OAUTH_PORTAL_URL` | Manus login portal URL | Yes |
 | `BUILT_IN_FORGE_API_URL` | Manus API URL | Yes |
 | `BUILT_IN_FORGE_API_KEY` | Manus API key | Yes |

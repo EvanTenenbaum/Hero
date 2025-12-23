@@ -63,10 +63,35 @@ export function registerOAuthRoutes(app: Express) {
     // Get the state from query params (contains redirect path)
     const incomingState = getQueryParam(req, "state") || "";
     
-    // Build redirect URI dynamically based on request origin
-    const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
-    const host = req.headers["x-forwarded-host"] || req.headers.host || "";
-    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    // Build redirect URI - prefer configured value for security
+    let redirectUri: string;
+    
+    if (ENV.GOOGLE_REDIRECT_URI) {
+      // Use configured redirect URI (most secure)
+      redirectUri = ENV.GOOGLE_REDIRECT_URI;
+    } else {
+      // Fallback to dynamic construction with validation
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.headers["x-forwarded-host"] || req.headers.host || "";
+      
+      // SEC-001 FIX: Validate host against allowed patterns
+      const allowedHosts = [
+        'localhost',
+        '127.0.0.1',
+        'hero-production-75cb.up.railway.app',
+        'hero-ide.vercel.app',
+      ];
+      const hostStr = Array.isArray(host) ? host[0] : host;
+      const hostWithoutPort = hostStr.split(':')[0];
+      
+      if (!allowedHosts.some(allowed => hostWithoutPort === allowed || hostWithoutPort.endsWith(`.${allowed}`))) {
+        console.error(`[OAuth] SEC-001: Blocked unauthorized host: ${host}`);
+        res.status(400).json({ error: 'Invalid redirect host' });
+        return;
+      }
+      
+      redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    }
 
     // Combine redirect path with our internal state
     const state = Buffer.from(JSON.stringify({
@@ -85,7 +110,7 @@ export function registerOAuthRoutes(app: Express) {
     });
 
     const authUrl = `${GOOGLE_AUTH_URL}?${params.toString()}`;
-    console.log("[OAuth] Redirecting to Google OAuth:", authUrl);
+    console.debug("[OAuth] Redirecting to Google OAuth:", authUrl);
     res.redirect(302, authUrl);
   });
 
@@ -141,7 +166,7 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       // Exchange code for tokens
-      console.log("[OAuth] Exchanging code for tokens...");
+      console.debug("[OAuth] Exchanging code for tokens...");
       const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -161,10 +186,10 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       const tokens = await tokenResponse.json();
-      console.log("[OAuth] Token exchange successful");
+      console.debug("[OAuth] Token exchange successful");
 
       // Get user info from Google
-      console.log("[OAuth] Fetching user info...");
+      console.debug("[OAuth] Fetching user info...");
       const userInfoResponse = await fetch(GOOGLE_USERINFO_API, {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       });
@@ -174,7 +199,7 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       const userInfo = await userInfoResponse.json();
-      console.log("[OAuth] User info received:", { email: userInfo.email, name: userInfo.name });
+      console.debug("[OAuth] User info received:", { email: userInfo.email, name: userInfo.name });
 
       // Use Google ID as the openId for our system
       const openId = `google_${userInfo.id}`;
@@ -198,7 +223,7 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      console.log("[OAuth] Login successful, redirecting to:", redirectPath);
+      console.debug("[OAuth] Login successful, redirecting to:", redirectPath);
       res.redirect(302, redirectPath);
     } catch (error) {
       console.error("[OAuth] Callback failed:", error);
@@ -212,7 +237,7 @@ export function registerOAuthRoutes(app: Express) {
   
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     // Redirect legacy callback to new Google OAuth flow
-    console.log("[OAuth] Legacy callback hit, redirecting to Google OAuth");
+    console.debug("[OAuth] Legacy callback hit, redirecting to Google OAuth");
     res.redirect(302, "/api/auth/google");
   });
 }

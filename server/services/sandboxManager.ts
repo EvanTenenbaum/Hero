@@ -91,7 +91,7 @@ class SandboxManager {
       try {
         const isHealthy = await this.checkSandboxHealth(entry.sandbox);
         if (!isHealthy) {
-          console.log(`Cleanup: Removing unhealthy sandbox for project ${projectId}`);
+          console.debug(`Cleanup: Removing unhealthy sandbox for project ${projectId}`);
           await this.removeSandbox(projectId);
         }
       } catch (error) {
@@ -140,7 +140,7 @@ class SandboxManager {
         }
       } catch (error) {
         // Sandbox is no longer valid, remove it
-        console.log(`Sandbox for project ${projectId} is no longer valid, creating new one`);
+        console.debug(`Sandbox for project ${projectId} is no longer valid, creating new one`);
       }
       
       // Remove the invalid sandbox
@@ -165,7 +165,7 @@ class SandboxManager {
       throw new Error('E2B_API_KEY is not configured. Please set it in your environment variables.');
     }
 
-    console.log(`Creating new sandbox for project ${projectId}`);
+    console.debug(`Creating new sandbox for project ${projectId}`);
     
     const sandbox = await Sandbox.create(SANDBOX_TEMPLATE, {
       apiKey: ENV.E2B_API_KEY,
@@ -188,7 +188,7 @@ class SandboxManager {
     };
 
     this.activeSandboxes.set(projectId, entry);
-    console.log(`Sandbox created for project ${projectId}. Active sandboxes: ${this.activeSandboxes.size}`);
+    console.debug(`Sandbox created for project ${projectId}. Active sandboxes: ${this.activeSandboxes.size}`);
 
     return sandbox;
   }
@@ -223,7 +223,7 @@ class SandboxManager {
    * Handle inactivity timeout - close the sandbox
    */
   private async handleInactivityTimeout(projectId: string): Promise<void> {
-    console.log(`Sandbox for project ${projectId} timed out due to inactivity`);
+    console.debug(`Sandbox for project ${projectId} timed out due to inactivity`);
     await this.removeSandbox(projectId);
   }
 
@@ -243,7 +243,7 @@ class SandboxManager {
       // Then try to kill the sandbox
       try {
         await entry.sandbox.kill();
-        console.log(`Sandbox killed for project ${projectId}. Active sandboxes: ${this.activeSandboxes.size}`);
+        console.debug(`Sandbox killed for project ${projectId}. Active sandboxes: ${this.activeSandboxes.size}`);
       } catch (error) {
         // Log but don't throw - sandbox might already be dead
         console.error(`Error killing sandbox for project ${projectId}:`, error);
@@ -267,7 +267,7 @@ class SandboxManager {
     });
 
     if (oldestProjectId) {
-      console.log(`Removing oldest sandbox for project ${oldestProjectId} to make room`);
+      console.debug(`Removing oldest sandbox for project ${oldestProjectId} to make room`);
       await this.removeSandbox(oldestProjectId);
     }
   }
@@ -283,7 +283,7 @@ class SandboxManager {
    * Close all active sandboxes (useful for graceful shutdown)
    */
   async closeAllSandboxes(): Promise<void> {
-    console.log(`Closing all ${this.activeSandboxes.size} active sandboxes`);
+    console.debug(`Closing all ${this.activeSandboxes.size} active sandboxes`);
     
     // Stop the cleanup interval
     if (this.cleanupIntervalId) {

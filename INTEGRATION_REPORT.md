@@ -20,7 +20,7 @@ Hero IDE currently implements a solid foundation with authentication, LLM integr
 
 | Feature Category | Implementation Status | Technical Details |
 |-----------------|----------------------|-------------------|
-| **Authentication** | ✅ Complete | Manus OAuth with JWT sessions, role-based access |
+| **Authentication** | ✅ Complete | Google OAuth with JWT sessions, role-based access |
 | **LLM Integration** | ✅ Complete | Gemini API with streaming responses, chat history persistence |
 | **Project Management** | ✅ Complete | CRUD operations, settings, metadata storage |
 | **Agent System** | ✅ Core Complete | Configuration, execution tracking, budget monitoring |
@@ -256,7 +256,7 @@ The following existing features MUST be preserved during all enhancements:
 
 | Feature | Preservation Strategy |
 |---------|----------------------|
-| Manus OAuth Authentication | No changes to auth flow; all enhancements build on existing session management |
+| Google OAuth Authentication | No changes to auth flow; all enhancements build on existing session management |
 | Gemini LLM Integration | Extend, don't replace; new features use existing invokeLLM helper |
 | Chat Streaming | Maintain current SSE implementation; enhancements add structured modes |
 | Project CRUD | Extend schema with new fields; maintain backward compatibility |

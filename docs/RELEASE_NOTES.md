@@ -85,7 +85,7 @@ Hero IDE 1.0.0-beta is the first public release of the AI-powered integrated dev
 #### Infrastructure
 - Railway hosting (auto-deploy from GitHub)
 - MySQL/TiDB database
-- Manus OAuth authentication
+- Google OAuth authentication
 
 ---
 

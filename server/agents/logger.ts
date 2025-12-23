@@ -111,7 +111,7 @@ class AgentLogger {
     // Also log to console in development
     if (process.env.NODE_ENV !== 'production') {
       const prefix = `[${entry.timestamp.toISOString()}] [${level.toUpperCase()}] [${agentType}]`;
-      console.log(`${prefix} ${event}`, entry.data || '');
+      console.debug(`${prefix} ${event}`, entry.data || '');
     }
   }
   

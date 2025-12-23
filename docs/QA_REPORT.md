@@ -163,7 +163,7 @@ The Hero IDE workspace system is **functional** with core features working corre
 - **Browser**: Chromium (automated testing)
 - **Server**: Development server on port 3000
 - **Database**: TiDB (MySQL compatible)
-- **Test User**: Authenticated via Manus OAuth
+- **Test User**: Authenticated via Google OAuth
 
 ---
 

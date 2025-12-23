@@ -13,7 +13,7 @@
 - [x] Budget tracking table
 
 ## Phase 2: Authentication
-- [x] Manus OAuth integration (using built-in auth)
+- [x] Google OAuth integration (using built-in auth)
 - [x] Session management with JWT
 - [x] User role management (admin/user)
 - [x] Protected routes and procedures

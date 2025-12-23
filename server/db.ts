@@ -270,18 +270,27 @@ export async function upsertGitHubConnection(conn: InsertGitHubConnection) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  const existing = await db.select().from(githubConnections)
+  // FIX: Use ON DUPLICATE KEY UPDATE for atomic upsert
+  // This prevents race conditions where two threads check-then-act
+  const result = await db.insert(githubConnections).values(conn)
+    .onDuplicateKeyUpdate({
+      set: {
+        accessToken: conn.accessToken,
+        refreshToken: conn.refreshToken,
+        tokenExpiresAt: conn.tokenExpiresAt,
+        scopes: conn.scopes,
+        githubId: conn.githubId,
+        githubUsername: conn.githubUsername,
+      },
+    });
+  
+  // Get the ID (either inserted or existing)
+  const existing = await db.select({ id: githubConnections.id })
+    .from(githubConnections)
     .where(eq(githubConnections.userId, conn.userId))
     .limit(1);
   
-  if (existing.length > 0) {
-    await db.update(githubConnections).set(conn)
-      .where(eq(githubConnections.userId, conn.userId));
-    return { id: existing[0].id };
-  } else {
-    const result = await db.insert(githubConnections).values(conn);
-    return { id: Number(result[0].insertId) };
-  }
+  return { id: existing[0]?.id ?? Number(result[0].insertId) };
 }
 
 export async function getGitHubConnectionByUserId(userId: number) {
@@ -436,16 +445,28 @@ export async function getOrCreateUserSettings(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  const existing = await db.select().from(userSettings)
-    .where(eq(userSettings.userId, userId))
-    .limit(1);
+  // FIX: Use INSERT IGNORE to prevent race condition duplicates
+  // This is atomic and handles concurrent requests safely
+  try {
+    await db.insert(userSettings).values({ userId }).onDuplicateKeyUpdate({
+      set: { userId }, // No-op update, just ensures row exists
+    });
+  } catch (error) {
+    // Ignore duplicate key errors (another thread may have inserted)
+    const err = error as Error;
+    if (!err.message?.includes('Duplicate')) {
+      throw error;
+    }
+  }
   
-  if (existing.length > 0) return existing[0];
-  
-  await db.insert(userSettings).values({ userId });
   const result = await db.select().from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
+  
+  if (result.length === 0) {
+    throw new Error(`Failed to create user settings for userId: ${userId}`);
+  }
+  
   return result[0];
 }
 

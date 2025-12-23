@@ -518,7 +518,7 @@ export async function writeManifestToSandbox(
   // Write manifest file
   await sandbox.files.write(manifestPath, manifestContent);
 
-  console.log(`Wrote .hero/manifest.json to sandbox`);
+  console.debug(`Wrote .hero/manifest.json to sandbox`);
 }
 
 /**

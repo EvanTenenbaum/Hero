@@ -34,7 +34,7 @@ Hero IDE is an AI-powered development platform that combines project management,
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| User Authentication | Complete | Manus OAuth integration |
+| User Authentication | Complete | Google OAuth integration |
 | Project Management | Complete | Projects, Kanban boards, sprints |
 | AI Chat | Complete | Multi-model chat with streaming |
 | AI Agents | Complete | Configurable agents with personas |
@@ -80,7 +80,7 @@ Sprint 10: Polish & UX ✓
 | Backend | Express 4, tRPC 11 |
 | Database | MySQL/TiDB via Drizzle ORM |
 | AI | Gemini API (embeddings, LLM) |
-| Auth | Manus OAuth |
+| Auth | Google OAuth |
 | Storage | S3 via Manus Forge API |
 
 ### Directory Structure
@@ -337,8 +337,8 @@ pnpm test --coverage
 |----------|---------|
 | `DATABASE_URL` | MySQL connection string |
 | `JWT_SECRET` | Session signing |
-| `VITE_APP_ID` | Manus OAuth app ID |
-| `OAUTH_SERVER_URL` | Manus OAuth backend |
+| `VITE_APP_ID` | Google OAuth app ID |
+| `OAUTH_SERVER_URL` | Google OAuth backend |
 | `BUILT_IN_FORGE_API_URL` | Manus APIs |
 | `BUILT_IN_FORGE_API_KEY` | Manus API key |
 

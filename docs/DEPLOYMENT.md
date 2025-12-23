@@ -12,7 +12,7 @@ Hero IDE uses a **GitHub → Railway** deployment pipeline. When code is pushed 
 | **Hosting** | Railway | Project: `hero-ide-production` |
 | **Database** | TiDB (via Manus) | MySQL-compatible, connection via `DATABASE_URL` |
 | **Storage** | S3 (via Manus) | File uploads via `storagePut`/`storageGet` |
-| **Auth** | Manus OAuth | Handles user authentication |
+| **Auth** | Google OAuth | Handles user authentication |
 
 ## Railway Project Details
 
@@ -60,8 +60,8 @@ Railway requires these environment variables (set in Railway dashboard):
 |----------|-------------|
 | `DATABASE_URL` | MySQL/TiDB connection string |
 | `JWT_SECRET` | Session cookie signing secret |
-| `VITE_APP_ID` | Manus OAuth application ID |
-| `OAUTH_SERVER_URL` | Manus OAuth backend URL |
+| `VITE_APP_ID` | Google OAuth application ID |
+| `OAUTH_SERVER_URL` | Google OAuth backend URL |
 | `VITE_OAUTH_PORTAL_URL` | Manus login portal URL |
 | `BUILT_IN_FORGE_API_URL` | Manus API URL |
 | `BUILT_IN_FORGE_API_KEY` | Manus API key |

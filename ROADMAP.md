@@ -11,7 +11,7 @@ The following core features have been implemented and tested:
 | Feature Category | Status | Components |
 |-----------------|--------|------------|
 | Database Schema | Complete | Users, Projects, Conversations, Messages, Agents, Executions, Secrets, Governance Events, Change Requests |
-| Authentication | Complete | Manus OAuth, JWT Sessions, Role-based Access |
+| Authentication | Complete | Google OAuth, JWT Sessions, Role-based Access |
 | LLM Integration | Complete | Gemini API, Streaming Responses, Chat History |
 | Project Management | Partial | CRUD Operations, Settings (GitHub import pending) |
 | Agent System | Complete | Configuration, Execution Engine, Budget Tracking, Safety Rails |
@@ -96,7 +96,7 @@ The application is built on a modern full-stack architecture:
 | State Management | TanStack Query + tRPC | Data fetching and caching |
 | Backend | Express + tRPC | API layer |
 | Database | MySQL/TiDB + Drizzle ORM | Data persistence |
-| Authentication | Manus OAuth + JWT | User identity |
+| Authentication | Google OAuth + JWT | User identity |
 | LLM | Gemini API | AI capabilities |
 | Hosting | Manus Platform | Deployment |
 

@@ -221,7 +221,7 @@ hero-ide/
 ## Integration Points
 
 ### External Services
-1. **Manus OAuth** - User authentication
+1. **Google OAuth** - User authentication
 2. **GitHub API** - Repository access, file operations
 3. **LLM API** - AI chat responses
 4. **S3 Storage** - File uploads

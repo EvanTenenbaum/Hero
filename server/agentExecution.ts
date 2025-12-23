@@ -75,7 +75,7 @@ export async function recoverActiveExecutions(): Promise<number> {
       recovered++;
     }
     
-    console.log(`Recovered ${recovered} interrupted executions (marked as halted)`);
+    console.debug(`Recovered ${recovered} interrupted executions (marked as halted)`);
     return recovered;
   } catch (error) {
     console.error('Failed to recover active executions:', error);

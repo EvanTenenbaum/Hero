@@ -55,7 +55,7 @@ Hero IDE is a next-generation development environment that combines traditional 
 | Backend | Express 4, tRPC 11, Drizzle ORM |
 | Database | MySQL/TiDB |
 | AI | Google Gemini API |
-| Auth | Manus OAuth |
+| Auth | Google OAuth |
 | Hosting | Railway (auto-deploy from GitHub) |
 
 ## Project Structure

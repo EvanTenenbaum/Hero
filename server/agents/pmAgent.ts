@@ -10,7 +10,7 @@
  */
 
 import { getDb } from "../db";
-import { kanbanCards, cardDependencies, agents, type InsertKanbanCard, type InsertCardDependency } from "../../drizzle/schema";
+import { kanbanCards, cardDependencies, agents, projects, type InsertKanbanCard, type InsertCardDependency } from "../../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { invokeLLM } from "../_core/llm";
 
@@ -245,6 +245,9 @@ Provide a detailed breakdown with stories, tasks, and dependencies.`,
 export function analyzeTaskGraph(tasks: Task[]): {
   criticalPath: string[];
   parallelizableTasks: string[][];
+  incomplete?: boolean;
+  droppedTasks?: string[];
+  circularDependencyWarning?: string;
 } {
   // Build adjacency list
   const taskMap = new Map<string, Task>();
@@ -285,8 +288,19 @@ export function analyzeTaskGraph(tasks: Task[]): {
     }
 
     if (level.length === 0) {
-      // Circular dependency or orphaned tasks
-      break;
+      // Circular dependency detected - remaining tasks have unresolvable dependencies
+      const droppedTasks = Array.from(remaining);
+      const criticalPath = findCriticalPath(tasks.filter(t => !remaining.has(t.title)), taskMap);
+      
+      console.warn(`[analyzeTaskGraph] Circular dependency detected. Dropped tasks: ${droppedTasks.join(', ')}`);
+      
+      return {
+        criticalPath,
+        parallelizableTasks,
+        incomplete: true,
+        droppedTasks,
+        circularDependencyWarning: `Circular dependency detected. The following ${droppedTasks.length} task(s) were dropped due to unresolvable dependencies: ${droppedTasks.join(', ')}. Please review and fix the dependency graph.`,
+      };
     }
 
     parallelizableTasks.push(level);
@@ -440,11 +454,25 @@ export async function assignTasksToAgents(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Get available agents for the project
+  // Get the project to find its userId
+  const projectResult = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  
+  if (projectResult.length === 0) {
+    console.warn(`[assignTasksToAgents] Project ${projectId} not found`);
+    return new Map();
+  }
+  
+  const project = projectResult[0];
+  
+  // Get available agents for the project's user
   const projectAgents = await db
     .select()
     .from(agents)
-    .where(eq(agents.id, projectId));
+    .where(eq(agents.userId, project.userId));
 
   if (projectAgents.length === 0) {
     return new Map();
@@ -631,9 +659,9 @@ export async function escalateBlockers(
   }
 
   // In a real implementation, this would send notifications
-  console.log(`[PM Agent] Escalating ${criticalBlockers.length} critical blockers for project ${projectId}`);
+  console.debug(`[PM Agent] Escalating ${criticalBlockers.length} critical blockers for project ${projectId}`);
   
   for (const blocker of criticalBlockers) {
-    console.log(`  - ${blocker.cardTitle}: ${blocker.description}`);
+    console.debug(`  - ${blocker.cardTitle}: ${blocker.description}`);
   }
 }

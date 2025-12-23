@@ -165,7 +165,7 @@ class ProjectHydrator {
       const accessToken = await this.getGitHubAccessToken(project);
       
       // SECURITY: Log without exposing the token
-      console.log(`Cloning ${project.repoOwner}/${project.repoName} into sandbox (token: ${maskToken(accessToken)})`);
+      console.debug(`Cloning ${project.repoOwner}/${project.repoName} into sandbox (token: ${maskToken(accessToken)})`);
       
       // Clone using git credential helper to avoid token in command line
       // First, configure git to use the token via credential helper
@@ -232,7 +232,7 @@ class ProjectHydrator {
       // Inject secrets
       await this.injectSecrets(sandbox, project.id);
 
-      console.log(`Successfully hydrated sandbox with ${filesCloned} files`);
+      console.debug(`Successfully hydrated sandbox with ${filesCloned} files`);
       
       return {
         success: true,
@@ -352,7 +352,7 @@ class ProjectHydrator {
       const secrets = await this.getProjectSecrets(projectId);
       
       if (secrets.length === 0) {
-        console.log('No secrets to inject');
+        console.debug('No secrets to inject');
         return;
       }
 
@@ -377,7 +377,7 @@ class ProjectHydrator {
       // Ensure .env is in .gitignore
       await this.ensureGitignore(sandbox);
 
-      console.log(`Injected ${secrets.length} secrets into sandbox`);
+      console.debug(`Injected ${secrets.length} secrets into sandbox`);
     } catch (error) {
       console.error('Failed to inject secrets:', error);
       // Don't throw - secrets injection failure shouldn't block hydration
@@ -419,12 +419,12 @@ class ProjectHydrator {
         // Append .env to .gitignore
         const newContent = content.trim() + '\n.env\n';
         await sandbox.files.write(gitignorePath, newContent);
-        console.log('Added .env to .gitignore');
+        console.debug('Added .env to .gitignore');
       }
     } catch {
       // .gitignore doesn't exist, create it
       await sandbox.files.write(gitignorePath, '.env\n');
-      console.log('Created .gitignore with .env entry');
+      console.debug('Created .gitignore with .env entry');
     }
   }
 
@@ -456,7 +456,7 @@ class ProjectHydrator {
         installCmd = 'yarn install';
       }
 
-      console.log(`Installing dependencies with: ${installCmd}`);
+      console.debug(`Installing dependencies with: ${installCmd}`);
       const installResult = await sandbox.commands.run(
         `cd ${escapeShellArg(REPO_PATH)} && ${installCmd}`,
         { timeoutMs: 300000 } // 5 minutes for install

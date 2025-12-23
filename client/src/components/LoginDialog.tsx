@@ -18,7 +18,7 @@ interface LoginDialogProps {
   onClose?: () => void;
 }
 
-export function ManusDialog({
+export function LoginDialog({
   title,
   logo,
   open = false,

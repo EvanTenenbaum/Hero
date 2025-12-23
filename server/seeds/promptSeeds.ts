@@ -66,7 +66,7 @@ export async function seedPromptTemplates(): Promise<SeedResult> {
           .where(eq(promptTemplates.id, existing[0].id));
         
         result.updated++;
-        console.log(`Updated prompt template: ${prompt.agentType} v${prompt.version}`);
+        console.debug(`Updated prompt template: ${prompt.agentType} v${prompt.version}`);
       } else {
         // Insert new record
         await db.insert(promptTemplates).values({
@@ -82,7 +82,7 @@ export async function seedPromptTemplates(): Promise<SeedResult> {
         });
         
         result.inserted++;
-        console.log(`Inserted prompt template: ${prompt.agentType} v${prompt.version}`);
+        console.debug(`Inserted prompt template: ${prompt.agentType} v${prompt.version}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -91,7 +91,7 @@ export async function seedPromptTemplates(): Promise<SeedResult> {
     }
   }
 
-  console.log(`Seed complete: ${result.inserted} inserted, ${result.updated} updated, ${result.errors.length} errors`);
+  console.debug(`Seed complete: ${result.inserted} inserted, ${result.updated} updated, ${result.errors.length} errors`);
   return result;
 }
 

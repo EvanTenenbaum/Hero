@@ -283,7 +283,7 @@ export async function triggerHotReload(): Promise<void> {
   // Touch a file to trigger Vite's HMR
   // In development, Vite watches for file changes automatically
   // This function is a placeholder for any additional reload logic
-  console.log("[Meta Agent] Changes applied - Vite HMR should pick them up automatically");
+  console.debug("[Meta Agent] Changes applied - Vite HMR should pick them up automatically");
 }
 
 /**

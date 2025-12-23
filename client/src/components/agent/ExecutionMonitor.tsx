@@ -52,9 +52,19 @@ export function ExecutionMonitor({
   const utils = trpc.useUtils();
 
   // Get current execution state
+  // FIX: Stop polling after execution completes to prevent infinite polling
   const { data: state, refetch: refetchState } = trpc.agents.getExecution.useQuery(
     { id: executionId },
-    { refetchInterval: 2000 }
+    { 
+      refetchInterval: (query) => {
+        const data = query.state.data;
+        // Stop polling when execution is complete, failed, or halted
+        if (data?.state === 'completed' || data?.state === 'failed' || data?.state === 'halted') {
+          return false;
+        }
+        return 2000;
+      }
+    }
   );
 
   // Control mutations

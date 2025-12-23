@@ -101,7 +101,7 @@ function LandingPage() {
       {/* Footer - Minimal */}
       <footer className="border-t border-border py-8">
         <div className="container text-center text-sm text-muted-foreground">
-          Built with Manus · Powered by Gemini
+          Powered by Gemini
         </div>
       </footer>
     </div>

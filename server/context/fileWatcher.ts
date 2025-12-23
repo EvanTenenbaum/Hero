@@ -225,7 +225,7 @@ export class FileWatcher {
       return;
     }
     
-    console.log(`[FileWatcher] Starting for project ${this.config.projectId}`);
+    console.debug(`[FileWatcher] Starting for project ${this.config.projectId}`);
     this.isRunning = true;
     
     // Initial scan
@@ -248,7 +248,7 @@ export class FileWatcher {
       this.pollInterval = null;
     }
     this.isRunning = false;
-    console.log(`[FileWatcher] Stopped for project ${this.config.projectId}`);
+    console.debug(`[FileWatcher] Stopped for project ${this.config.projectId}`);
   }
   
   /**
@@ -295,7 +295,7 @@ export class FileWatcher {
       
       // Notify callbacks
       if (changes.length > 0) {
-        console.log(`[FileWatcher] Detected ${changes.length} changes in ${Date.now() - startTime}ms`);
+        console.debug(`[FileWatcher] Detected ${changes.length} changes in ${Date.now() - startTime}ms`);
         for (const callback of this.callbacks) {
           try {
             await callback(changes);

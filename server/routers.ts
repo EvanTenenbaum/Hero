@@ -22,6 +22,7 @@ import * as db from "./db";
 import { chatAgentService, ChatContext } from "./chatAgent";
 import { recordExecution } from "./services/metricsRecorder";
 import { AgentType } from "./agents/promptTemplates";
+import { encryptSecret, decryptSecret } from "./services/projectHydrator";
 
 // ════════════════════════════════════════════════════════════════════════════
 // AUTH ROUTER
@@ -914,8 +915,8 @@ const settingsRouter = router({
       projectId: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      // TODO: Encrypt value before storing
-      const encryptedValue = Buffer.from(input.value).toString("base64"); // Simple encoding for now
+      // Use AES-256-GCM encryption for secrets
+      const encryptedValue = encryptSecret(input.value);
       
       return db.createSecret({
         userId: ctx.user.id,

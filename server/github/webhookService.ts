@@ -162,7 +162,7 @@ export async function markEventProcessed(
 async function handlePushEvent(payload: WebhookPayload): Promise<void> {
   // Update cloned repo's lastCommitSha if we have it tracked
   // This would trigger a sync in a real implementation
-  console.log(`Push event received for ${payload.repository?.full_name}`);
+  console.debug(`Push event received for ${payload.repository?.full_name}`);
 }
 
 /**
@@ -331,7 +331,7 @@ export async function processWebhook(
         // Ping events are just for verification
         break;
       default:
-        console.log(`Unhandled event type: ${eventType}`);
+        console.debug(`Unhandled event type: ${eventType}`);
     }
 
     await markEventProcessed(eventId);

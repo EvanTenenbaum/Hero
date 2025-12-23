@@ -267,15 +267,19 @@ export async function moveCard(
 export async function deleteCard(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  // Delete dependencies
-  await db.delete(cardDependencies).where(eq(cardDependencies.cardId, id));
-  await db.delete(cardDependencies).where(eq(cardDependencies.blockedByCardId, id));
-  // Delete comments
-  await db.delete(cardComments).where(eq(cardComments.cardId, id));
-  // Delete history
-  await db.delete(cardHistory).where(eq(cardHistory.cardId, id));
-  // Delete card
-  await db.delete(kanbanCards).where(eq(kanbanCards.id, id));
+  
+  // FIX: Use transaction for atomic deletion to prevent orphaned data
+  await db.transaction(async (tx) => {
+    // Delete dependencies (both directions)
+    await tx.delete(cardDependencies).where(eq(cardDependencies.cardId, id));
+    await tx.delete(cardDependencies).where(eq(cardDependencies.blockedByCardId, id));
+    // Delete comments
+    await tx.delete(cardComments).where(eq(cardComments.cardId, id));
+    // Delete history
+    await tx.delete(cardHistory).where(eq(cardHistory.cardId, id));
+    // Delete card (last, after all related data is removed)
+    await tx.delete(kanbanCards).where(eq(kanbanCards.id, id));
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
