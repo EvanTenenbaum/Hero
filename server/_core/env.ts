@@ -19,4 +19,20 @@ export const ENV = {
   GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ?? "",
   // Secrets Encryption Key (for project secrets)
   SECRETS_ENCRYPTION_KEY: process.env.SECRETS_ENCRYPTION_KEY ?? "",
+  // KDF Salt for secure key derivation (REQUIRED in production)
+  SECRETS_KDF_SALT: process.env.SECRETS_KDF_SALT ?? "",
 };
+
+// Validate critical environment variables in production
+if (ENV.isProduction) {
+  const requiredVars = [
+    { key: 'SECRETS_ENCRYPTION_KEY', value: ENV.SECRETS_ENCRYPTION_KEY },
+    { key: 'SECRETS_KDF_SALT', value: ENV.SECRETS_KDF_SALT },
+  ];
+  
+  for (const { key, value } of requiredVars) {
+    if (!value) {
+      console.error(`[ENV] CRITICAL: ${key} is required in production but not set`);
+    }
+  }
+}

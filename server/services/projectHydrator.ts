@@ -54,9 +54,13 @@ function getEncryptionKey(): Buffer {
     throw new Error('SECRETS_ENCRYPTION_KEY is not configured');
   }
   
-  // Use environment-based salt or derive from a secure source
-  // SECURITY: In production, set SECRETS_KDF_SALT to a unique random value
-  const saltSource = process.env.SECRETS_KDF_SALT || ENV.SECRETS_ENCRYPTION_KEY;
+  // Use environment-based salt for secure key derivation
+  // SECURITY: SECRETS_KDF_SALT is required in production
+  const saltSource = ENV.SECRETS_KDF_SALT || ENV.SECRETS_ENCRYPTION_KEY;
+  
+  if (ENV.isProduction && !ENV.SECRETS_KDF_SALT) {
+    console.error('[ProjectHydrator] WARNING: SECRETS_KDF_SALT not set in production - using fallback');
+  }
   const salt = crypto.createHash('sha256').update(saltSource + '-hero-kdf').digest().slice(0, 16);
   
   // Ensure key is 32 bytes for AES-256
@@ -276,8 +280,23 @@ class ProjectHydrator {
       throw new Error('No GitHub connection found for project owner');
     }
 
-    // TODO: Implement token refresh logic if token is expired
-    // Check if token has expiration and refresh if needed
+    // Check if token is expired and needs refresh
+    if (connection.tokenExpiresAt && connection.refreshToken) {
+      const now = new Date();
+      const expiresAt = new Date(connection.tokenExpiresAt);
+      const bufferMs = 5 * 60 * 1000; // 5 minute buffer
+      
+      if (now.getTime() > expiresAt.getTime() - bufferMs) {
+        // Token is expired or about to expire, refresh it
+        try {
+          const refreshedToken = await this.refreshGitHubToken(connection.refreshToken, project.userId);
+          return refreshedToken;
+        } catch (error) {
+          console.error('[ProjectHydrator] Failed to refresh GitHub token:', error);
+          // Fall through to return existing token as last resort
+        }
+      }
+    }
 
     return connection.accessToken;
   }
@@ -342,6 +361,66 @@ class ProjectHydrator {
       console.error('Failed to get GitHub App installation token:', error);
       throw error;
     }
+  }
+
+  /**
+   * Refresh an expired GitHub OAuth token
+   */
+  private async refreshGitHubToken(refreshToken: string, userId: number): Promise<string> {
+    const clientId = ENV.GITHUB_CLIENT_ID;
+    const clientSecret = ENV.GITHUB_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      throw new Error('GitHub OAuth credentials not configured');
+    }
+
+    const response = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to refresh token: ${response.statusText}`);
+    }
+
+    const data = await response.json() as {
+      access_token: string;
+      refresh_token?: string;
+      expires_in?: number;
+    };
+
+    if (!data.access_token) {
+      throw new Error('No access token in refresh response');
+    }
+
+    // Update the token in the database
+    const db = await getDb();
+    if (db) {
+      const expiresAt = data.expires_in 
+        ? new Date(Date.now() + data.expires_in * 1000)
+        : null;
+      
+      await db
+        .update(githubConnections)
+        .set({
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token || refreshToken,
+          tokenExpiresAt: expiresAt,
+        })
+        .where(eq(githubConnections.userId, userId));
+    }
+
+    console.debug('[ProjectHydrator] Successfully refreshed GitHub token');
+    return data.access_token;
   }
 
   /**
