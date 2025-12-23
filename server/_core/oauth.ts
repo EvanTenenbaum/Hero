@@ -63,34 +63,38 @@ export function registerOAuthRoutes(app: Express) {
     // Get the state from query params (contains redirect path)
     const incomingState = getQueryParam(req, "state") || "";
     
-    // Build redirect URI - prefer configured value for security
+    // Build redirect URI - REQUIRE configured value in production for security
     let redirectUri: string;
     
     if (ENV.GOOGLE_REDIRECT_URI) {
       // Use configured redirect URI (most secure)
       redirectUri = ENV.GOOGLE_REDIRECT_URI;
+    } else if (ENV.isProduction) {
+      // SEC-001 FIX: In production, GOOGLE_REDIRECT_URI is REQUIRED
+      console.error('[OAuth] SEC-001: GOOGLE_REDIRECT_URI is required in production');
+      res.status(500).json({ error: 'OAuth not properly configured' });
+      return;
     } else {
-      // Fallback to dynamic construction with validation
+      // Development only: Allow dynamic construction with strict validation
       const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
       const host = req.headers["x-forwarded-host"] || req.headers.host || "";
       
-      // SEC-001 FIX: Validate host against allowed patterns
-      const allowedHosts = [
+      // SEC-001 FIX: Strict host validation for development
+      const allowedDevHosts = [
         'localhost',
         '127.0.0.1',
-        'hero-production-75cb.up.railway.app',
-        'hero-ide.vercel.app',
       ];
-      const hostStr = Array.isArray(host) ? host[0] : host;
+      const hostStr = Array.isArray(host) ? host[0] : String(host);
       const hostWithoutPort = hostStr.split(':')[0];
       
-      if (!allowedHosts.some(allowed => hostWithoutPort === allowed || hostWithoutPort.endsWith(`.${allowed}`))) {
-        console.error(`[OAuth] SEC-001: Blocked unauthorized host: ${host}`);
+      // Exact match only - no subdomain matching in dev
+      if (!allowedDevHosts.includes(hostWithoutPort)) {
+        console.error(`[OAuth] SEC-001: Blocked unauthorized host in dev: ${host}`);
         res.status(400).json({ error: 'Invalid redirect host' });
         return;
       }
       
-      redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+      redirectUri = `${protocol}://${hostStr}/api/auth/google/callback`;
     }
 
     // Combine redirect path with our internal state

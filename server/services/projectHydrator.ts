@@ -59,7 +59,7 @@ function getEncryptionKey(): Buffer {
   const saltSource = ENV.SECRETS_KDF_SALT || ENV.SECRETS_ENCRYPTION_KEY;
   
   if (ENV.isProduction && !ENV.SECRETS_KDF_SALT) {
-    console.error('[ProjectHydrator] WARNING: SECRETS_KDF_SALT not set in production - using fallback');
+    throw new Error('SECRETS_KDF_SALT is required in production environment');
   }
   const salt = crypto.createHash('sha256').update(saltSource + '-hero-kdf').digest().slice(0, 16);
   

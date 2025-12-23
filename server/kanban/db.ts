@@ -121,15 +121,19 @@ export async function reorderColumns(boardId: number, columnIds: number[]) {
     throw new Error("Invalid column IDs provided");
   }
   
-  // Use batch UPDATE with CASE statement to avoid N+1 queries
-  // This updates all columns in a single query instead of one per column
-  // Safe because we validated all IDs are integers above
-  const caseStatements = validatedIds.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
-  await db.execute(sql`
-    UPDATE kanban_columns 
-    SET position = CASE id ${sql.raw(caseStatements)} END
-    WHERE boardId = ${boardId} AND id IN (${sql.raw(validatedIds.join(','))});
-  `);
+  // SECURITY FIX: Use parameterized updates instead of sql.raw()
+  // Update each column position individually to avoid SQL injection
+  // This is slightly less efficient but completely safe
+  const updates = validatedIds.map((id, position) => 
+    db.update(kanbanColumns)
+      .set({ position })
+      .where(and(
+        eq(kanbanColumns.id, id),
+        eq(kanbanColumns.boardId, boardId)
+      ))
+  );
+  
+  await Promise.all(updates);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
