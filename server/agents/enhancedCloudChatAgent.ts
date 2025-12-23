@@ -6,21 +6,21 @@
  */
 
 import { z } from 'zod';
-import { invokeLLM, InvokeResult, Message, Tool } from '../_core/llm';
+import { invokeLLM, Message } from '../_core/llm';
 import { logger } from '../_core/logger';
 
 // Import Phase 1 services
-import { countTokens, truncateToTokenLimit } from '../utils/tokenizer';
-import { agentMemoryService, LongTermMemoryItem, ShortTermMemoryItem } from '../services/agentMemory';
+import { countTokens } from '../utils/tokenizer';
+import { agentMemoryService } from '../services/agentMemory';
 import { intelligentContextManager, ContextSource, ContextBudget } from '../services/intelligentContextManager';
-import { dynamicToolRegistry, ToolResult } from '../services/dynamicToolRegistry';
+import { dynamicToolRegistry } from '../services/dynamicToolRegistry';
 import { auditLogger } from '../services/auditLogger';
-import { AgentOrchestrator, WorkflowStepInput } from '../services/agentOrchestrator';
+import { AgentOrchestrator } from '../services/agentOrchestrator';
 
 // Import Phase 2 services
 import { PromptBuilder, PromptContext as EnhancedPromptContext, AgentTaskType } from './enhancedPromptSystem';
 import { selfReflectionService, ExecutionResult, AgentAction } from './selfReflectionService';
-import { executionPatternLearner, ExecutionRecord, ToolCall } from './executionPatternLearner';
+import { executionPatternLearner, ExecutionRecord } from './executionPatternLearner';
 import { adaptiveAgentController, AgentTask, AgentStrategy, AgentResult } from './adaptiveAgentController';
 
 // --- Input Validation Schemas ---

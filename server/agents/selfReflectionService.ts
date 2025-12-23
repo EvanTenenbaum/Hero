@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { invokeLLM, InvokeResult } from '../_core/llm';
+import { invokeLLM } from '../_core/llm';
 import { logger } from '../_core/logger';
 
 // --- Input Validation Schemas ---

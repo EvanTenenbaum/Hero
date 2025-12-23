@@ -5,6 +5,8 @@
  * available to the HERO IDE agent system.
  */
 
+import { logger } from '../_core/logger';
+
 /**
  * Context provided to tool handlers during execution.
  */
@@ -209,7 +211,7 @@ export class DynamicToolRegistry {
 
             return await tool.handler(ctx, args);
         } catch (error) {
-            console.error(`[DynamicToolRegistry] Error executing tool "${name}":`, error);
+            logger.error({ error, toolName: name }, 'Error executing tool');
             return { success: false, error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` };
         }
     }
