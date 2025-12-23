@@ -184,7 +184,79 @@ Sandbox-aware tool implementations:
 - Static asset hosting
 - API proxy to Railway
 
+## Deployment & Operations
+
+### CI/CD Pipeline
+
+1. **GitHub Actions**: Automated testing on every PR
+2. **Railway Auto-Deploy**: Backend deploys automatically from `main` branch
+3. **Vercel Auto-Deploy**: Frontend deploys automatically from `main` branch
+
+### Infrastructure
+
+- **Railway**: Node.js backend with MySQL database
+- **Vercel**: Static frontend hosting with edge functions
+- **E2B**: Cloud sandbox infrastructure (managed service)
+
+### Monitoring & Observability
+
+- **Railway Logs**: Backend application logs
+- **Vercel Analytics**: Frontend performance metrics
+- **E2B Dashboard**: Sandbox usage and health monitoring
+
+### E2B Sandbox Security Model
+
+The E2B sandbox integration provides strong isolation:
+
+1. **Container Isolation**: Each sandbox runs in an isolated container
+2. **Network Isolation**: Sandboxes cannot access internal services
+3. **Resource Limits**: CPU, memory, and disk limits enforced
+4. **Time Limits**: Auto-timeout after configurable duration (default 30 min)
+5. **No Persistence**: Sandboxes are ephemeral, destroyed after use
+6. **Secrets Injection**: Secrets are injected at runtime, never persisted in sandbox
+
+### Threat Model
+
+| Threat | Mitigation |
+|--------|------------|
+| Malicious code execution | Sandbox isolation, resource limits |
+| Data exfiltration | Network isolation, no external access |
+| Secrets leakage | Runtime injection, never logged |
+| Resource exhaustion | CPU/memory limits, auto-timeout |
+| Lateral movement | No access to host or other sandboxes |
+
 ## Development
+
+### Local Development Setup
+
+1. **Prerequisites**:
+   - Node.js 22+
+   - pnpm
+   - MySQL database (local or cloud)
+   - E2B API key (for cloud sandbox features)
+
+2. **Environment Setup**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials
+   ```
+
+3. **Database Setup**:
+   ```bash
+   pnpm db:push  # Push schema to database
+   ```
+
+4. **Running Locally**:
+   ```bash
+   pnpm dev  # Starts both frontend and backend
+   ```
+
+5. **Cloud Sandbox Testing**:
+   - Cloud sandbox features require a valid E2B_API_KEY
+   - Without E2B key, sandbox features will be disabled
+   - Use the CloudSandboxPanel in project settings to test
+
+### Commands
 
 ```bash
 # Install dependencies
