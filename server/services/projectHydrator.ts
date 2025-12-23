@@ -10,10 +10,11 @@
 import { Sandbox } from '@e2b/code-interpreter';
 import { ENV } from '../_core/env';
 import { getDb } from '../db';
-import { projectSecrets, Project } from '../../drizzle/schema';
+import { projectSecrets, Project, githubConnections } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import { REPO_PATH } from './sandboxManager';
+import { escapeShellArg } from '../utils/shell';
 
 // ════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -45,15 +46,19 @@ interface SecretEntry {
 
 /**
  * Get the encryption key from environment
+ * Uses environment-based salt for secure key derivation
  */
 function getEncryptionKey(): Buffer {
   const key = ENV.SECRETS_ENCRYPTION_KEY;
   if (!key) {
     throw new Error('SECRETS_ENCRYPTION_KEY is not configured');
   }
-  // Use a proper salt derived from the key itself for deterministic key derivation
-  // In production, consider using a separate SECRETS_SALT environment variable
-  const salt = crypto.createHash('sha256').update('hero-secrets-salt').digest().slice(0, 16);
+  
+  // Use environment-based salt or derive from a secure source
+  // SECURITY: In production, set SECRETS_KDF_SALT to a unique random value
+  const saltSource = process.env.SECRETS_KDF_SALT || ENV.SECRETS_ENCRYPTION_KEY;
+  const salt = crypto.createHash('sha256').update(saltSource + '-hero-kdf').digest().slice(0, 16);
+  
   // Ensure key is 32 bytes for AES-256
   return crypto.scryptSync(key, salt, 32);
 }
@@ -96,6 +101,44 @@ export function decryptSecret(encryptedValue: string): string {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// VALIDATION UTILITIES
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Validate GitHub repository owner/name to prevent injection
+ * Only allows alphanumeric, hyphens, underscores, and dots
+ */
+function validateGitHubIdentifier(value: string, fieldName: string): void {
+  if (!value || !/^[a-zA-Z0-9._-]+$/.test(value)) {
+    throw new Error(`Invalid ${fieldName}: must contain only alphanumeric characters, dots, hyphens, and underscores`);
+  }
+  if (value.length > 100) {
+    throw new Error(`Invalid ${fieldName}: too long (max 100 characters)`);
+  }
+}
+
+/**
+ * Validate branch name to prevent injection
+ */
+function validateBranchName(branch: string): void {
+  // Git branch names cannot contain: space, ~, ^, :, ?, *, [, \, or start with -
+  if (!branch || /[\s~^:?*\[\]\\]/.test(branch) || branch.startsWith('-') || branch.includes('..')) {
+    throw new Error('Invalid branch name');
+  }
+  if (branch.length > 255) {
+    throw new Error('Branch name too long');
+  }
+}
+
+/**
+ * Mask sensitive data for logging
+ */
+function maskToken(token: string): string {
+  if (token.length <= 8) return '***';
+  return token.slice(0, 4) + '...' + token.slice(-4);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // PROJECT HYDRATOR CLASS
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -114,18 +157,37 @@ class ProjectHydrator {
         throw new Error('Project is missing repoOwner or repoName');
       }
 
+      // SECURITY: Validate repository identifiers to prevent injection
+      validateGitHubIdentifier(project.repoOwner, 'repoOwner');
+      validateGitHubIdentifier(project.repoName, 'repoName');
+
       // Get GitHub access token
       const accessToken = await this.getGitHubAccessToken(project);
       
-      // Construct authenticated clone URL
-      const authUrl = `https://x-access-token:${accessToken}@github.com/${project.repoOwner}/${project.repoName}.git`;
+      // SECURITY: Log without exposing the token
+      console.log(`Cloning ${project.repoOwner}/${project.repoName} into sandbox (token: ${maskToken(accessToken)})`);
       
-      // Clone the repository
-      console.log(`Cloning ${project.repoOwner}/${project.repoName} into sandbox`);
+      // Clone using git credential helper to avoid token in command line
+      // First, configure git to use the token via credential helper
+      await sandbox.commands.run(
+        `git config --global credential.helper store`,
+        { timeoutMs: 5000 }
+      );
+      
+      // Write credentials to git credential store (more secure than URL)
+      const credentialEntry = `https://x-access-token:${accessToken}@github.com`;
+      await sandbox.files.write('/home/user/.git-credentials', credentialEntry + '\n');
+      await sandbox.commands.run('chmod 600 /home/user/.git-credentials', { timeoutMs: 5000 });
+      
+      // Clone using HTTPS URL without embedded credentials
+      const repoUrl = `https://github.com/${project.repoOwner}/${project.repoName}.git`;
       const cloneResult = await sandbox.commands.run(
-        `git clone ${authUrl} ${REPO_PATH}`,
+        `git clone ${escapeShellArg(repoUrl)} ${escapeShellArg(REPO_PATH)}`,
         { timeoutMs: CLONE_TIMEOUT_MS }
       );
+      
+      // Clean up credentials file immediately after clone
+      await sandbox.commands.run('rm -f /home/user/.git-credentials', { timeoutMs: 5000 });
       
       if (cloneResult.exitCode !== 0) {
         throw new Error(`Git clone failed: ${cloneResult.stderr}`);
@@ -133,14 +195,26 @@ class ProjectHydrator {
 
       // Checkout the correct branch if specified
       const branch = project.defaultBranch || 'main';
-      await sandbox.commands.run(
-        `cd ${REPO_PATH} && git checkout ${branch}`,
+      validateBranchName(branch);
+      
+      const checkoutResult = await sandbox.commands.run(
+        `cd ${escapeShellArg(REPO_PATH)} && git checkout ${escapeShellArg(branch)}`,
         { timeoutMs: 30000 }
       );
+      
+      // Handle branch not found - try to create it or fall back to default
+      if (checkoutResult.exitCode !== 0) {
+        console.warn(`Branch ${branch} not found, using default branch`);
+        // Get the default branch from remote
+        await sandbox.commands.run(
+          `cd ${escapeShellArg(REPO_PATH)} && git checkout $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')`,
+          { timeoutMs: 30000 }
+        );
+      }
 
       // Verify clone by checking for key files
       const verifyResult = await sandbox.commands.run(
-        `ls -la ${REPO_PATH}`,
+        `ls -la ${escapeShellArg(REPO_PATH)}`,
         { timeoutMs: 10000 }
       );
       
@@ -148,9 +222,9 @@ class ProjectHydrator {
         throw new Error('Failed to verify repository clone');
       }
 
-      // Count files cloned
+      // Count files cloned (exclude .git directory)
       const countResult = await sandbox.commands.run(
-        `find ${REPO_PATH} -type f | wc -l`,
+        `find ${escapeShellArg(REPO_PATH)} -type f -not -path '*/.git/*' | wc -l`,
         { timeoutMs: 30000 }
       );
       const filesCloned = parseInt(countResult.stdout.trim()) || 0;
@@ -191,9 +265,6 @@ class ProjectHydrator {
     if (!db) {
       throw new Error('Database not available');
     }
-
-    // Import the GitHub connections table
-    const { githubConnections } = await import('../../drizzle/schema');
     
     const [connection] = await db
       .select()
@@ -204,6 +275,9 @@ class ProjectHydrator {
     if (!connection || !connection.accessToken) {
       throw new Error('No GitHub connection found for project owner');
     }
+
+    // TODO: Implement token refresh logic if token is expired
+    // Check if token has expiration and refresh if needed
 
     return connection.accessToken;
   }
@@ -225,9 +299,10 @@ class ProjectHydrator {
 
     try {
       // Create JWT for GitHub App authentication
+      // Note: In production, consider using a proper JWT library like 'jsonwebtoken' or 'jose'
       const now = Math.floor(Date.now() / 1000);
       const payload = {
-        iat: now - 60, // Issued 60 seconds ago to account for clock drift
+        iat: now - 10, // Issued 10 seconds ago to account for clock drift
         exp: now + 600, // Expires in 10 minutes
         iss: appId,
       };
@@ -245,18 +320,19 @@ class ProjectHydrator {
 
       // Request installation access token
       const response = await fetch(
-        `https://api.github.com/app/installations/${installationId}/access_tokens`,
+        `https://api.github.com/app/installations/${encodeURIComponent(installationId)}/access_tokens`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${jwt}`,
             'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'HERO-IDE',
           },
         }
       );
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
+        const error = await response.json().catch(() => ({})) as { message?: string };
         throw new Error(`Failed to get installation token: ${error.message || response.statusText}`);
       }
 
@@ -281,12 +357,22 @@ class ProjectHydrator {
       }
 
       // Format secrets as .env file content
+      // SECURITY: Properly escape values for .env format
       const envContent = secrets
-        .map(s => `${s.key}=${s.value}`)
+        .map(s => {
+          // Escape special characters in value
+          const escapedValue = s.value.includes('\n') || s.value.includes('"') || s.value.includes("'")
+            ? `"${s.value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`
+            : s.value;
+          return `${s.key}=${escapedValue}`;
+        })
         .join('\n');
 
       // Write .env file to sandbox
-      await sandbox.files.write(`${REPO_PATH}/.env`, envContent);
+      await sandbox.files.write(`${REPO_PATH}/.env`, envContent + '\n');
+
+      // Set restrictive permissions on .env file
+      await sandbox.commands.run(`chmod 600 ${escapeShellArg(REPO_PATH)}/.env`, { timeoutMs: 5000 });
 
       // Ensure .env is in .gitignore
       await this.ensureGitignore(sandbox);
@@ -349,7 +435,7 @@ class ProjectHydrator {
     try {
       // Check if package.json exists
       const checkResult = await sandbox.commands.run(
-        `test -f ${REPO_PATH}/package.json && echo "exists"`,
+        `test -f ${escapeShellArg(REPO_PATH)}/package.json && echo "exists"`,
         { timeoutMs: 5000 }
       );
 
@@ -359,7 +445,7 @@ class ProjectHydrator {
 
       // Detect package manager
       const lockFiles = await sandbox.commands.run(
-        `ls ${REPO_PATH}/*.lock ${REPO_PATH}/pnpm-lock.yaml 2>/dev/null || true`,
+        `ls ${escapeShellArg(REPO_PATH)}/*.lock ${escapeShellArg(REPO_PATH)}/pnpm-lock.yaml 2>/dev/null || true`,
         { timeoutMs: 5000 }
       );
 
@@ -372,7 +458,7 @@ class ProjectHydrator {
 
       console.log(`Installing dependencies with: ${installCmd}`);
       const installResult = await sandbox.commands.run(
-        `cd ${REPO_PATH} && ${installCmd}`,
+        `cd ${escapeShellArg(REPO_PATH)} && ${installCmd}`,
         { timeoutMs: 300000 } // 5 minutes for install
       );
 

@@ -20,11 +20,14 @@ interface SandboxEntry {
   createdAt: Date;
   lastAccessedAt: Date;
   timeoutId: NodeJS.Timeout;
+  lastHealthCheck?: Date;
+  isHealthy?: boolean;
 }
 
 interface SandboxManagerOptions {
   inactivityTimeoutMs?: number;
   maxSandboxes?: number;
+  healthCheckCacheTtlMs?: number;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -33,8 +36,10 @@ interface SandboxManagerOptions {
 
 const DEFAULT_INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 const DEFAULT_MAX_SANDBOXES = 10;
+const DEFAULT_HEALTH_CHECK_CACHE_TTL_MS = 10000; // 10 seconds
 const SANDBOX_TEMPLATE = 'base';
 const REPO_PATH = '/home/user/repo';
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ════════════════════════════════════════════════════════════════════════════
 // SANDBOX MANAGER CLASS
@@ -44,10 +49,56 @@ class SandboxManager {
   private activeSandboxes: Map<string, SandboxEntry> = new Map();
   private inactivityTimeoutMs: number;
   private maxSandboxes: number;
+  private healthCheckCacheTtlMs: number;
+  private cleanupIntervalId: NodeJS.Timeout | null = null;
 
   constructor(options: SandboxManagerOptions = {}) {
     this.inactivityTimeoutMs = options.inactivityTimeoutMs ?? DEFAULT_INACTIVITY_TIMEOUT_MS;
     this.maxSandboxes = options.maxSandboxes ?? DEFAULT_MAX_SANDBOXES;
+    this.healthCheckCacheTtlMs = options.healthCheckCacheTtlMs ?? DEFAULT_HEALTH_CHECK_CACHE_TTL_MS;
+    
+    // Start periodic cleanup to prevent memory leaks
+    this.startPeriodicCleanup();
+  }
+
+  /**
+   * Start periodic cleanup to remove stale/unhealthy sandboxes
+   * MEMORY LEAK PREVENTION: Ensures sandboxes don't accumulate
+   */
+  private startPeriodicCleanup(): void {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+    }
+    
+    this.cleanupIntervalId = setInterval(async () => {
+      await this.cleanupStaleSandboxes();
+    }, CLEANUP_INTERVAL_MS);
+    
+    // Don't prevent Node.js from exiting
+    this.cleanupIntervalId.unref();
+  }
+
+  /**
+   * Clean up stale or unhealthy sandboxes
+   */
+  private async cleanupStaleSandboxes(): Promise<void> {
+    const projectIds = Array.from(this.activeSandboxes.keys());
+    
+    for (const projectId of projectIds) {
+      const entry = this.activeSandboxes.get(projectId);
+      if (!entry) continue;
+      
+      try {
+        const isHealthy = await this.checkSandboxHealth(entry.sandbox);
+        if (!isHealthy) {
+          console.log(`Cleanup: Removing unhealthy sandbox for project ${projectId}`);
+          await this.removeSandbox(projectId);
+        }
+      } catch (error) {
+        console.error(`Cleanup: Error checking sandbox ${projectId}, removing:`, error);
+        await this.removeSandbox(projectId);
+      }
+    }
   }
 
   /**
@@ -63,9 +114,24 @@ class SandboxManager {
     const existing = this.activeSandboxes.get(projectId);
     
     if (existing) {
+      // Use cached health status if recent
+      const now = new Date();
+      const cacheValid = existing.lastHealthCheck && 
+        (now.getTime() - existing.lastHealthCheck.getTime()) < this.healthCheckCacheTtlMs;
+      
+      if (cacheValid && existing.isHealthy) {
+        // Reset the inactivity timeout
+        this.resetTimeout(projectId);
+        existing.lastAccessedAt = new Date();
+        return existing.sandbox;
+      }
+      
       // Check if sandbox is still running
       try {
         const isRunning = await this.checkSandboxHealth(existing.sandbox);
+        existing.lastHealthCheck = new Date();
+        existing.isHealthy = isRunning;
+        
         if (isRunning) {
           // Reset the inactivity timeout
           this.resetTimeout(projectId);
@@ -75,8 +141,10 @@ class SandboxManager {
       } catch (error) {
         // Sandbox is no longer valid, remove it
         console.log(`Sandbox for project ${projectId} is no longer valid, creating new one`);
-        await this.removeSandbox(projectId);
       }
+      
+      // Remove the invalid sandbox
+      await this.removeSandbox(projectId);
     }
 
     // Check if we've reached the maximum number of sandboxes
@@ -99,7 +167,7 @@ class SandboxManager {
 
     console.log(`Creating new sandbox for project ${projectId}`);
     
-    const sandbox = await Sandbox.create({
+    const sandbox = await Sandbox.create(SANDBOX_TEMPLATE, {
       apiKey: ENV.E2B_API_KEY,
     });
 
@@ -115,6 +183,8 @@ class SandboxManager {
       createdAt: new Date(),
       lastAccessedAt: new Date(),
       timeoutId,
+      lastHealthCheck: new Date(),
+      isHealthy: true,
     };
 
     this.activeSandboxes.set(projectId, entry);
@@ -159,18 +229,26 @@ class SandboxManager {
 
   /**
    * Remove a sandbox from the manager
+   * MEMORY LEAK PREVENTION: Always clears timeout and removes from map
    */
   private async removeSandbox(projectId: string): Promise<void> {
     const entry = this.activeSandboxes.get(projectId);
     if (entry) {
+      // Always clear timeout first
       clearTimeout(entry.timeoutId);
+      
+      // Remove from map immediately to prevent re-entry
+      this.activeSandboxes.delete(projectId);
+      
+      // Then try to kill the sandbox
       try {
         await entry.sandbox.kill();
+        console.log(`Sandbox killed for project ${projectId}. Active sandboxes: ${this.activeSandboxes.size}`);
       } catch (error) {
+        // Log but don't throw - sandbox might already be dead
         console.error(`Error killing sandbox for project ${projectId}:`, error);
+        // Note: Entry already removed from map, so no memory leak
       }
-      this.activeSandboxes.delete(projectId);
-      console.log(`Sandbox removed for project ${projectId}. Active sandboxes: ${this.activeSandboxes.size}`);
     }
   }
 
@@ -204,6 +282,13 @@ class SandboxManager {
    */
   async closeAllSandboxes(): Promise<void> {
     console.log(`Closing all ${this.activeSandboxes.size} active sandboxes`);
+    
+    // Stop the cleanup interval
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+    
     const projectIds = Array.from(this.activeSandboxes.keys());
     await Promise.all(projectIds.map(id => this.removeSandbox(id)));
   }
@@ -225,12 +310,13 @@ class SandboxManager {
   /**
    * Get sandbox info for a project (without returning the sandbox itself)
    */
-  getSandboxInfo(projectId: string): { createdAt: Date; lastAccessedAt: Date } | null {
+  getSandboxInfo(projectId: string): { createdAt: Date; lastAccessedAt: Date; isHealthy?: boolean } | null {
     const entry = this.activeSandboxes.get(projectId);
     if (entry) {
       return {
         createdAt: entry.createdAt,
         lastAccessedAt: entry.lastAccessedAt,
+        isHealthy: entry.isHealthy,
       };
     }
     return null;

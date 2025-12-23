@@ -9,6 +9,7 @@
 
 import { z } from 'zod';
 import { sandboxManager, REPO_PATH } from '../services/sandboxManager';
+import { escapeShellArg } from '../utils/shell';
 
 // ════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -49,6 +50,32 @@ export const discardChangesInput = z.object({
 });
 
 // ════════════════════════════════════════════════════════════════════════════
+// VALIDATION UTILITIES
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Validate branch name to prevent injection
+ */
+function validateBranchName(branch: string): void {
+  // Git branch names cannot contain: space, ~, ^, :, ?, *, [, \, or start with -
+  if (!branch || /[\s~^:?*\[\]\\]/.test(branch) || branch.startsWith('-') || branch.includes('..')) {
+    throw new Error('Invalid branch name');
+  }
+  if (branch.length > 255) {
+    throw new Error('Branch name too long');
+  }
+}
+
+/**
+ * Validate file path to prevent path traversal
+ */
+function validateFilePath(filePath: string): void {
+  if (filePath.includes('..') || filePath.startsWith('/') || filePath.includes('\0')) {
+    throw new Error('Invalid file path');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // GIT SYNC SERVICE
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -62,7 +89,8 @@ class GitSyncService {
     options?: { message?: string; branch?: string }
   ): Promise<SyncResult> {
     try {
-      const sandbox = await sandboxManager.getOrStartSandbox(String(projectId));
+      const sandbox = await sandboxManager.getOrStartSandbox(projectId.toString());
+      const escapedRepoPath = escapeShellArg(REPO_PATH);
       
       // Check if there are any changes
       const status = await this.getStatus(projectId);
@@ -76,7 +104,7 @@ class GitSyncService {
 
       // Stage all changes
       const addResult = await sandbox.commands.run(
-        `cd ${REPO_PATH} && git add .`,
+        `cd ${escapedRepoPath} && git add .`,
         { timeoutMs: 30000 }
       );
       
@@ -84,12 +112,13 @@ class GitSyncService {
         throw new Error(`Failed to stage changes: ${addResult.stderr}`);
       }
 
-      // Create commit
+      // Create commit with properly escaped message
       const timestamp = new Date().toISOString();
       const commitMessage = options?.message || `Auto-save: ${timestamp}`;
+      const escapedMessage = escapeShellArg(commitMessage);
       
       const commitResult = await sandbox.commands.run(
-        `cd ${REPO_PATH} && git commit -m "${escapeShellArg(commitMessage)}"`,
+        `cd ${escapedRepoPath} && git commit -m ${escapedMessage}`,
         { timeoutMs: 30000 }
       );
       
@@ -107,17 +136,19 @@ class GitSyncService {
 
       // Get commit SHA
       const shaResult = await sandbox.commands.run(
-        `cd ${REPO_PATH} && git rev-parse HEAD`,
+        `cd ${escapedRepoPath} && git rev-parse HEAD`,
         { timeoutMs: 10000 }
       );
       const commitSha = shaResult.stdout.trim();
 
-      // Push to remote
-      const branch = options?.branch || 'HEAD';
-      const pushResult = await sandbox.commands.run(
-        `cd ${REPO_PATH} && git push origin ${branch}`,
-        { timeoutMs: 60000 }
-      );
+      // Push to remote with validated branch
+      let pushCmd = `cd ${escapedRepoPath} && git push origin HEAD`;
+      if (options?.branch) {
+        validateBranchName(options.branch);
+        pushCmd = `cd ${escapedRepoPath} && git push origin HEAD:${escapeShellArg(options.branch)}`;
+      }
+      
+      const pushResult = await sandbox.commands.run(pushCmd, { timeoutMs: 60000 });
       
       if (pushResult.exitCode !== 0) {
         throw new Error(`Failed to push: ${pushResult.stderr}`);
@@ -144,10 +175,11 @@ class GitSyncService {
    * Get the current git status
    */
   async getStatus(projectId: number): Promise<GitStatus> {
-    const sandbox = await sandboxManager.getOrStartSandbox(String(projectId));
+    const sandbox = await sandboxManager.getOrStartSandbox(projectId.toString());
+    const escapedRepoPath = escapeShellArg(REPO_PATH);
     
     const result = await sandbox.commands.run(
-      `cd ${REPO_PATH} && git status --porcelain`,
+      `cd ${escapedRepoPath} && git status --porcelain`,
       { timeoutMs: 30000 }
     );
 
@@ -185,20 +217,23 @@ class GitSyncService {
     files?: string[]
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const sandbox = await sandboxManager.getOrStartSandbox(String(projectId));
+      const sandbox = await sandboxManager.getOrStartSandbox(projectId.toString());
+      const escapedRepoPath = escapeShellArg(REPO_PATH);
 
       if (files && files.length > 0) {
-        // Discard specific files
+        // Discard specific files with validation
         for (const file of files) {
+          validateFilePath(file);
+          const escapedFile = escapeShellArg(file);
           await sandbox.commands.run(
-            `cd ${REPO_PATH} && git checkout -- "${escapeShellArg(file)}"`,
+            `cd ${escapedRepoPath} && git checkout -- ${escapedFile}`,
             { timeoutMs: 10000 }
           );
         }
       } else {
         // Discard all changes
         await sandbox.commands.run(
-          `cd ${REPO_PATH} && git checkout -- . && git clean -fd`,
+          `cd ${escapedRepoPath} && git checkout -- . && git clean -fd`,
           { timeoutMs: 30000 }
         );
       }
@@ -220,10 +255,15 @@ class GitSyncService {
     branchName: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const sandbox = await sandboxManager.getOrStartSandbox(String(projectId));
+      // SECURITY: Validate branch name
+      validateBranchName(branchName);
+      
+      const sandbox = await sandboxManager.getOrStartSandbox(projectId.toString());
+      const escapedRepoPath = escapeShellArg(REPO_PATH);
+      const escapedBranch = escapeShellArg(branchName);
 
       const result = await sandbox.commands.run(
-        `cd ${REPO_PATH} && git checkout -b "${escapeShellArg(branchName)}"`,
+        `cd ${escapedRepoPath} && git checkout -b ${escapedBranch}`,
         { timeoutMs: 30000 }
       );
 
@@ -244,10 +284,11 @@ class GitSyncService {
    * Get the current branch name
    */
   async getCurrentBranch(projectId: number): Promise<string> {
-    const sandbox = await sandboxManager.getOrStartSandbox(String(projectId));
+    const sandbox = await sandboxManager.getOrStartSandbox(projectId.toString());
+    const escapedRepoPath = escapeShellArg(REPO_PATH);
 
     const result = await sandbox.commands.run(
-      `cd ${REPO_PATH} && git branch --show-current`,
+      `cd ${escapedRepoPath} && git branch --show-current`,
       { timeoutMs: 10000 }
     );
 
@@ -262,13 +303,16 @@ class GitSyncService {
     branch?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const sandbox = await sandboxManager.getOrStartSandbox(String(projectId));
+      const sandbox = await sandboxManager.getOrStartSandbox(projectId.toString());
+      const escapedRepoPath = escapeShellArg(REPO_PATH);
 
-      const branchArg = branch ? `origin ${branch}` : '';
-      const result = await sandbox.commands.run(
-        `cd ${REPO_PATH} && git pull ${branchArg}`,
-        { timeoutMs: 60000 }
-      );
+      let pullCmd = `cd ${escapedRepoPath} && git pull`;
+      if (branch) {
+        validateBranchName(branch);
+        pullCmd = `cd ${escapedRepoPath} && git pull origin ${escapeShellArg(branch)}`;
+      }
+      
+      const result = await sandbox.commands.run(pullCmd, { timeoutMs: 60000 });
 
       if (result.exitCode !== 0) {
         throw new Error(result.stderr);
@@ -282,17 +326,6 @@ class GitSyncService {
       };
     }
   }
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// HELPER FUNCTIONS
-// ════════════════════════════════════════════════════════════════════════════
-
-/**
- * Escape a string for use in shell commands
- */
-function escapeShellArg(arg: string): string {
-  return arg.replace(/'/g, "'\\''").replace(/"/g, '\\"');
 }
 
 // ════════════════════════════════════════════════════════════════════════════

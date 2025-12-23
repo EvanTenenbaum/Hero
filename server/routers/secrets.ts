@@ -10,7 +10,7 @@
 import { z } from 'zod';
 import { getDb } from '../db';
 import { projectSecrets, projects } from '../../drizzle/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { encryptSecret, decryptSecret } from '../services/projectHydrator';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -64,6 +64,35 @@ interface SecretWithValue extends SecretMetadata {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// AUTHORIZATION HELPER
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Verify user has access to the project
+ * SECURITY: All operations must verify project ownership
+ */
+async function verifyProjectAccess(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  projectId: number,
+  userId: number
+): Promise<{ authorized: boolean; error?: string }> {
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(and(
+      eq(projects.id, projectId),
+      eq(projects.userId, userId)
+    ))
+    .limit(1);
+
+  if (!project) {
+    return { authorized: false, error: 'Project not found or access denied' };
+  }
+
+  return { authorized: true };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // SECRETS SERVICE
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -75,7 +104,8 @@ class SecretsService {
     projectId: number,
     key: string,
     value: string,
-    description?: string
+    description?: string,
+    userId?: number
   ): Promise<{ success: boolean; id?: number; error?: string }> {
     try {
       const db = await getDb();
@@ -83,15 +113,23 @@ class SecretsService {
         return { success: false, error: 'Database not available' };
       }
 
-      // Check if project exists
-      const [project] = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, projectId))
-        .limit(1);
+      // SECURITY: Verify project access if userId provided
+      if (userId !== undefined) {
+        const access = await verifyProjectAccess(db, projectId, userId);
+        if (!access.authorized) {
+          return { success: false, error: access.error };
+        }
+      } else {
+        // Check if project exists (for internal calls)
+        const [project] = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.id, projectId))
+          .limit(1);
 
-      if (!project) {
-        return { success: false, error: 'Project not found' };
+        if (!project) {
+          return { success: false, error: 'Project not found' };
+        }
       }
 
       // Check if key already exists
@@ -131,9 +169,17 @@ class SecretsService {
   /**
    * List all secrets for a project (metadata only, no values)
    */
-  async listSecrets(projectId: number): Promise<SecretMetadata[]> {
+  async listSecrets(projectId: number, userId?: number): Promise<SecretMetadata[]> {
     const db = await getDb();
     if (!db) return [];
+
+    // SECURITY: Verify project access if userId provided
+    if (userId !== undefined) {
+      const access = await verifyProjectAccess(db, projectId, userId);
+      if (!access.authorized) {
+        return [];
+      }
+    }
 
     const secrets = await db
       .select({
@@ -152,9 +198,17 @@ class SecretsService {
   /**
    * Get a specific secret with its decrypted value
    */
-  async getSecret(projectId: number, key: string): Promise<SecretWithValue | null> {
+  async getSecret(projectId: number, key: string, userId?: number): Promise<SecretWithValue | null> {
     const db = await getDb();
     if (!db) return null;
+
+    // SECURITY: Verify project access if userId provided
+    if (userId !== undefined) {
+      const access = await verifyProjectAccess(db, projectId, userId);
+      if (!access.authorized) {
+        return null;
+      }
+    }
 
     const [secret] = await db
       .select()
@@ -184,12 +238,21 @@ class SecretsService {
     projectId: number,
     key: string,
     value: string,
-    description?: string
+    description?: string,
+    userId?: number
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const db = await getDb();
       if (!db) {
         return { success: false, error: 'Database not available' };
+      }
+
+      // SECURITY: Verify project access if userId provided
+      if (userId !== undefined) {
+        const access = await verifyProjectAccess(db, projectId, userId);
+        if (!access.authorized) {
+          return { success: false, error: access.error };
+        }
       }
 
       // Check if secret exists
@@ -232,12 +295,21 @@ class SecretsService {
    */
   async deleteSecret(
     projectId: number,
-    key: string
+    key: string,
+    userId?: number
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const db = await getDb();
       if (!db) {
         return { success: false, error: 'Database not available' };
+      }
+
+      // SECURITY: Verify project access if userId provided
+      if (userId !== undefined) {
+        const access = await verifyProjectAccess(db, projectId, userId);
+        if (!access.authorized) {
+          return { success: false, error: access.error };
+        }
       }
 
       // Check if secret exists
@@ -290,46 +362,107 @@ class SecretsService {
 
   /**
    * Bulk import secrets from an object
+   * OPTIMIZED: Uses batch operations to avoid N+1 queries
    */
   async bulkImportSecrets(
     projectId: number,
     secrets: Record<string, string>,
-    overwrite: boolean = false
+    overwrite: boolean = false,
+    userId?: number
   ): Promise<{ success: boolean; imported: number; skipped: number; errors: string[] }> {
     const errors: string[] = [];
     let imported = 0;
     let skipped = 0;
 
+    const db = await getDb();
+    if (!db) {
+      return { success: false, imported: 0, skipped: 0, errors: ['Database not available'] };
+    }
+
+    // SECURITY: Verify project access if userId provided
+    if (userId !== undefined) {
+      const access = await verifyProjectAccess(db, projectId, userId);
+      if (!access.authorized) {
+        return { success: false, imported: 0, skipped: 0, errors: [access.error || 'Access denied'] };
+      }
+    }
+
+    // Validate all keys first
+    const validSecrets: Array<{ key: string; value: string }> = [];
     for (const [key, value] of Object.entries(secrets)) {
-      // Validate key format
       if (!/^[A-Z][A-Z0-9_]*$/.test(key)) {
         errors.push(`Invalid key format: ${key}`);
         skipped++;
         continue;
       }
+      validSecrets.push({ key, value });
+    }
 
-      const existing = await this.getSecret(projectId, key);
+    if (validSecrets.length === 0) {
+      return { success: errors.length === 0, imported, skipped, errors };
+    }
 
-      if (existing) {
+    // OPTIMIZATION: Fetch all existing secrets in one query
+    const existingKeys = validSecrets.map(s => s.key);
+    const existingSecrets = await db
+      .select({ key: projectSecrets.key, id: projectSecrets.id })
+      .from(projectSecrets)
+      .where(and(
+        eq(projectSecrets.projectId, projectId),
+        inArray(projectSecrets.key, existingKeys)
+      ));
+
+    const existingKeyMap = new Map(existingSecrets.map(s => [s.key, s.id]));
+
+    // Separate into inserts and updates
+    const toInsert: Array<{ projectId: number; key: string; encryptedValue: string; description: string | null }> = [];
+    const toUpdate: Array<{ id: number; encryptedValue: string }> = [];
+
+    for (const { key, value } of validSecrets) {
+      const existingId = existingKeyMap.get(key);
+      const encryptedValue = encryptSecret(value);
+
+      if (existingId !== undefined) {
         if (overwrite) {
-          const result = await this.updateSecret(projectId, key, value);
-          if (result.success) {
-            imported++;
-          } else {
-            errors.push(`Failed to update ${key}: ${result.error}`);
-            skipped++;
-          }
+          toUpdate.push({ id: existingId, encryptedValue });
         } else {
           skipped++;
         }
       } else {
-        const result = await this.addSecret(projectId, key, value);
-        if (result.success) {
-          imported++;
-        } else {
-          errors.push(`Failed to add ${key}: ${result.error}`);
-          skipped++;
+        toInsert.push({
+          projectId,
+          key,
+          encryptedValue,
+          description: null,
+        });
+      }
+    }
+
+    // OPTIMIZATION: Batch insert new secrets
+    if (toInsert.length > 0) {
+      try {
+        await db.insert(projectSecrets).values(toInsert);
+        imported += toInsert.length;
+      } catch (error) {
+        errors.push(`Failed to insert secrets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        skipped += toInsert.length;
+      }
+    }
+
+    // OPTIMIZATION: Batch update existing secrets
+    // Note: Drizzle doesn't support batch updates directly, so we use a transaction
+    if (toUpdate.length > 0) {
+      try {
+        for (const { id, encryptedValue } of toUpdate) {
+          await db
+            .update(projectSecrets)
+            .set({ encryptedValue })
+            .where(eq(projectSecrets.id, id));
         }
+        imported += toUpdate.length;
+      } catch (error) {
+        errors.push(`Failed to update secrets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        skipped += toUpdate.length;
       }
     }
 

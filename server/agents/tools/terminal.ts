@@ -8,7 +8,10 @@
  */
 
 import { spawn } from 'child_process';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { AgentToolContext, ToolResult } from './index';
+import { escapeShellArg, checkCommandSafety as utilCheckCommandSafety } from '../../utils/shell';
 
 // ════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -16,15 +19,6 @@ import { AgentToolContext, ToolResult } from './index';
 
 const DEFAULT_TIMEOUT_MS = 60000; // 60 seconds
 const MAX_OUTPUT_SIZE = 100000; // 100KB max output
-const DANGEROUS_COMMANDS = [
-  'rm -rf /',
-  'rm -rf /*',
-  'mkfs',
-  'dd if=/dev/zero',
-  ':(){:|:&};:',
-  'chmod -R 777 /',
-  'chown -R',
-];
 
 // ════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -57,8 +51,16 @@ export async function runShellCommand(
   options?: RunCommandOptions
 ): Promise<ToolResult> {
   try {
-    // Safety check
-    const safetyResult = checkCommandSafety(command);
+    // SECURITY: Validate sandbox is available when cloud mode is enabled
+    if (ctx.useCloudSandbox && !ctx.sandbox) {
+      return {
+        success: false,
+        error: 'Cloud sandbox is enabled but sandbox instance is not available',
+      };
+    }
+
+    // Safety check using shared utility
+    const safetyResult = utilCheckCommandSafety(command);
     if (!safetyResult.safe) {
       return {
         success: false,
@@ -70,10 +72,11 @@ export async function runShellCommand(
     let result: CommandResult;
 
     if (ctx.useCloudSandbox && ctx.sandbox) {
-      // Execute in E2B sandbox
+      // Execute in E2B sandbox (preferred - isolated environment)
       result = await runInSandbox(ctx, command, { ...options, timeout });
     } else {
-      // Execute locally
+      // SECURITY WARNING: Local execution should be restricted in production
+      console.warn('SECURITY: Executing command locally - ensure this is a trusted environment');
       result = await runLocally(command, { ...options, timeout, cwd: options?.cwd ?? ctx.repoPath });
     }
 
@@ -112,8 +115,10 @@ async function runInSandbox(
     throw new Error('Sandbox not available');
   }
 
+  // SECURITY: Escape the cwd to prevent command injection
   const cwd = options.cwd ?? ctx.repoPath;
-  const fullCommand = `cd "${cwd}" && ${command}`;
+  const escapedCwd = escapeShellArg(cwd);
+  const fullCommand = `cd ${escapedCwd} && ${command}`;
 
   try {
     const result = await ctx.sandbox.commands.run(fullCommand, {
@@ -143,12 +148,25 @@ async function runInSandbox(
 
 /**
  * Run a command locally
+ * SECURITY WARNING: This should only be used in trusted environments
  */
 async function runLocally(
   command: string,
   options: RunCommandOptions & { timeout: number }
 ): Promise<CommandResult> {
   return new Promise((resolve) => {
+    // SECURITY: Additional safety check for local execution
+    const safetyResult = utilCheckCommandSafety(command);
+    if (!safetyResult.safe) {
+      resolve({
+        stdout: '',
+        stderr: `Command blocked: ${safetyResult.reason}`,
+        exitCode: 1,
+        timedOut: false,
+      });
+      return;
+    }
+
     const child = spawn('sh', ['-c', command], {
       cwd: options.cwd,
       env: { ...process.env, ...options.env },
@@ -165,10 +183,18 @@ async function runLocally(
 
     child.stdout.on('data', (data) => {
       stdout += data.toString();
+      // Prevent memory exhaustion
+      if (stdout.length > MAX_OUTPUT_SIZE * 2) {
+        child.kill('SIGKILL');
+      }
     });
 
     child.stderr.on('data', (data) => {
       stderr += data.toString();
+      // Prevent memory exhaustion
+      if (stderr.length > MAX_OUTPUT_SIZE * 2) {
+        child.kill('SIGKILL');
+      }
     });
 
     child.on('close', (code) => {
@@ -183,6 +209,7 @@ async function runLocally(
 
     child.on('error', (error) => {
       clearTimeout(timeoutId);
+      console.error('Local command execution error:', error.message);
       resolve({
         stdout,
         stderr: error.message,
@@ -220,15 +247,16 @@ export async function runPackageManager(
 async function detectPackageManager(ctx: AgentToolContext): Promise<string> {
   const checkFile = async (filename: string): Promise<boolean> => {
     if (ctx.useCloudSandbox && ctx.sandbox) {
+      // SECURITY: Use escapeShellArg for path
+      const escapedPath = escapeShellArg(path.join(ctx.repoPath, filename));
       const result = await ctx.sandbox.commands.run(
-        `test -f "${ctx.repoPath}/${filename}" && echo "exists"`,
+        `test -f ${escapedPath} && echo "exists"`,
         { timeoutMs: 5000 }
       );
       return result.stdout.includes('exists');
     } else {
       try {
-        const fs = await import('fs/promises');
-        await fs.access(`${ctx.repoPath}/${filename}`);
+        await fs.access(path.join(ctx.repoPath, filename));
         return true;
       } catch {
         return false;
@@ -252,36 +280,6 @@ export async function runGitCommand(
   return runShellCommand(ctx, command, {
     timeout: 120000, // 2 minutes for git operations
   });
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// SAFETY CHECKS
-// ════════════════════════════════════════════════════════════════════════════
-
-/**
- * Check if a command is safe to execute
- */
-function checkCommandSafety(command: string): { safe: boolean; reason?: string } {
-  const normalizedCommand = command.toLowerCase().trim();
-
-  // Check for dangerous commands
-  for (const dangerous of DANGEROUS_COMMANDS) {
-    if (normalizedCommand.includes(dangerous.toLowerCase())) {
-      return { safe: false, reason: `Dangerous command pattern detected: ${dangerous}` };
-    }
-  }
-
-  // Check for attempts to escape sandbox
-  if (normalizedCommand.includes('../../') && normalizedCommand.includes('rm')) {
-    return { safe: false, reason: 'Path traversal with delete operation not allowed' };
-  }
-
-  // Check for network exfiltration attempts
-  if (normalizedCommand.includes('curl') && normalizedCommand.includes('|') && normalizedCommand.includes('sh')) {
-    return { safe: false, reason: 'Piping remote content to shell not allowed' };
-  }
-
-  return { safe: true };
 }
 
 // ════════════════════════════════════════════════════════════════════════════

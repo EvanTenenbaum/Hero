@@ -12,6 +12,7 @@ import { createPullRequest, createBranch, listBranches } from '../../github/api'
 import { getDb } from '../../db';
 import { githubConnections, projects } from '../../../drizzle/schema';
 import { eq } from 'drizzle-orm';
+import { escapeShellArg } from '../../utils/shell';
 
 // ════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -28,6 +29,32 @@ interface PRSubmitResult {
   prUrl?: string;
   prNumber?: number;
   error?: string;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// VALIDATION UTILITIES
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Validate branch name to prevent injection
+ */
+function validateBranchName(branch: string): void {
+  // Git branch names cannot contain: space, ~, ^, :, ?, *, [, \, or start with -
+  if (!branch || /[\s~^:?*\[\]\\]/.test(branch) || branch.startsWith('-') || branch.includes('..')) {
+    throw new Error('Invalid branch name');
+  }
+  if (branch.length > 255) {
+    throw new Error('Branch name too long');
+  }
+}
+
+/**
+ * Validate file path to prevent path traversal
+ */
+function validateFilePath(filePath: string): void {
+  if (filePath.includes('..') || filePath.startsWith('/') || filePath.includes('\0')) {
+    throw new Error('Invalid file path');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -55,6 +82,12 @@ export async function submitPR(
       };
     }
 
+    // SECURITY: Validate branch name
+    validateBranchName(options.branchName);
+    if (options.baseBranch) {
+      validateBranchName(options.baseBranch);
+    }
+
     // Get project info
     const db = await getDb();
     if (!db) {
@@ -78,17 +111,19 @@ export async function submitPR(
     }
 
     const baseBranch = options.baseBranch || project.defaultBranch || 'main';
+    const escapedRepoPath = escapeShellArg(ctx.repoPath);
+    const escapedBranchName = escapeShellArg(options.branchName);
 
     // Step 1: Create and checkout new branch in sandbox
     const checkoutResult = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git checkout -b "${escapeShellArg(options.branchName)}"`,
+      `cd ${escapedRepoPath} && git checkout -b ${escapedBranchName}`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
     if (checkoutResult.exitCode !== 0) {
       // Branch might already exist, try to checkout
       const existingResult = await ctx.sandbox.commands.run(
-        `cd ${ctx.repoPath} && git checkout "${escapeShellArg(options.branchName)}"`,
+        `cd ${escapedRepoPath} && git checkout ${escapedBranchName}`,
         { timeoutMs: GIT_TIMEOUT_MS }
       );
       if (existingResult.exitCode !== 0) {
@@ -98,7 +133,7 @@ export async function submitPR(
 
     // Step 2: Stage and commit all changes
     const addResult = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git add .`,
+      `cd ${escapedRepoPath} && git add .`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
@@ -106,8 +141,9 @@ export async function submitPR(
       return { success: false, error: `Failed to stage changes: ${addResult.stderr}` };
     }
 
+    const escapedTitle = escapeShellArg(options.title);
     const commitResult = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git commit -m "${escapeShellArg(options.title)}"`,
+      `cd ${escapedRepoPath} && git commit -m ${escapedTitle}`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
@@ -118,7 +154,7 @@ export async function submitPR(
 
     // Step 3: Push branch to remote
     const pushResult = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git push -u origin "${escapeShellArg(options.branchName)}"`,
+      `cd ${escapedRepoPath} && git push -u origin ${escapedBranchName}`,
       { timeoutMs: GIT_TIMEOUT_MS * 2 }
     );
 
@@ -170,16 +206,24 @@ export async function createGitBranch(
       };
     }
 
+    // SECURITY: Validate branch names
+    validateBranchName(branchName);
+    if (fromBranch) {
+      validateBranchName(fromBranch);
+    }
+
+    const escapedRepoPath = escapeShellArg(ctx.repoPath);
+
     // If fromBranch specified, checkout that first
     if (fromBranch) {
       await ctx.sandbox.commands.run(
-        `cd ${ctx.repoPath} && git checkout "${escapeShellArg(fromBranch)}"`,
+        `cd ${escapedRepoPath} && git checkout ${escapeShellArg(fromBranch)}`,
         { timeoutMs: GIT_TIMEOUT_MS }
       );
     }
 
     const result = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git checkout -b "${escapeShellArg(branchName)}"`,
+      `cd ${escapedRepoPath} && git checkout -b ${escapeShellArg(branchName)}`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
@@ -214,8 +258,12 @@ export async function checkoutBranch(
       };
     }
 
+    // SECURITY: Validate branch name
+    validateBranchName(branchName);
+
+    const escapedRepoPath = escapeShellArg(ctx.repoPath);
     const result = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git checkout "${escapeShellArg(branchName)}"`,
+      `cd ${escapedRepoPath} && git checkout ${escapeShellArg(branchName)}`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
@@ -247,15 +295,17 @@ export async function getGitStatus(ctx: AgentToolContext): Promise<ToolResult> {
       };
     }
 
+    const escapedRepoPath = escapeShellArg(ctx.repoPath);
+
     // Get current branch
     const branchResult = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git branch --show-current`,
+      `cd ${escapedRepoPath} && git branch --show-current`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
     // Get status
     const statusResult = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git status --porcelain`,
+      `cd ${escapedRepoPath} && git status --porcelain`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
@@ -298,12 +348,15 @@ export async function getGitDiff(
       };
     }
 
-    let cmd = `cd ${ctx.repoPath} && git diff`;
+    const escapedRepoPath = escapeShellArg(ctx.repoPath);
+    let cmd = `cd ${escapedRepoPath} && git diff`;
+    
     if (options?.staged) {
       cmd += ' --staged';
     }
     if (options?.file) {
-      cmd += ` -- "${escapeShellArg(options.file)}"`;
+      validateFilePath(options.file);
+      cmd += ` -- ${escapeShellArg(options.file)}`;
     }
 
     const result = await ctx.sandbox.commands.run(cmd, { timeoutMs: GIT_TIMEOUT_MS });
@@ -339,24 +392,28 @@ export async function commitChanges(
       };
     }
 
+    const escapedRepoPath = escapeShellArg(ctx.repoPath);
+
     // Stage files
     if (options?.files && options.files.length > 0) {
       for (const file of options.files) {
+        validateFilePath(file);
         await ctx.sandbox.commands.run(
-          `cd ${ctx.repoPath} && git add "${escapeShellArg(file)}"`,
+          `cd ${escapedRepoPath} && git add ${escapeShellArg(file)}`,
           { timeoutMs: GIT_TIMEOUT_MS }
         );
       }
     } else {
       await ctx.sandbox.commands.run(
-        `cd ${ctx.repoPath} && git add .`,
+        `cd ${escapedRepoPath} && git add .`,
         { timeoutMs: GIT_TIMEOUT_MS }
       );
     }
 
-    // Commit
+    // Commit with escaped message
+    const escapedMessage = escapeShellArg(message);
     const result = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git commit -m "${escapeShellArg(message)}"`,
+      `cd ${escapedRepoPath} && git commit -m ${escapedMessage}`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
@@ -372,7 +429,7 @@ export async function commitChanges(
 
     // Get commit SHA
     const shaResult = await ctx.sandbox.commands.run(
-      `cd ${ctx.repoPath} && git rev-parse HEAD`,
+      `cd ${escapedRepoPath} && git rev-parse HEAD`,
       { timeoutMs: GIT_TIMEOUT_MS }
     );
 
@@ -410,13 +467,6 @@ async function getGitHubToken(userId: number): Promise<string | null> {
     .limit(1);
 
   return connection?.accessToken || null;
-}
-
-/**
- * Escape a string for use in shell commands
- */
-function escapeShellArg(arg: string): string {
-  return arg.replace(/'/g, "'\\''").replace(/"/g, '\\"');
 }
 
 // Export types

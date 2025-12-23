@@ -10,6 +10,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { AgentToolContext, ToolResult } from './index';
+import { escapeShellArg, escapeRegex } from '../../utils/shell';
 
 // ════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -17,6 +18,7 @@ import { AgentToolContext, ToolResult } from './index';
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB max file size for reading
 const SANDBOX_TIMEOUT_MS = 30000;
+const MAX_LIST_FILES = 1000;
 
 // ════════════════════════════════════════════════════════════════════════════
 // FILE OPERATIONS
@@ -32,6 +34,14 @@ export async function readFile(
   options?: { startLine?: number; endLine?: number }
 ): Promise<ToolResult> {
   try {
+    // SECURITY: Validate sandbox is available when cloud mode is enabled
+    if (ctx.useCloudSandbox && !ctx.sandbox) {
+      return {
+        success: false,
+        error: 'Cloud sandbox is enabled but sandbox instance is not available',
+      };
+    }
+
     const fullPath = resolvePath(ctx, filePath);
     let content: string;
 
@@ -85,6 +95,14 @@ export async function writeFile(
   content: string
 ): Promise<ToolResult> {
   try {
+    // SECURITY: Validate sandbox is available when cloud mode is enabled
+    if (ctx.useCloudSandbox && !ctx.sandbox) {
+      return {
+        success: false,
+        error: 'Cloud sandbox is enabled but sandbox instance is not available',
+      };
+    }
+
     const fullPath = resolvePath(ctx, filePath);
 
     if (ctx.useCloudSandbox && ctx.sandbox) {
@@ -168,11 +186,19 @@ export async function deleteFile(
   filePath: string
 ): Promise<ToolResult> {
   try {
+    // SECURITY: Validate sandbox is available when cloud mode is enabled
+    if (ctx.useCloudSandbox && !ctx.sandbox) {
+      return {
+        success: false,
+        error: 'Cloud sandbox is enabled but sandbox instance is not available',
+      };
+    }
+
     const fullPath = resolvePath(ctx, filePath);
 
     if (ctx.useCloudSandbox && ctx.sandbox) {
-      // Delete from E2B sandbox using rm command
-      const result = await ctx.sandbox.commands.run(`rm -f "${fullPath}"`, {
+      // SECURITY: Use escapeShellArg to prevent command injection
+      const result = await ctx.sandbox.commands.run(`rm -f ${escapeShellArg(fullPath)}`, {
         timeoutMs: SANDBOX_TIMEOUT_MS,
       });
       if (result.exitCode !== 0) {
@@ -204,14 +230,23 @@ export async function listFiles(
   options?: { recursive?: boolean }
 ): Promise<ToolResult> {
   try {
+    // SECURITY: Validate sandbox is available when cloud mode is enabled
+    if (ctx.useCloudSandbox && !ctx.sandbox) {
+      return {
+        success: false,
+        error: 'Cloud sandbox is enabled but sandbox instance is not available',
+      };
+    }
+
     const fullPath = resolvePath(ctx, dirPath);
     let files: string[];
 
     if (ctx.useCloudSandbox && ctx.sandbox) {
-      // List files in E2B sandbox
+      // SECURITY: Use escapeShellArg to prevent command injection
+      const escapedPath = escapeShellArg(fullPath);
       const cmd = options?.recursive
-        ? `find "${fullPath}" -type f 2>/dev/null | head -1000`
-        : `ls -1 "${fullPath}" 2>/dev/null`;
+        ? `find ${escapedPath} -type f -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null | head -${MAX_LIST_FILES}`
+        : `ls -1 ${escapedPath} 2>/dev/null`;
       
       const result = await ctx.sandbox.commands.run(cmd, {
         timeoutMs: SANDBOX_TIMEOUT_MS,
@@ -257,11 +292,20 @@ export async function fileExists(
   filePath: string
 ): Promise<ToolResult> {
   try {
+    // SECURITY: Validate sandbox is available when cloud mode is enabled
+    if (ctx.useCloudSandbox && !ctx.sandbox) {
+      return {
+        success: false,
+        error: 'Cloud sandbox is enabled but sandbox instance is not available',
+      };
+    }
+
     const fullPath = resolvePath(ctx, filePath);
     let exists: boolean;
 
     if (ctx.useCloudSandbox && ctx.sandbox) {
-      const result = await ctx.sandbox.commands.run(`test -e "${fullPath}" && echo "exists"`, {
+      // SECURITY: Use escapeShellArg to prevent command injection
+      const result = await ctx.sandbox.commands.run(`test -e ${escapeShellArg(fullPath)} && echo "exists"`, {
         timeoutMs: SANDBOX_TIMEOUT_MS,
       });
       exists = result.stdout.includes('exists');
@@ -292,16 +336,17 @@ export async function fileExists(
 
 /**
  * Resolve a relative path to an absolute path within the project
- * Includes path traversal protection
+ * Includes robust path traversal protection
+ * 
+ * SECURITY: This function is critical for preventing path traversal attacks.
+ * It uses canonicalization to ensure the resolved path is within the project directory.
  */
 function resolvePath(ctx: AgentToolContext, filePath: string): string {
-  // Normalize the path to resolve any .. or . components
-  const normalizedPath = path.normalize(filePath);
+  // Remove null bytes which can be used for path manipulation
+  const sanitizedPath = filePath.replace(/\0/g, '');
   
-  // Check for path traversal attempts
-  if (normalizedPath.includes('..')) {
-    throw new Error('Path traversal not allowed');
-  }
+  // Normalize the path to resolve any .. or . components
+  const normalizedPath = path.normalize(sanitizedPath);
   
   let fullPath: string;
   
@@ -313,22 +358,19 @@ function resolvePath(ctx: AgentToolContext, filePath: string): string {
     fullPath = path.join(ctx.repoPath, normalizedPath);
   }
   
-  // Ensure the resolved path is within the repo path
+  // SECURITY: Canonicalize both paths and verify containment
+  // This is the primary defense against path traversal
   const resolvedPath = path.resolve(fullPath);
   const resolvedRepoPath = path.resolve(ctx.repoPath);
   
-  if (!resolvedPath.startsWith(resolvedRepoPath)) {
+  // Ensure the resolved path starts with the repo path
+  // Add trailing separator to prevent partial directory name matches
+  // e.g., /home/user/repo-evil should not match /home/user/repo
+  if (!resolvedPath.startsWith(resolvedRepoPath + path.sep) && resolvedPath !== resolvedRepoPath) {
     throw new Error('Access denied: path is outside project directory');
   }
   
   return resolvedPath;
-}
-
-/**
- * Escape special regex characters
- */
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
