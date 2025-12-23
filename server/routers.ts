@@ -12,6 +12,7 @@ import { kickoffRouter } from './kickoff/router';
 import { metaRouter } from './meta/router';
 import { cloudSandboxRouter } from './routers/cloudSandbox';
 import { secretsRouter } from './routers/secretsRouter';
+import { cloudExecutionStreamRouter } from './routers/cloud-execution-stream';
 import { githubRouter as githubApiRouter } from './github/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -82,6 +83,11 @@ const projectsRouter = router({
       name: z.string().min(1).max(255).optional(),
       description: z.string().optional(),
       settings: z.any().optional(),
+      // Cloud sandbox fields
+      useCloudSandbox: z.boolean().optional(),
+      repoOwner: z.string().optional(),
+      repoName: z.string().optional(),
+      defaultBranch: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
@@ -1549,6 +1555,7 @@ export const appRouter = router({
   meta: metaRouter,
   cloudSandbox: cloudSandboxRouter,
   secrets: secretsRouter,
+  cloudExecution: cloudExecutionStreamRouter,
 });
 
 export type AppRouter = typeof appRouter;

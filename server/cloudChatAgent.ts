@@ -8,7 +8,13 @@
  */
 
 import { ChatContext, ChatAgentResult, ExecuteMessageOptions, ChatAgentService } from './chatAgent';
-import { CloudExecutionEngine, createCloudExecutionEngine, CloudToolName } from './agents/cloudExecutionEngine';
+import { 
+  CloudExecutionEngine, 
+  createCloudExecutionEngine,
+  CloudExecutionState,
+  CloudExecutionStep,
+  CloudExecutionResult,
+} from './agents/cloudExecutionEngine';
 import { invokeLLM, Message } from './_core/llm';
 import { agentLogger } from './agents/logger';
 import { AgentType } from './agents/promptTemplates';
@@ -321,7 +327,12 @@ export class CloudChatAgentService {
     agentType: AgentType,
     projectId: number,
     userId: number,
-    conversationHistory?: Array<{ role: string; content: string }>
+    conversationHistory?: Array<{ role: string; content: string }>,
+    callbacks?: {
+      onStateChange?: (state: CloudExecutionState) => void;
+      onStepComplete?: (step: CloudExecutionStep) => void;
+      onConfirmationRequired?: (tool: string, args: Record<string, unknown>, reason: string) => void;
+    }
   ): Promise<{
     success: boolean;
     response?: string;

@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, FolderGit2, GitBranch, Settings, FileCode, Bot, Shield, Loader2 } from "lucide-react";
+import { ArrowLeft, FolderGit2, GitBranch, Settings, FileCode, Bot, Shield, Loader2, Cloud } from "lucide-react";
 import { Link, useParams } from "wouter";
+import CloudSandboxPanel from "@/components/CloudSandboxPanel";
+import CloudChatPanel from "@/components/CloudChatPanel";
 
 export default function ProjectDetail() {
   const params = useParams<{ id: string }>();
@@ -80,6 +82,9 @@ export default function ProjectDetail() {
             <TabsTrigger value="settings" className="data-[state=active]:bg-primary">
               <Settings className="h-4 w-4 mr-2" /> Settings
             </TabsTrigger>
+            <TabsTrigger value="cloud" className="data-[state=active]:bg-primary">
+              <Cloud className="h-4 w-4 mr-2" /> Cloud Sandbox
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="files">
@@ -106,24 +111,28 @@ export default function ProjectDetail() {
           </TabsContent>
 
           <TabsContent value="agents">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-foreground">Project Agents</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Configure AI agents to work on this project
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">
-                  No agents configured for this project yet. Go to the Agents page to create one.
-                </p>
-                <Link href="/agents">
-                  <Button className="mt-4 bg-primary hover:bg-primary/90">
-                    <Bot className="h-4 w-4 mr-2" /> Configure Agents
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            {project.useCloudSandbox ? (
+              <CloudChatPanel projectId={projectId} projectName={project.name} />
+            ) : (
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Project Agents</CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Configure AI agents to work on this project
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">
+                    Enable Cloud Sandbox in the Cloud Sandbox tab to use AI agents with code execution.
+                  </p>
+                  <Link href="/agents">
+                    <Button className="mt-4 bg-primary hover:bg-primary/90">
+                      <Bot className="h-4 w-4 mr-2" /> Configure Agents
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="governance">
@@ -165,6 +174,15 @@ export default function ProjectDetail() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="cloud">
+            <CloudSandboxPanel
+              projectId={projectId}
+              repoOwner={project.repoOwner}
+              repoName={project.repoName}
+              useCloudSandbox={project.useCloudSandbox}
+            />
           </TabsContent>
         </Tabs>
       </div>
