@@ -10,6 +10,14 @@ import * as kanbanDb from "./db";
 import * as db from "../db";
 import { generateSprintPlan, adjustSprintPlan, SprintPlan } from "../sprint/orchestrator";
 import { cloudChatAgentService } from "../cloudChatAgent";
+import { 
+  verifyProjectAccess, 
+  verifyBoardAccess, 
+  verifyColumnAccess, 
+  verifyCardAccess,
+  requireAccess,
+  requireExists 
+} from "./auth";
 
 export const kanbanRouter = router({
   // ══════════════════════════════════════════════════════════════════════════
@@ -32,13 +40,19 @@ export const kanbanRouter = router({
   
   getBoard: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyBoardAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "board");
       return kanbanDb.getBoardWithData(input.id);
     }),
   
   getBoardsByProject: protectedProcedure
     .input(z.object({ projectId: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyProjectAccess(ctx.user.id, input.projectId);
+      requireAccess(hasAccess, "project");
       return kanbanDb.getBoardsByProject(input.projectId);
     }),
   
@@ -61,14 +75,20 @@ export const kanbanRouter = router({
         cardSize: z.enum(["compact", "normal", "detailed"]).optional(),
       }).optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyBoardAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "board");
       const { id, ...data } = input;
       return kanbanDb.updateBoard(id, data);
     }),
   
   deleteBoard: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyBoardAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "board");
       await kanbanDb.deleteBoard(input.id);
       return { success: true };
     }),
@@ -95,7 +115,10 @@ export const kanbanRouter = router({
       ]).optional(),
       wipLimit: z.number().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyBoardAccess(ctx.user.id, input.boardId);
+      requireAccess(hasAccess, "board");
       return kanbanDb.createColumn(input);
     }),
   
@@ -107,14 +130,20 @@ export const kanbanRouter = router({
       color: z.string().optional(),
       wipLimit: z.number().nullable().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyColumnAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "column");
       const { id, ...data } = input;
       return kanbanDb.updateColumn(id, data);
     }),
   
   deleteColumn: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyColumnAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "column");
       await kanbanDb.deleteColumn(input.id);
       return { success: true };
     }),
@@ -124,7 +153,10 @@ export const kanbanRouter = router({
       boardId: z.number(),
       columnIds: z.array(z.number()),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyBoardAccess(ctx.user.id, input.boardId);
+      requireAccess(hasAccess, "board");
       await kanbanDb.reorderColumns(input.boardId, input.columnIds);
       return { success: true };
     }),
@@ -154,7 +186,11 @@ export const kanbanRouter = router({
   
   getCard: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyCardAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "card");
+      
       const card = await kanbanDb.getCardById(input.id);
       if (!card) return null;
       
@@ -188,6 +224,9 @@ export const kanbanRouter = router({
       blockReason: z.string().nullable().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyCardAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "card");
       const { id, ...data } = input;
       return kanbanDb.updateCard(id, data, ctx.user.id);
     }),
@@ -199,6 +238,9 @@ export const kanbanRouter = router({
       targetPosition: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyCardAccess(ctx.user.id, input.cardId);
+      requireAccess(hasAccess, "card");
       return kanbanDb.moveCard(
         input.cardId,
         input.targetColumnId,
@@ -209,7 +251,10 @@ export const kanbanRouter = router({
   
   deleteCard: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyCardAccess(ctx.user.id, input.id);
+      requireAccess(hasAccess, "card");
       await kanbanDb.deleteCard(input.id);
       return { success: true };
     }),
@@ -225,7 +270,10 @@ export const kanbanRouter = router({
       dependencyType: z.enum(["blocks", "relates_to", "duplicates", "parent_of"]).optional(),
       description: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyCardAccess(ctx.user.id, input.cardId);
+      requireAccess(hasAccess, "card");
       return kanbanDb.addDependency(input);
     }),
   
@@ -247,6 +295,9 @@ export const kanbanRouter = router({
       parentCommentId: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyCardAccess(ctx.user.id, input.cardId);
+      requireAccess(hasAccess, "card");
       return kanbanDb.addComment({
         ...input,
         userId: ctx.user.id,
@@ -291,7 +342,10 @@ export const kanbanRouter = router({
       cardId: z.number(),
       limit: z.number().optional(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      // Authorization check
+      const hasAccess = await verifyCardAccess(ctx.user.id, input.cardId);
+      requireAccess(hasAccess, "card");
       return kanbanDb.getCardHistory(input.cardId, input.limit);
     }),
   

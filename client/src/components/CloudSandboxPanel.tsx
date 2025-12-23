@@ -72,8 +72,9 @@ export default function CloudSandboxPanel({
       toast.success('Cloud sandbox started');
       refetchStatus();
     },
-    onError: (error) => {
-      toast.error(`Failed to start sandbox: ${error.message}`);
+    onError: () => {
+      // SECURITY: Don't expose internal error details to client
+      toast.error('Failed to start sandbox. Please try again.');
     },
   });
 
@@ -82,8 +83,9 @@ export default function CloudSandboxPanel({
       toast.success('Cloud sandbox stopped');
       refetchStatus();
     },
-    onError: (error) => {
-      toast.error(`Failed to stop sandbox: ${error.message}`);
+    onError: () => {
+      // SECURITY: Don't expose internal error details to client
+      toast.error('Failed to stop sandbox. Please try again.');
     },
   });
 
@@ -104,22 +106,26 @@ export default function CloudSandboxPanel({
       toast.success('Secret deleted');
       refetchSecrets();
     },
-    onError: (error) => {
-      toast.error(`Failed to delete secret: ${error.message}`);
+    onError: () => {
+      // SECURITY: Don't expose internal error details to client
+      toast.error('Failed to delete secret. Please try again.');
     },
   });
 
   const toggleCloudSandbox = trpc.projects.update.useMutation({
     onSuccess: () => {
+      // Only update state on success (not optimistically)
       setCloudEnabled(!cloudEnabled);
       toast.success(cloudEnabled ? 'Cloud sandbox disabled' : 'Cloud sandbox enabled');
     },
-    onError: (error) => {
-      toast.error(`Failed to update project: ${error.message}`);
+    onError: () => {
+      // SECURITY: Don't expose internal error details to client
+      toast.error('Failed to update project. Please try again.');
     },
   });
 
   const handleToggleCloud = () => {
+    // Don't optimistically update - wait for server confirmation
     toggleCloudSandbox.mutate({
       id: projectId,
       useCloudSandbox: !cloudEnabled,
@@ -141,10 +147,16 @@ export default function CloudSandboxPanel({
       return;
     }
     
-    // Validate key format
+    // Validate key format - must start with letter, only alphanumeric and underscore
     const sanitizedKey = trimmedKey.toUpperCase().replace(/[^A-Z0-9_]/g, '');
     if (sanitizedKey.length === 0) {
       toast.error('Secret key must contain at least one alphanumeric character');
+      return;
+    }
+    
+    // SECURITY: Enforce standard env var naming (must start with letter or underscore)
+    if (!/^[A-Z_][A-Z0-9_]*$/.test(sanitizedKey)) {
+      toast.error('Secret key must start with a letter or underscore');
       return;
     }
     
