@@ -121,3 +121,71 @@ export {
   getCloudToolByName,
   getCloudToolsByCategory,
 } from './cloudExecutionEngine';
+
+// ============================================
+// Phase 1 & 2 Agent Improvements (New)
+// ============================================
+
+// Enhanced Prompt System
+export {
+  PromptBuilder,
+  ContextInjector,
+  OutputFormatter,
+  TaskSpecificPrompts,
+  type PromptTemplate as EnhancedPromptTemplate,
+  type PromptContext as EnhancedPromptContext,
+  type AgentTaskType,
+  type LLMModel,
+} from './enhancedPromptSystem';
+
+// Self-Reflection Service
+export {
+  SelfReflectionService,
+  selfReflectionService,
+  ReflectionAnalyzer,
+  PatternMatcher,
+  ImprovementSuggester,
+  type ExecutionResult as ReflectionExecutionResult,
+  type AgentAction,
+  type ReflectionAnalysis,
+  type ImprovementSuggestion,
+  type StoredReflection,
+} from './selfReflectionService';
+
+// Execution Pattern Learner
+export {
+  ExecutionPatternLearner,
+  executionPatternLearner,
+  ExecutionRecorder,
+  PatternExtractor,
+  SequenceOptimizer,
+  FailureAnalyzer,
+  type ExecutionRecord,
+  type ExecutionPattern,
+  type ToolCall as PatternToolCall,
+  type FailureRecord,
+} from './executionPatternLearner';
+
+// Adaptive Agent Controller
+export {
+  AdaptiveAgentController,
+  adaptiveAgentController,
+  TaskComplexityAnalyzer,
+  StrategySelector,
+  ConfidenceTracker,
+  FallbackManager,
+  TaskComplexity,
+  AgentStrategy,
+  type AgentTask,
+  type AgentMetrics,
+  type AgentResult,
+} from './adaptiveAgentController';
+
+// Enhanced Cloud Chat Agent
+export {
+  EnhancedCloudChatAgent,
+  createEnhancedAgent,
+  type EnhancedAgentConfig,
+  type ChatContext,
+  type ChatAgentResult,
+} from './enhancedCloudChatAgent';
