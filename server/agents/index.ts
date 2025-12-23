@@ -189,3 +189,12 @@ export {
   type ChatContext,
   type ChatAgentResult,
 } from './enhancedCloudChatAgent';
+
+// Safe Enhanced Agent Wrapper (for gradual rollout)
+export {
+  createSafeEnhancedAgent,
+  processMessageSafe,
+  shutdownEnhancedAgent,
+  checkEnhancedAgentHealth,
+  type EnhancedAgentFeatureFlags,
+} from './safeEnhancedAgentWrapper';
