@@ -12,4 +12,11 @@ export const ENV = {
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI ?? "",
   // Gemini API
   GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
+  // E2B Cloud Sandbox
+  E2B_API_KEY: process.env.E2B_API_KEY ?? "",
+  // GitHub OAuth (for cloud sandbox integration)
+  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ?? "",
+  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ?? "",
+  // Secrets Encryption Key (for project secrets)
+  SECRETS_ENCRYPTION_KEY: process.env.SECRETS_ENCRYPTION_KEY ?? "",
 };

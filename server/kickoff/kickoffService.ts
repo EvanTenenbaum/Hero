@@ -429,3 +429,178 @@ export async function updateProjectDoc(
 
   return { success: true };
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// HERO MANIFEST GENERATION (Cloud Sandbox Protocol)
+// ════════════════════════════════════════════════════════════════════════════
+
+interface HeroManifest {
+  version: string;
+  buildCommand: string;
+  testCommand: string;
+  startCommand: string;
+  forbiddenFiles: string[];
+  allowedOperations: string[];
+  techStack: {
+    frontend?: string;
+    backend?: string;
+    database?: string;
+  };
+}
+
+/**
+ * Generate a .hero/manifest.json file for the project
+ * This manifest guides agent behavior in the cloud sandbox
+ */
+export async function generateHeroManifest(
+  projectId: number,
+  data: KickoffWizardData
+): Promise<HeroManifest> {
+  const { architecture, qualityBar } = data;
+
+  // Detect build/test/start commands based on tech stack
+  const commands = detectCommands(architecture.techStack);
+
+  // Generate manifest
+  const manifest: HeroManifest = {
+    version: "1.0.0",
+    buildCommand: commands.build,
+    testCommand: commands.test,
+    startCommand: commands.start,
+    forbiddenFiles: [
+      ".env",
+      ".env.local",
+      ".env.production",
+      "package-lock.json", // Prefer pnpm-lock.yaml
+      "*.pem",
+      "*.key",
+      "secrets.json",
+    ],
+    allowedOperations: [
+      "read",
+      "write",
+      "edit",
+      "delete",
+      "terminal",
+      "git",
+    ],
+    techStack: {
+      frontend: architecture.techStack.frontend || undefined,
+      backend: architecture.techStack.backend || undefined,
+      database: architecture.techStack.database || undefined,
+    },
+  };
+
+  // Store manifest in database as a project doc
+  const db = await getDb();
+  if (db) {
+    await updateProjectDoc(projectId, "hero-manifest", JSON.stringify(manifest, null, 2));
+  }
+
+  return manifest;
+}
+
+/**
+ * Write manifest to sandbox filesystem
+ */
+export async function writeManifestToSandbox(
+  sandbox: import('@e2b/code-interpreter').Sandbox,
+  manifest: HeroManifest,
+  repoPath: string
+): Promise<void> {
+  const manifestPath = `${repoPath}/.hero/manifest.json`;
+  const manifestContent = JSON.stringify(manifest, null, 2);
+
+  // Create .hero directory if it doesn't exist
+  await sandbox.commands.run(`mkdir -p ${repoPath}/.hero`, { timeoutMs: 10000 });
+
+  // Write manifest file
+  await sandbox.files.write(manifestPath, manifestContent);
+
+  console.log(`Wrote .hero/manifest.json to sandbox`);
+}
+
+/**
+ * Detect appropriate commands based on tech stack
+ */
+function detectCommands(techStack: { frontend?: string; backend?: string; database?: string; other?: string }): {
+  build: string;
+  test: string;
+  start: string;
+} {
+  const frontend = (techStack.frontend || "").toLowerCase();
+  const backend = (techStack.backend || "").toLowerCase();
+
+  // Default commands
+  let build = "npm run build";
+  let test = "npm test";
+  let start = "npm start";
+
+  // Detect based on frontend framework
+  if (frontend.includes("next")) {
+    build = "npm run build";
+    start = "npm run start";
+  } else if (frontend.includes("vite") || frontend.includes("react")) {
+    build = "npm run build";
+    start = "npm run dev";
+  } else if (frontend.includes("vue")) {
+    build = "npm run build";
+    start = "npm run serve";
+  }
+
+  // Detect based on backend framework
+  if (backend.includes("express") || backend.includes("node")) {
+    start = "npm run dev";
+  } else if (backend.includes("python") || backend.includes("flask") || backend.includes("django")) {
+    build = "pip install -r requirements.txt";
+    test = "pytest";
+    start = "python app.py";
+  } else if (backend.includes("go")) {
+    build = "go build";
+    test = "go test ./...";
+    start = "./main";
+  }
+
+  return { build, test, start };
+}
+
+/**
+ * Load manifest from sandbox or database
+ */
+export async function loadHeroManifest(
+  projectId: number,
+  sandbox?: import('@e2b/code-interpreter').Sandbox,
+  repoPath?: string
+): Promise<HeroManifest | null> {
+  // Try to load from sandbox first
+  if (sandbox && repoPath) {
+    try {
+      const content = await sandbox.files.read(`${repoPath}/.hero/manifest.json`);
+      return JSON.parse(content) as HeroManifest;
+    } catch {
+      // Manifest doesn't exist in sandbox, try database
+    }
+  }
+
+  // Load from database
+  const db = await getDb();
+  if (!db) return null;
+
+  const [doc] = await db.select().from(projectDocs)
+    .where(and(eq(projectDocs.projectId, projectId), eq(projectDocs.docType, "hero-manifest")))
+    .limit(1);
+
+  if (doc) {
+    try {
+      return JSON.parse(doc.content) as HeroManifest;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+// Export types
+export type { HeroManifest };

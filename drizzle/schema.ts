@@ -78,6 +78,13 @@ export const projects = mysqlTable("projects", {
   githubDefaultBranch: varchar("githubDefaultBranch", { length: 255 }),
   githubCloneUrl: text("githubCloneUrl"),
   
+  // Cloud Sandbox Integration (E2B)
+  repoOwner: varchar("repo_owner", { length: 255 }),
+  repoName: varchar("repo_name", { length: 255 }),
+  githubInstallationId: varchar("github_installation_id", { length: 255 }),
+  defaultBranch: varchar("default_branch", { length: 255 }).default("main"),
+  useCloudSandbox: boolean("use_cloud_sandbox").default(false),
+  
   // Project settings
   settings: json("settings").$type<{
     language?: string;
@@ -1791,3 +1798,20 @@ export const dailyCostAggregates = mysqlTable("daily_cost_aggregates", {
 
 export type DailyCostAggregate = typeof dailyCostAggregates.$inferSelect;
 export type InsertDailyCostAggregate = typeof dailyCostAggregates.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROJECT SECRETS (Cloud Sandbox Runtime Secrets)
+// ════════════════════════════════════════════════════════════════════════════
+
+export const projectSecrets = mysqlTable("project_secrets", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  key: varchar("key", { length: 255 }).notNull(),
+  encryptedValue: text("encryptedValue").notNull(), // AES-256 encrypted
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProjectSecret = typeof projectSecrets.$inferSelect;
+export type InsertProjectSecret = typeof projectSecrets.$inferInsert;
