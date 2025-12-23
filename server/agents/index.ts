@@ -105,3 +105,19 @@ export {
   compareExecutions,
   exportReplayToMarkdown,
 } from './executionReplay';
+
+// Cloud Execution Engine (E2B Sandbox Integration)
+export {
+  type CloudExecutionState,
+  type CloudExecutionStep,
+  type CloudExecutionContext,
+  type CloudExecutionResult,
+  type CloudToolName,
+  type CloudToolDefinition,
+  CloudExecutionEngine,
+  createCloudExecutionEngine,
+  generateExecutionId as generateCloudExecutionId,
+  getCloudToolDefinitions,
+  getCloudToolByName,
+  getCloudToolsByCategory,
+} from './cloudExecutionEngine';
