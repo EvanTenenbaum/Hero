@@ -51,6 +51,9 @@ export interface KanbanBoardData {
 
 interface KanbanBoardProps {
   board: KanbanBoardData | null;
+  projectId?: number;
+  cloudEnabled?: boolean;
+  executingCardId?: number | null;
   isLoading?: boolean;
   onMoveCard?: (cardId: number, targetColumnId: number, targetPosition: number) => void;
   onReorderColumns?: (columnIds: number[]) => void;
@@ -61,11 +64,15 @@ interface KanbanBoardProps {
   onCardClick?: (card: KanbanCardData) => void;
   onCardEdit?: (card: KanbanCardData) => void;
   onCardDelete?: (card: KanbanCardData) => void;
+  onCardExecute?: (card: KanbanCardData) => void;
   onSettingsChange?: (settings: Partial<BoardSettings>) => void;
 }
 
 export function KanbanBoard({
   board,
+  projectId,
+  cloudEnabled,
+  executingCardId,
   isLoading,
   onMoveCard,
   onReorderColumns,
@@ -76,6 +83,7 @@ export function KanbanBoard({
   onCardClick,
   onCardEdit,
   onCardDelete,
+  onCardExecute,
   onSettingsChange,
 }: KanbanBoardProps) {
   const [activeCard, setActiveCard] = useState<KanbanCardData | null>(null);
@@ -319,12 +327,16 @@ export function KanbanBoard({
                   ...column,
                   cards: getFilteredCards(column.cards),
                 }}
+                projectId={projectId}
+                cloudEnabled={cloudEnabled}
+                executingCardId={executingCardId}
                 onAddCard={() => onAddCard?.(column.id)}
                 onEditColumn={() => onEditColumn?.(column)}
                 onDeleteColumn={() => onDeleteColumn?.(column)}
                 onCardClick={onCardClick}
                 onCardEdit={onCardEdit}
                 onCardDelete={onCardDelete}
+                onCardExecute={onCardExecute}
               />
             ))}
 

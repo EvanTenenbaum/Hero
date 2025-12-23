@@ -8,7 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { 
   Calendar, Clock, User, AlertTriangle, 
   MessageSquare, Link2, MoreHorizontal,
-  Bot
+  Bot, Play, Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,13 @@ export interface KanbanCardData {
 
 interface KanbanCardProps {
   card: KanbanCardData;
+  projectId?: number;
+  cloudEnabled?: boolean;
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onExecute?: () => void;
+  isExecuting?: boolean;
   isDragging?: boolean;
 }
 
@@ -71,9 +75,13 @@ const agentIcons: Record<string, { label: string; color: string }> = {
 
 export function KanbanCard({ 
   card, 
+  projectId,
+  cloudEnabled,
   onClick, 
   onEdit, 
   onDelete,
+  onExecute,
+  isExecuting,
   isDragging 
 }: KanbanCardProps) {
   const {
@@ -133,6 +141,19 @@ export function KanbanCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {cloudEnabled && onExecute && (
+              <DropdownMenuItem 
+                onClick={(e) => { e.stopPropagation(); onExecute(); }}
+                disabled={isExecuting}
+                className="text-green-400"
+              >
+                {isExecuting ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executing...</>
+                ) : (
+                  <><Play className="h-4 w-4 mr-2" /> Execute in Cloud</>
+                )}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit?.(); }}>
               Edit
             </DropdownMenuItem>

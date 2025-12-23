@@ -28,23 +28,31 @@ export interface KanbanColumnData {
 
 interface KanbanColumnProps {
   column: KanbanColumnData;
+  projectId?: number;
+  cloudEnabled?: boolean;
+  executingCardId?: number | null;
   onAddCard?: () => void;
   onEditColumn?: () => void;
   onDeleteColumn?: () => void;
   onCardClick?: (card: KanbanCardData) => void;
   onCardEdit?: (card: KanbanCardData) => void;
   onCardDelete?: (card: KanbanCardData) => void;
+  onCardExecute?: (card: KanbanCardData) => void;
   isLoading?: boolean;
 }
 
 export function KanbanColumn({
   column,
+  projectId,
+  cloudEnabled,
+  executingCardId,
   onAddCard,
   onEditColumn,
   onDeleteColumn,
   onCardClick,
   onCardEdit,
   onCardDelete,
+  onCardExecute,
   isLoading,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
@@ -140,9 +148,13 @@ export function KanbanColumn({
               <KanbanCard
                 key={card.id}
                 card={card}
+                projectId={projectId}
+                cloudEnabled={cloudEnabled}
+                isExecuting={executingCardId === card.id}
                 onClick={() => onCardClick?.(card)}
                 onEdit={() => onCardEdit?.(card)}
                 onDelete={() => onCardDelete?.(card)}
+                onExecute={() => onCardExecute?.(card)}
               />
             ))}
           </SortableContext>
