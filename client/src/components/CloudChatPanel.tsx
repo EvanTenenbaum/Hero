@@ -99,11 +99,11 @@ export default function CloudChatPanel({ projectId, projectName }: CloudChatPane
         role: 'assistant',
         content: result.response || 'Execution completed.',
         timestamp: new Date(),
-        toolCalls: result.toolCalls?.map((tc: { tool: string; args: Record<string, unknown>; result?: string }) => ({
-          tool: tc.tool,
-          args: tc.args,
-          result: tc.result,
-          status: 'success' as const,
+        toolCalls: result.toolCalls?.map((tc: { toolName: string; status: string; output?: unknown }) => ({
+          tool: tc.toolName,
+          args: {},
+          result: tc.output ? String(tc.output) : undefined,
+          status: tc.status === 'success' ? 'success' as const : 'error' as const,
         })),
       };
       setMessages(prev => [...prev, assistantMessage]);
@@ -157,7 +157,12 @@ export default function CloudChatPanel({ projectId, projectName }: CloudChatPane
   // Check for pending confirmations
   useEffect(() => {
     if (executionStatus?.pendingConfirmation) {
-      setPendingConfirmation(executionStatus.pendingConfirmation);
+      // Map CloudExecutionStep to the expected pendingConfirmation format
+      const step = executionStatus.pendingConfirmation;
+      setPendingConfirmation({
+        tool: step.toolName,
+        args: step.input,
+      });
     }
   }, [executionStatus]);
 

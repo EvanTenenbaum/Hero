@@ -473,7 +473,7 @@ export const kanbanRouter = router({
 
 Title: ${card.title}
 Description: ${card.description || 'No description provided'}
-Type: ${card.type || 'task'}
+Type: ${card.cardType || 'task'}
 Priority: ${card.priority || 'medium'}
 
 Please implement this task in the codebase. Use the available tools to:
@@ -490,10 +490,10 @@ Please implement this task in the codebase. Use the available tools to:
 
       // Execute in cloud sandbox
       const result = await cloudChatAgentService.executeWithTools(
-        ctx.user.id,
-        input.projectId,
-        agentType as 'pm' | 'developer' | 'qa' | 'devops' | 'research',
         executionPrompt,
+        agentType as 'pm' | 'developer' | 'qa' | 'devops' | 'research',
+        input.projectId,
+        ctx.user.id,
         []
       );
 
@@ -566,10 +566,10 @@ Please implement this task in the codebase. Use the available tools to:
             : 'developer';
 
           const result = await cloudChatAgentService.executeWithTools(
-            ctx.user.id,
-            input.projectId,
-            agentType as 'pm' | 'developer' | 'qa' | 'devops' | 'research',
             executionPrompt,
+            agentType as 'pm' | 'developer' | 'qa' | 'devops' | 'research',
+            input.projectId,
+            ctx.user.id,
             []
           );
 

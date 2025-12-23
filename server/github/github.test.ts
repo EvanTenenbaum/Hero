@@ -1,11 +1,16 @@
 /**
  * GitHub Integration Unit Tests
  * Sprint 4: GitHub Integration
+ *
+ * NOTE: Some tests require database integration and are skipped in unit test mode.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "../routers";
 import type { TrpcContext } from "../_core/context";
+
+// Skip database-dependent tests in unit test mode
+const skipDbTests = !process.env.TEST_DATABASE_URL;
 
 // Mock authenticated user
 function createAuthContext(): TrpcContext {
@@ -104,7 +109,7 @@ describe("GitHub Integration", () => {
       });
     });
 
-    describe("github.disconnect", () => {
+    describe.skipIf(skipDbTests)("github.disconnect", () => {
       it("succeeds even when not connected", async () => {
         const ctx = createAuthContext();
         const caller = appRouter.createCaller(ctx);

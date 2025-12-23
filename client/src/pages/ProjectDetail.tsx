@@ -181,7 +181,7 @@ export default function ProjectDetail() {
               projectId={projectId}
               repoOwner={project.repoOwner}
               repoName={project.repoName}
-              useCloudSandbox={project.useCloudSandbox}
+              useCloudSandbox={project.useCloudSandbox ?? undefined}
             />
           </TabsContent>
         </Tabs>

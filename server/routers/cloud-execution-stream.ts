@@ -12,7 +12,7 @@ import { TRPCError } from "@trpc/server";
 import * as db from "../db";
 import { cloudChatAgentService } from "../cloudChatAgent";
 import { CloudExecutionEngine, CloudExecutionState, CloudExecutionStep } from "../agents/cloudExecutionEngine";
-import { SandboxManager } from "../services/sandboxManager";
+import { sandboxManager } from "../services/sandboxManager";
 
 // Event types for SSE streaming
 interface CloudExecutionEvent {
@@ -259,14 +259,18 @@ export const cloudExecutionStreamRouter = router({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      const sandboxManager = SandboxManager.getInstance();
-      const sandbox = await sandboxManager.getOrCreateSandbox(input.projectId);
+      const isRunning = sandboxManager.hasSandbox(String(input.projectId));
+      const info = sandboxManager.getSandboxInfo(String(input.projectId));
 
       return {
-        active: !!sandbox,
-        sandboxId: sandbox?.sandboxId,
+        isRunning,
         projectId: input.projectId,
         cloudEnabled: project.useCloudSandbox || false,
+        ...(info && {
+          createdAt: info.createdAt,
+          lastAccessedAt: info.lastAccessedAt,
+          isHealthy: info.isHealthy,
+        }),
       };
     }),
 });

@@ -30,7 +30,7 @@ import {
   generateDiff as generateCloudDiff,
   applyChangesAtomically as applyCloudChangesAtomically,
 } from "./cloudFileModificationService";
-import { SandboxManager } from "../services/sandboxManager";
+import { sandboxManager } from "../services/sandboxManager";
 import { invokeLLM } from "../_core/llm";
 
 export const metaRouter = router({
@@ -307,8 +307,7 @@ export const metaRouter = router({
       filePath: z.string() 
     }))
     .query(async ({ input }) => {
-      const sandboxManager = SandboxManager.getInstance();
-      const sandbox = await sandboxManager.getOrCreateSandbox(input.projectId);
+      const sandbox = await sandboxManager.getOrStartSandbox(String(input.projectId));
       
       if (!sandbox) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not available" });
@@ -331,8 +330,7 @@ export const metaRouter = router({
       })),
     }))
     .mutation(async ({ input }) => {
-      const sandboxManager = SandboxManager.getInstance();
-      const sandbox = await sandboxManager.getOrCreateSandbox(input.projectId);
+      const sandbox = await sandboxManager.getOrStartSandbox(String(input.projectId));
       
       if (!sandbox) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not available" });
@@ -371,8 +369,7 @@ export const metaRouter = router({
       confirmedProtectedFiles: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const sandboxManager = SandboxManager.getInstance();
-      const sandbox = await sandboxManager.getOrCreateSandbox(input.projectId);
+      const sandbox = await sandboxManager.getOrStartSandbox(String(input.projectId));
       
       if (!sandbox) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not available" });
@@ -439,8 +436,7 @@ export const metaRouter = router({
   cloudValidateTypeScript: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .mutation(async ({ input }) => {
-      const sandboxManager = SandboxManager.getInstance();
-      const sandbox = await sandboxManager.getOrCreateSandbox(input.projectId);
+      const sandbox = await sandboxManager.getOrStartSandbox(String(input.projectId));
       
       if (!sandbox) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not available" });
@@ -458,8 +454,7 @@ export const metaRouter = router({
       directory: z.string().default("") 
     }))
     .query(async ({ input }) => {
-      const sandboxManager = SandboxManager.getInstance();
-      const sandbox = await sandboxManager.getOrCreateSandbox(input.projectId);
+      const sandbox = await sandboxManager.getOrStartSandbox(String(input.projectId));
       
       if (!sandbox) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not available" });
@@ -482,8 +477,8 @@ export const metaRouter = router({
         return entries
           .slice(0, 100) // Limit to 100 entries
           .filter(entry => {
-            return !entry.name.startsWith('.') && 
-                   entry.name !== 'node_modules' && 
+            return !entry.name.startsWith('.') &&
+                   entry.name !== 'node_modules' &&
                    entry.name !== 'dist';
           })
           .map(entry => ({

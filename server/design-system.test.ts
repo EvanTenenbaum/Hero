@@ -81,9 +81,9 @@ describe("Design System - Sprint 21", () => {
     });
 
     it("should have MobileBottomSheet component", () => {
-      const componentPath = path.join(clientSrcPath, "components/MobileBottomSheet.tsx");
+      const componentPath = path.join(clientSrcPath, "components/_deprecated/MobileBottomSheet.tsx");
       expect(fs.existsSync(componentPath)).toBe(true);
-      
+
       const content = fs.readFileSync(componentPath, "utf-8");
       expect(content).toContain("md:hidden");
       expect(content).toContain("onTouchStart");

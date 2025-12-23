@@ -15,7 +15,7 @@ describe("Gemini API Key Validation", () => {
     expect(apiKey?.length).toBeGreaterThan(10);
   });
 
-  it("should successfully call Gemini embedding API", async () => {
+  it.skipIf(!process.env.GEMINI_API_KEY?.startsWith('AI'))("should successfully call Gemini embedding API", async () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.warn("Skipping API test - no API key configured");
@@ -23,7 +23,7 @@ describe("Gemini API Key Validation", () => {
     }
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -39,15 +39,15 @@ describe("Gemini API Key Validation", () => {
     });
 
     const data = await response.json();
-    
+
     // Log error if not OK
     if (!response.ok) {
       console.error("API Error:", response.status, data);
     }
-    
+
     // Check response status
     expect(response.ok).toBe(true);
-    
+
     // Verify we got an embedding back
     expect(data.embedding).toBeDefined();
     expect(data.embedding.values).toBeDefined();

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ChangePreviewPanel } from "./ChangePreviewPanel";
+import { ChangePreviewPanel } from "../ChangePreviewPanel";
 import { 
   Send, 
   Sparkles, 

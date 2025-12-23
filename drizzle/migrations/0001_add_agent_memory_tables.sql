@@ -98,6 +98,29 @@ CREATE TABLE IF NOT EXISTS `execution_checkpoints` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- Pattern Cache Table
+-- ============================================
+CREATE TABLE IF NOT EXISTS `pattern_cache` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `pattern_id` VARCHAR(64) NOT NULL UNIQUE,
+  `user_id` INT NULL,
+  `project_id` INT NULL,
+  `pattern_type` VARCHAR(30) NOT NULL,
+  `query_signature` VARCHAR(255) NOT NULL,
+  `tool_sequence` JSON NOT NULL,
+  `success_count` INT NOT NULL DEFAULT 0,
+  `failure_count` INT NOT NULL DEFAULT 0,
+  `avg_duration_ms` INT NULL,
+  `last_used_at` TIMESTAMP NULL,
+  `metadata` JSON NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE INDEX `pattern_id_idx` (`pattern_id`),
+  INDEX `user_project_idx` (`user_id`, `project_id`),
+  INDEX `pattern_type_idx` (`pattern_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- Cleanup Job for Expired Short-Term Memory
 -- ============================================
 -- Note: This should be run as a scheduled job

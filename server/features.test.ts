@@ -3,11 +3,16 @@
  * - GitHub Integration
  * - Real-time Agent Monitoring
  * - Agent Execution System
+ *
+ * NOTE: Some tests require database integration and are skipped in unit test mode.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+
+// Skip database-dependent tests in unit test mode
+const skipDbTests = !process.env.TEST_DATABASE_URL;
 
 // Mock authenticated user
 function createAuthContext(): TrpcContext {
@@ -123,7 +128,7 @@ describe("Agent Execution System", () => {
   });
 });
 
-describe("Governance System", () => {
+describe.skipIf(skipDbTests)("Governance System", () => {
   describe("governance.violations", () => {
     it("returns empty array for new users", async () => {
       const ctx = createAuthContext();
@@ -146,7 +151,7 @@ describe("Governance System", () => {
   });
 });
 
-describe("Settings Management", () => {
+describe.skipIf(skipDbTests)("Settings Management", () => {
   describe("settings.secrets", () => {
     it("returns empty array for new users", async () => {
       const ctx = createAuthContext();
@@ -187,7 +192,7 @@ describe("Settings Management", () => {
   });
 });
 
-describe("Chat System", () => {
+describe.skipIf(skipDbTests)("Chat System", () => {
   describe("chat.conversations", () => {
     it("returns conversations for authenticated user", async () => {
       const ctx = createAuthContext();

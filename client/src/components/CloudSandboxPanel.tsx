@@ -60,11 +60,14 @@ export default function CloudSandboxPanel({
     );
 
   // Query project secrets
-  const { data: secrets, isLoading: secretsLoading, refetch: refetchSecrets } = 
-    trpc.secretsRouter.list.useQuery(
+  const { data: secretsData, isLoading: secretsLoading, refetch: refetchSecrets } =
+    trpc.secrets.list.useQuery(
       { projectId },
       { enabled: cloudEnabled }
     );
+
+  // Extract secrets array from response
+  const secrets = secretsData?.secrets;
 
   // Mutations
   const startSandbox = trpc.cloudSandbox.start.useMutation({
@@ -89,7 +92,7 @@ export default function CloudSandboxPanel({
     },
   });
 
-  const addSecret = trpc.secretsRouter.create.useMutation({
+  const addSecret = trpc.secrets.add.useMutation({
     onSuccess: () => {
       toast.success('Secret added');
       setNewSecretKey('');
@@ -101,7 +104,7 @@ export default function CloudSandboxPanel({
     },
   });
 
-  const deleteSecret = trpc.secretsRouter.delete.useMutation({
+  const deleteSecret = trpc.secrets.delete.useMutation({
     onSuccess: () => {
       toast.success('Secret deleted');
       refetchSecrets();
@@ -171,7 +174,7 @@ export default function CloudSandboxPanel({
     if (statusLoading) {
       return <Badge variant="outline"><Loader2 className="h-3 w-3 animate-spin mr-1" /> Checking...</Badge>;
     }
-    if (!sandboxStatus?.active) {
+    if (!sandboxStatus?.isRunning) {
       return <Badge variant="secondary"><CloudOff className="h-3 w-3 mr-1" /> Inactive</Badge>;
     }
     return <Badge variant="default" className="bg-green-600"><CheckCircle className="h-3 w-3 mr-1" /> Running</Badge>;
@@ -220,7 +223,7 @@ export default function CloudSandboxPanel({
 
             {/* Sandbox Controls */}
             <div className="flex items-center gap-2">
-              {!sandboxStatus?.active ? (
+              {!sandboxStatus?.isRunning ? (
                 <Button
                   onClick={() => startSandbox.mutate({ projectId })}
                   disabled={startSandbox.isPending}
@@ -258,13 +261,13 @@ export default function CloudSandboxPanel({
             </div>
 
             {/* Sandbox Info */}
-            {sandboxStatus?.active && sandboxStatus.sandboxId && (
+            {sandboxStatus?.isRunning && sandboxStatus.isHealthy && (
               <div className="bg-secondary/50 rounded-lg p-3 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <span className="font-medium">Sandbox ID:</span>
-                  <code className="text-xs bg-background px-2 py-1 rounded">
-                    {sandboxStatus.sandboxId}
-                  </code>
+                  <span className="font-medium">Status:</span>
+                  <Badge variant="outline" className="text-xs">
+                    {sandboxStatus.isHealthy ? 'Healthy' : 'Degraded'}
+                  </Badge>
                 </div>
               </div>
             )}
@@ -293,7 +296,7 @@ export default function CloudSandboxPanel({
               </div>
             ) : secrets && secrets.length > 0 ? (
               <div className="space-y-2">
-                {secrets.map((secret) => (
+                {secrets.map((secret: { id: number; key: string }) => (
                   <div
                     key={secret.id}
                     className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2"
@@ -303,7 +306,7 @@ export default function CloudSandboxPanel({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => deleteSecret.mutate({ id: secret.id, projectId })}
+                      onClick={() => deleteSecret.mutate({ key: secret.key, projectId })}
                       disabled={deleteSecret.isPending}
                     >
                       <Trash2 className="h-4 w-4" />

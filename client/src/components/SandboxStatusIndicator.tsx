@@ -48,8 +48,8 @@ export function SandboxStatusIndicator({
     return null;
   }
 
-  const isActive = status?.active;
-  const sandboxId = status?.sandboxId;
+  const isActive = status?.isRunning;
+  const isHealthy = status?.isHealthy;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -84,18 +84,18 @@ export function SandboxStatusIndicator({
             </Badge>
           </div>
 
-          {isActive && sandboxId && (
+          {isActive && (
             <div className="space-y-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Terminal className="h-3 w-3" />
-                <span className="font-mono truncate">{sandboxId}</span>
+                <span className="font-mono truncate">Project #{projectId}</span>
               </div>
-              
-              {status?.health && (
+
+              {isHealthy !== undefined && (
                 <div className="flex items-center gap-2">
                   <span>Health:</span>
                   <Badge variant="outline" className="text-xs">
-                    {status.health.status}
+                    {isHealthy ? 'Healthy' : 'Degraded'}
                   </Badge>
                 </div>
               )}

@@ -1815,3 +1815,127 @@ export const projectSecrets = mysqlTable("project_secrets", {
 
 export type ProjectSecret = typeof projectSecrets.$inferSelect;
 export type InsertProjectSecret = typeof projectSecrets.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT MEMORY - SHORT TERM
+// ════════════════════════════════════════════════════════════════════════════
+
+export const agentMemoryShortTerm = mysqlTable("agent_memory_short_term", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: varchar("session_id", { length: 64 }).notNull(),
+  userId: int("user_id").notNull(),
+  projectId: int("project_id"),
+  memoryKey: varchar("memory_key", { length: 255 }).notNull(),
+  memoryValue: json("memory_value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AgentMemoryShortTerm = typeof agentMemoryShortTerm.$inferSelect;
+export type InsertAgentMemoryShortTerm = typeof agentMemoryShortTerm.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// AGENT MEMORY - LONG TERM
+// ════════════════════════════════════════════════════════════════════════════
+
+export const agentMemoryLongTerm = mysqlTable("agent_memory_long_term", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  projectId: int("project_id"),
+  memoryType: varchar("memory_type", { length: 30 }).notNull(),
+  memoryKey: varchar("memory_key", { length: 255 }).notNull(),
+  memoryValue: json("memory_value").notNull(),
+  relevanceScore: decimal("relevance_score", { precision: 5, scale: 4 }).default("1.0"),
+  accessCount: int("access_count").default(0),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AgentMemoryLongTerm = typeof agentMemoryLongTerm.$inferSelect;
+export type InsertAgentMemoryLongTerm = typeof agentMemoryLongTerm.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIT LOGS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const auditLogs = mysqlTable("audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  projectId: int("project_id"),
+  executionId: varchar("execution_id", { length: 64 }),
+  action: varchar("action", { length: 100 }).notNull(),
+  category: varchar("category", { length: 30 }).default("general").notNull(),
+  severity: varchar("severity", { length: 20 }).default("info").notNull(),
+  details: json("details"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXECUTION STATE
+// ════════════════════════════════════════════════════════════════════════════
+
+export const executionState = mysqlTable("execution_state", {
+  id: int("id").autoincrement().primaryKey(),
+  executionId: varchar("execution_id", { length: 64 }).notNull().unique(),
+  userId: int("user_id").notNull(),
+  projectId: int("project_id").notNull(),
+  agentType: varchar("agent_type", { length: 20 }).notNull(),
+  state: json("state").notNull(),
+  status: varchar("status", { length: 20 }).notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  error: text("error"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ExecutionState = typeof executionState.$inferSelect;
+export type InsertExecutionState = typeof executionState.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXECUTION CHECKPOINTS
+// ════════════════════════════════════════════════════════════════════════════
+
+export const executionCheckpoints = mysqlTable("execution_checkpoints", {
+  id: int("id").autoincrement().primaryKey(),
+  executionId: varchar("execution_id", { length: 64 }).notNull(),
+  checkpointId: varchar("checkpoint_id", { length: 64 }).notNull(),
+  state: json("state").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ExecutionCheckpoint = typeof executionCheckpoints.$inferSelect;
+export type InsertExecutionCheckpoint = typeof executionCheckpoints.$inferInsert;
+
+// ════════════════════════════════════════════════════════════════════════════
+// PATTERN CACHE - For execution pattern learning
+// ════════════════════════════════════════════════════════════════════════════
+
+export const patternCache = mysqlTable("pattern_cache", {
+  id: int("id").autoincrement().primaryKey(),
+  patternId: varchar("pattern_id", { length: 64 }).notNull().unique(),
+  userId: int("user_id"),
+  projectId: int("project_id"),
+  patternType: varchar("pattern_type", { length: 30 }).notNull(),
+  querySignature: varchar("query_signature", { length: 255 }).notNull(),
+  toolSequence: json("tool_sequence").notNull(),
+  successCount: int("success_count").default(0),
+  failureCount: int("failure_count").default(0),
+  avgDurationMs: int("avg_duration_ms"),
+  lastUsedAt: timestamp("last_used_at"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PatternCache = typeof patternCache.$inferSelect;
+export type InsertPatternCache = typeof patternCache.$inferInsert;

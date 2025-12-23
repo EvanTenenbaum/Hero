@@ -24,6 +24,16 @@ import * as db from './db';
 // TYPES
 // ════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Valid tool names for cloud execution
+ */
+export type CloudToolName =
+  | 'read_file' | 'write_file' | 'edit_file' | 'delete_file'
+  | 'list_directory' | 'create_directory' | 'file_exists' | 'search_files'
+  | 'run_command' | 'run_script' | 'install_packages'
+  | 'submit_pr' | 'create_branch' | 'commit_changes' | 'push_changes'
+  | 'get_diff' | 'get_status';
+
 export interface CloudChatContext extends ChatContext {
   projectId: number;
   useCloudSandbox?: boolean;

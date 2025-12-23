@@ -1,6 +1,15 @@
+/**
+ * Hero IDE Core Features Tests
+ *
+ * NOTE: Some tests require database integration and are skipped in unit test mode.
+ */
+
 import { describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+
+// Skip database-dependent tests in unit test mode
+const skipDbTests = !process.env.TEST_DATABASE_URL;
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -175,7 +184,7 @@ describe("Input Validation", () => {
   });
 });
 
-describe("Authenticated Operations", () => {
+describe.skipIf(skipDbTests)("Authenticated Operations", () => {
   describe("projects", () => {
     it("can list projects when authenticated", async () => {
       const { ctx } = createAuthContext();
