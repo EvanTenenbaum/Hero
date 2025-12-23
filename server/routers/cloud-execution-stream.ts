@@ -133,7 +133,13 @@ export const cloudExecutionStreamRouter = router({
    */
   subscribe: protectedProcedure
     .input(z.object({ projectId: z.number() }))
-    .subscription(({ ctx, input }) => {
+    .subscription(async ({ ctx, input }) => {
+      // SECURITY: Verify project ownership before allowing subscription
+      const project = await db.getProjectById(input.projectId, ctx.user.id);
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
       return observable<CloudExecutionEvent>((emit) => {
         const key = getEmitterKey(ctx.user.id, input.projectId);
         
@@ -167,6 +173,12 @@ export const cloudExecutionStreamRouter = router({
   getState: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ ctx, input }) => {
+      // SECURITY: Verify project ownership
+      const project = await db.getProjectById(input.projectId, ctx.user.id);
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
       const engine = cloudChatAgentService.getExecutionEngine(ctx.user.id, input.projectId);
       if (!engine) {
         return { active: false };
@@ -189,6 +201,12 @@ export const cloudExecutionStreamRouter = router({
       approved: z.boolean(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // SECURITY: Verify project ownership
+      const project = await db.getProjectById(input.projectId, ctx.user.id);
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
       const engine = cloudChatAgentService.getExecutionEngine(ctx.user.id, input.projectId);
       if (!engine) {
         throw new TRPCError({ 
@@ -212,6 +230,12 @@ export const cloudExecutionStreamRouter = router({
   cancel: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .mutation(async ({ ctx, input }) => {
+      // SECURITY: Verify project ownership
+      const project = await db.getProjectById(input.projectId, ctx.user.id);
+      if (!project) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found or access denied" });
+      }
+
       const engine = cloudChatAgentService.getExecutionEngine(ctx.user.id, input.projectId);
       if (!engine) {
         throw new TRPCError({ 

@@ -56,6 +56,7 @@ export interface ParsedToolCall {
 export class CloudChatAgentService {
   private baseService: ChatAgentService;
   private activeEngines: Map<string, CloudExecutionEngine> = new Map();
+  private engineInitLocks: Map<string, Promise<CloudExecutionEngine>> = new Map(); // Prevent race conditions
   private cloudLogger = agentLogger;
 
   constructor() {
@@ -349,16 +350,37 @@ export class CloudChatAgentService {
       let engine = this.activeEngines.get(engineKey);
       
       if (!engine) {
-        engine = createCloudExecutionEngine({
-          userId,
-          agentType,
-          projectId,
-          goal: message,
-        });
-        
-        // Initialize the engine (starts sandbox, hydrates project)
-        await engine.initialize();
-        this.activeEngines.set(engineKey, engine);
+        // Check if another request is already initializing this engine
+        const existingLock = this.engineInitLocks.get(engineKey);
+        if (existingLock) {
+          // Wait for the existing initialization to complete
+          engine = await existingLock;
+        } else {
+          // Create a new initialization promise
+          const initPromise = (async () => {
+            const newEngine = createCloudExecutionEngine({
+              userId,
+              agentType,
+              projectId,
+              goal: message,
+            });
+            
+            // Initialize the engine (starts sandbox, hydrates project)
+            await newEngine.initialize();
+            this.activeEngines.set(engineKey, newEngine);
+            return newEngine;
+          })();
+          
+          // Store the lock
+          this.engineInitLocks.set(engineKey, initPromise);
+          
+          try {
+            engine = await initPromise;
+          } finally {
+            // Clean up the lock after initialization
+            this.engineInitLocks.delete(engineKey);
+          }
+        }
       }
 
       // Get the system prompt for this agent type

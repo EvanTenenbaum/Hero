@@ -127,14 +127,31 @@ export default function CloudSandboxPanel({
   };
 
   const handleAddSecret = () => {
-    if (!newSecretKey.trim() || !newSecretValue.trim()) {
+    const trimmedKey = newSecretKey.trim();
+    const trimmedValue = newSecretValue.trim();
+    
+    if (!trimmedKey || !trimmedValue) {
       toast.error('Both key and value are required');
       return;
     }
+    
+    // SECURITY: Validate key length to prevent DoS
+    if (trimmedKey.length > 64) {
+      toast.error('Secret key must be 64 characters or less');
+      return;
+    }
+    
+    // Validate key format
+    const sanitizedKey = trimmedKey.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    if (sanitizedKey.length === 0) {
+      toast.error('Secret key must contain at least one alphanumeric character');
+      return;
+    }
+    
     addSecret.mutate({
       projectId,
-      key: newSecretKey.trim(),
-      value: newSecretValue.trim(),
+      key: sanitizedKey,
+      value: trimmedValue,
     });
   };
 

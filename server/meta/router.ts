@@ -466,32 +466,32 @@ export const metaRouter = router({
       }
       
       const { REPO_PATH } = await import("../services/sandboxManager");
-      const targetDir = `${REPO_PATH}/${input.directory}`.replace(/\/+/g, '/');
+      
+      // SECURITY: Sanitize directory input to prevent path traversal
+      const sanitizedDir = input.directory
+        .replace(/\.\./g, '') // Remove path traversal
+        .replace(/[;|&$`\\"']/g, '') // Remove shell metacharacters
+        .replace(/^\/+/, ''); // Remove leading slashes
+      
+      const targetDir = `${REPO_PATH}/${sanitizedDir}`.replace(/\/+/g, '/');
       
       try {
-        const result = await sandbox.commands.run(
-          `find "${targetDir}" -maxdepth 1 -type f -o -type d | head -100`
-        );
+        // Use E2B filesystem API instead of shell command to prevent injection
+        const entries = await sandbox.files.list(targetDir);
         
-        const entries = result.stdout.split('\n')
-          .filter(line => line && line !== targetDir)
-          .map(fullPath => {
-            const name = fullPath.split('/').pop() || '';
-            const relativePath = fullPath.replace(REPO_PATH + '/', '');
-            return {
-              name,
-              path: relativePath,
-              isDirectory: !name.includes('.'),
-              isProtected: isProtectedFile(relativePath),
-            };
-          })
+        return entries
+          .slice(0, 100) // Limit to 100 entries
           .filter(entry => {
             return !entry.name.startsWith('.') && 
                    entry.name !== 'node_modules' && 
                    entry.name !== 'dist';
-          });
-        
-        return entries;
+          })
+          .map(entry => ({
+            name: entry.name,
+            path: sanitizedDir ? `${sanitizedDir}/${entry.name}` : entry.name,
+            isDirectory: entry.type === 'dir',
+            isProtected: isProtectedFile(entry.name),
+          }));
       } catch {
         return [];
       }
