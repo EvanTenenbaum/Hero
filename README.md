@@ -18,6 +18,13 @@ Hero IDE is a next-generation development environment that combines traditional 
 - **Execution Engine**: State machine-based task execution with pause/resume/cancel
 - **Checkpoint & Rollback**: Safe experimentation with instant rollback capability
 
+### Cloud Sandbox Execution (NEW)
+- **E2B Cloud Sandboxes**: Isolated cloud environments for code execution
+- **Project Hydration**: Automatic repo cloning and secrets injection
+- **Secure Secrets Management**: AES-256-GCM encrypted environment variables
+- **Governance Controls**: Budget limits, step limits, and uncertainty thresholds
+- **Real-time Streaming**: SSE-based execution progress updates
+
 ### GitHub Integration
 - **Repository Management**: Clone, sync, and manage repositories
 - **Issue Sync**: Bidirectional sync between GitHub issues and Kanban cards
@@ -56,7 +63,8 @@ Hero IDE is a next-generation development environment that combines traditional 
 | Database | MySQL/TiDB |
 | AI | Google Gemini API |
 | Auth | Google OAuth |
-| Hosting | Railway (auto-deploy from GitHub) |
+| Cloud Execution | E2B Sandboxes |
+| Hosting | Railway (backend), Vercel (frontend) |
 
 ## Project Structure
 
@@ -119,8 +127,12 @@ pnpm dev
 | DATABASE_URL | MySQL connection string |
 | JWT_SECRET | Session cookie signing secret |
 | GEMINI_API_KEY | Google Gemini API key |
-| GITHUB_CLIENT_ID | GitHub OAuth client ID |
-| GITHUB_CLIENT_SECRET | GitHub OAuth client secret |
+| GOOGLE_CLIENT_ID | Google OAuth client ID |
+| GOOGLE_CLIENT_SECRET | Google OAuth client secret |
+| GOOGLE_REDIRECT_URI | OAuth callback URL |
+| E2B_API_KEY | E2B sandbox API key |
+| SECRETS_ENCRYPTION_KEY | 64-char hex key for AES-256 |
+| SECRETS_KDF_SALT | 32-char hex salt for key derivation |
 
 ## Development
 
@@ -146,18 +158,21 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full deployment documentation.
 
 ## Documentation
 
+- [Architecture](docs/ARCHITECTURE.md) - System architecture and cloud sandbox design
+- [Cloud Sandbox Implementation](docs/CLOUD_SANDBOX_IMPLEMENTATION.md) - E2B integration details
 - [Design System](docs/HERO_IDE_UNIFIED_DESIGN_SYSTEM.md) - Complete UI/UX specifications
 - [Agent Kickoff Protocol](docs/AGENT_KICKOFF_PROTOCOL_ROADMAP.md) - Project kickoff wizard
 - [Self-Modifying IDE](docs/SELF_MODIFYING_IDE_SPEC.md) - Meta Mode specification
 - [Deployment Guide](docs/DEPLOYMENT.md) - Railway deployment setup
-- [Sprint Plan](docs/OPTIMIZED_SPRINT_PLAN.md) - Development roadmap
+- [Comprehensive Roadmap](COMPREHENSIVE_ROADMAP.md) - Full feature roadmap
 
 ## Test Coverage
 
-- **794 tests** covering all major features
-- Security audit (SQL injection, XSS, CSRF)
+- **961 tests** (930 passing, 31 integration tests requiring database)
+- Security audit (SQL injection, XSS, CSRF, open redirect)
 - Performance audit (load times, bundle size)
 - Accessibility audit (WCAG compliance)
+- Gemini API code quality reviews
 
 ## License
 
