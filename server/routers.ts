@@ -13,6 +13,8 @@ import { metaRouter } from './meta/router';
 import { cloudSandboxRouter } from './routers/cloudSandbox';
 import { secretsRouter } from './routers/secretsRouter';
 import { cloudExecutionStreamRouter } from './routers/cloud-execution-stream';
+import { featureFlagsRouter } from './routers/featureFlags';
+import { enhancedAgentRouter } from './routers/enhancedAgent';
 import { githubRouter as githubApiRouter } from './github/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -1556,6 +1558,8 @@ export const appRouter = router({
   cloudSandbox: cloudSandboxRouter,
   secrets: secretsRouter,
   cloudExecution: cloudExecutionStreamRouter,
+  featureFlags: featureFlagsRouter,
+  enhancedAgent: enhancedAgentRouter,
 });
 
 export type AppRouter = typeof appRouter;
