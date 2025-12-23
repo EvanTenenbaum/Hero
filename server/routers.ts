@@ -15,6 +15,8 @@ import { secretsRouter } from './routers/secretsRouter';
 import { cloudExecutionStreamRouter } from './routers/cloud-execution-stream';
 import { featureFlagsRouter } from './routers/featureFlags';
 import { enhancedAgentRouter } from './routers/enhancedAgent';
+import { steeringRouter } from './steering/router';
+import { hooksRouter } from './hooks/router';
 import { githubRouter as githubApiRouter } from './github/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -1560,6 +1562,8 @@ export const appRouter = router({
   cloudExecution: cloudExecutionStreamRouter,
   featureFlags: featureFlagsRouter,
   enhancedAgent: enhancedAgentRouter,
+  steering: steeringRouter,
+  hooks: hooksRouter,
 });
 
 export type AppRouter = typeof appRouter;
