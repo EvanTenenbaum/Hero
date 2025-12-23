@@ -10,6 +10,8 @@ import { specsRouter } from './specs/router';
 import { sprintRouter } from './sprints/router';
 import { kickoffRouter } from './kickoff/router';
 import { metaRouter } from './meta/router';
+import { cloudSandboxRouter } from './routers/cloudSandbox';
+import { secretsRouter } from './routers/secretsRouter';
 import { githubRouter as githubApiRouter } from './github/router';
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -1544,6 +1546,8 @@ export const appRouter = router({
   sprints: sprintRouter,
   kickoff: kickoffRouter,
   meta: metaRouter,
+  cloudSandbox: cloudSandboxRouter,
+  secrets: secretsRouter,
 });
 
 export type AppRouter = typeof appRouter;
