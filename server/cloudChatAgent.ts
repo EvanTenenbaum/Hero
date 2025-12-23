@@ -314,6 +314,134 @@ export class CloudChatAgentService {
   }
 
   /**
+   * Execute a message with tool support - simplified API for router integration.
+   */
+  async executeWithTools(
+    message: string,
+    agentType: AgentType,
+    projectId: number,
+    userId: number,
+    conversationHistory?: Array<{ role: string; content: string }>
+  ): Promise<{
+    success: boolean;
+    response?: string;
+    error?: string;
+    toolCalls?: Array<{ toolName: string; status: string; output?: unknown }>;
+    executionId?: string;
+    durationMs: number;
+  }> {
+    const startTime = Date.now();
+
+    try {
+      // Get or create the cloud execution engine for this project
+      const engineKey = `${userId}_${projectId}`;
+      let engine = this.activeEngines.get(engineKey);
+      
+      if (!engine) {
+        engine = createCloudExecutionEngine({
+          userId,
+          agentType,
+          projectId,
+          goal: message,
+        });
+        
+        // Initialize the engine (starts sandbox, hydrates project)
+        await engine.initialize();
+        this.activeEngines.set(engineKey, engine);
+      }
+
+      // Get the system prompt for this agent type
+      const systemPrompt = this.baseService.getPromptForAgent(agentType);
+
+      // Build messages for LLM
+      const messages: Message[] = [
+        { role: 'system', content: systemPrompt },
+      ];
+
+      // Add conversation history
+      if (conversationHistory) {
+        for (const msg of conversationHistory.slice(-10)) {
+          messages.push({ role: msg.role as 'user' | 'assistant', content: msg.content });
+        }
+      }
+
+      messages.push({ role: 'user', content: message });
+
+      // Get LLM response
+      const response = await invokeLLM({ messages });
+      const llmContent = this.extractContent(response);
+
+      // Parse tool calls from the response
+      const toolCalls = this.parseToolCalls(llmContent);
+
+      // If there are tool calls, execute them
+      if (toolCalls.length > 0) {
+        engine.addSteps(toolCalls);
+        
+        // Set up confirmation handler - auto-approve for now
+        engine.setOnConfirmationRequired(async (step) => {
+          return step.safetyCheck?.riskLevel !== 'high';
+        });
+
+        const executionResult = await engine.start();
+
+        return {
+          success: true,
+          response: llmContent,
+          toolCalls: executionResult.steps.map(s => ({
+            toolName: s.toolName,
+            status: s.status,
+            output: s.result?.output,
+          })),
+          executionId: executionResult.sandboxId,
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // No tool calls, just return the LLM response
+      return {
+        success: true,
+        response: llmContent,
+        durationMs: Date.now() - startTime,
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        durationMs: Date.now() - startTime,
+      };
+    }
+  }
+
+  /**
+   * Extract content from LLM response.
+   */
+  private extractContent(response: any): string {
+    const choice = response.choices?.[0];
+    if (!choice) return '';
+    
+    const content = choice.message?.content;
+    if (typeof content === 'string') return content;
+    
+    if (Array.isArray(content)) {
+      return content
+        .filter((c: any) => c.type === 'text')
+        .map((c: any) => c.text)
+        .join('\n');
+    }
+    
+    return '';
+  }
+
+  /**
+   * Get the execution engine for a user/project.
+   */
+  getExecutionEngine(userId: number, projectId: number): CloudExecutionEngine | undefined {
+    return this.activeEngines.get(`${userId}_${projectId}`);
+  }
+
+  /**
    * Delegate to base service methods
    */
   executeMessage(options: ExecuteMessageOptions): Promise<ChatAgentResult> {

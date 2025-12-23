@@ -75,6 +75,10 @@ export interface CloudExecutionContext {
   customRules?: SafetyRule[];
   maxSteps?: number;
   timeoutMs?: number;
+  // Governance settings
+  budgetLimit?: number;  // Max cost in USD
+  uncertaintyThreshold?: number;  // 0-100, halt if uncertainty exceeds this
+  requireCheckpoints?: boolean;  // Create checkpoints before destructive actions
 }
 
 export interface CloudExecutionResult {
@@ -169,14 +173,25 @@ export class CloudExecutionEngine {
   private repoName?: string;
   private defaultBranch?: string;
   
+  // Governance tracking
+  private tokensUsed: number = 0;
+  private costIncurred: number = 0;
+  private uncertaintyLevel: number = 0;
+  private pendingConfirmationStep?: CloudExecutionStep;
+  
   // Event callbacks
   private onStateChange?: (state: CloudExecutionState) => void;
   private onStepComplete?: (step: CloudExecutionStep) => void;
   private onConfirmationRequired?: (step: CloudExecutionStep) => Promise<boolean>;
   private onError?: (error: Error, step?: CloudExecutionStep) => void;
+  private onGovernanceHalt?: (reason: string) => void;
   
   constructor(context: CloudExecutionContext) {
     this.context = context;
+    // Set default governance limits
+    this.context.budgetLimit = context.budgetLimit ?? 1.0; // $1 default
+    this.context.maxSteps = context.maxSteps ?? 50; // 50 steps default
+    this.context.uncertaintyThreshold = context.uncertaintyThreshold ?? 70; // 70% default
   }
   
   // ── Event Handlers ─────────────────────────────────────────────────────────
@@ -350,11 +365,25 @@ export class CloudExecutionEngine {
   }
   
   /**
-   * Execute steps sequentially
+   * Execute steps sequentially with governance checks
    */
   private async executeSteps(): Promise<void> {
     while (this.currentStepIndex < this.steps.length && this.state === 'executing') {
       const step = this.steps[this.currentStepIndex];
+      
+      // ── Governance Checks ────────────────────────────────────────────────────
+      const governanceCheck = this.checkGovernance();
+      if (governanceCheck.shouldHalt) {
+        await this.logger.warn(
+          `Execution halted by governance: ${governanceCheck.reason}`,
+          this.context.agentType,
+          this.context.userId,
+          { data: { reason: governanceCheck.reason, step: this.currentStepIndex } }
+        );
+        this.onGovernanceHalt?.(governanceCheck.reason!);
+        this.setState('paused');
+        return;
+      }
       
       // Check if action is blocked by safety rules
       if (step.safetyCheck && !step.safetyCheck.allowed) {
@@ -371,9 +400,11 @@ export class CloudExecutionEngine {
       // Check if confirmation is required
       if (step.requiresConfirmation && this.onConfirmationRequired) {
         step.status = 'awaiting_confirmation';
+        this.pendingConfirmationStep = step;
         this.setState('awaiting_confirmation');
         
         const confirmed = await this.onConfirmationRequired(step);
+        this.pendingConfirmationStep = undefined;
         
         if (!confirmed) {
           step.status = 'skipped';
@@ -404,6 +435,51 @@ export class CloudExecutionEngine {
       this.completedAt = new Date();
       this.setState('completed');
     }
+  }
+  
+  /**
+   * Check governance rules
+   */
+  private checkGovernance(): { shouldHalt: boolean; reason?: string } {
+    // Check budget limit
+    if (this.context.budgetLimit && this.costIncurred >= this.context.budgetLimit) {
+      return { shouldHalt: true, reason: `Budget limit reached ($${this.costIncurred.toFixed(4)} >= $${this.context.budgetLimit.toFixed(2)})` };
+    }
+    
+    // Check max steps
+    if (this.context.maxSteps && this.currentStepIndex >= this.context.maxSteps) {
+      return { shouldHalt: true, reason: `Maximum steps reached (${this.currentStepIndex} >= ${this.context.maxSteps})` };
+    }
+    
+    // Check uncertainty threshold
+    if (this.context.uncertaintyThreshold && this.uncertaintyLevel > this.context.uncertaintyThreshold) {
+      return { shouldHalt: true, reason: `Uncertainty level (${this.uncertaintyLevel}%) exceeds threshold (${this.context.uncertaintyThreshold}%)` };
+    }
+    
+    return { shouldHalt: false };
+  }
+  
+  /**
+   * Update cost tracking (called after LLM invocations)
+   */
+  updateCost(tokensUsed: number): void {
+    this.tokensUsed += tokensUsed;
+    // Approximate cost: $0.001 per 1000 tokens
+    this.costIncurred = (this.tokensUsed / 1000) * 0.001;
+  }
+  
+  /**
+   * Update uncertainty level
+   */
+  setUncertaintyLevel(level: number): void {
+    this.uncertaintyLevel = Math.max(0, Math.min(100, level));
+  }
+  
+  /**
+   * Get pending confirmation step
+   */
+  getPendingConfirmation(): CloudExecutionStep | undefined {
+    return this.pendingConfirmationStep;
   }
   
   /**
@@ -567,6 +643,38 @@ export class CloudExecutionEngine {
         ? this.completedAt.getTime() - this.startedAt.getTime() 
         : undefined,
       sandboxId: this.sandbox?.sandboxId,
+    };
+  }
+  
+  /**
+   * Get execution history (completed steps)
+   */
+  getHistory(): CloudExecutionStep[] {
+    return this.steps.filter(s => s.status === 'complete' || s.status === 'failed' || s.status === 'skipped');
+  }
+  
+  /**
+   * Get governance status
+   */
+  getGovernanceStatus(): {
+    tokensUsed: number;
+    costIncurred: number;
+    budgetLimit: number;
+    budgetRemaining: number;
+    stepsExecuted: number;
+    maxSteps: number;
+    uncertaintyLevel: number;
+    uncertaintyThreshold: number;
+  } {
+    return {
+      tokensUsed: this.tokensUsed,
+      costIncurred: this.costIncurred,
+      budgetLimit: this.context.budgetLimit || 1.0,
+      budgetRemaining: (this.context.budgetLimit || 1.0) - this.costIncurred,
+      stepsExecuted: this.currentStepIndex,
+      maxSteps: this.context.maxSteps || 50,
+      uncertaintyLevel: this.uncertaintyLevel,
+      uncertaintyThreshold: this.context.uncertaintyThreshold || 70,
     };
   }
   

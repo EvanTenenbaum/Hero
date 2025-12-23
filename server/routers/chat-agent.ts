@@ -1,15 +1,18 @@
 /**
- * Chat Agent Router - Sprint 1 Agent Alpha
+ * Chat Agent Router - Sprint 1 Agent Alpha + Cloud Sandbox Integration
  * 
  * tRPC router for chat agent operations.
  * Handles message execution, agent status, and cancellation.
+ * Now integrated with CloudChatAgentService for cloud sandbox execution.
  */
 
 import { z } from 'zod';
 import { router, protectedProcedure } from '../_core/trpc';
 import { chatAgentService, ChatContext } from '../chatAgent';
+import { CloudChatAgentService, cloudChatAgentService } from '../cloudChatAgent';
 import { PromptContext } from '../agents/promptTemplates';
 import { AgentType } from '../agents/promptTemplates';
+import * as db from '../db';
 
 // ════════════════════════════════════════════════════════════════════════════
 // INPUT SCHEMAS
@@ -35,6 +38,19 @@ const executeMessageSchema = z.object({
   agentType: agentTypeSchema,
   context: chatContextSchema,
   skipSafetyCheck: z.boolean().optional().default(false),
+  // New: Cloud execution options
+  useCloudSandbox: z.boolean().optional().default(false),
+  projectId: z.number().optional(),
+});
+
+const cloudExecuteSchema = z.object({
+  message: z.string().min(1).max(10000),
+  agentType: agentTypeSchema,
+  projectId: z.number(),
+  conversationHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string(),
+  })).optional(),
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -44,10 +60,45 @@ const executeMessageSchema = z.object({
 export const chatAgentRouter = router({
   /**
    * Execute a message through the specified agent type
+   * Supports both local and cloud sandbox execution
    */
   executeWithAgent: protectedProcedure
     .input(executeMessageSchema)
     .mutation(async ({ ctx, input }) => {
+      // Check if cloud sandbox should be used
+      if (input.useCloudSandbox && input.projectId) {
+        // Use cloud execution
+        const result = await cloudChatAgentService.executeWithTools(
+          input.message,
+          input.agentType as AgentType,
+          input.projectId,
+          ctx.user.id,
+          input.context?.conversationHistory?.map(m => ({
+            role: m.role,
+            content: m.content,
+          }))
+        );
+
+        return {
+          success: result.success,
+          agentType: input.agentType,
+          safetyCheck: {
+            allowed: true,
+            requiresConfirmation: false,
+            reason: undefined,
+            riskLevel: 'low' as const,
+          },
+          response: result.response,
+          error: result.error,
+          durationMs: result.durationMs,
+          // Cloud-specific fields
+          toolCalls: result.toolCalls,
+          executionId: result.executionId,
+          isCloudExecution: true,
+        };
+      }
+
+      // Use original local execution
       const result = await chatAgentService.executeMessage({
         message: input.message,
         agentType: input.agentType as AgentType,
@@ -68,7 +119,90 @@ export const chatAgentRouter = router({
         response: result.response,
         error: result.error,
         durationMs: result.durationMs,
+        isCloudExecution: false,
       };
+    }),
+
+  /**
+   * Execute a message with cloud sandbox (dedicated endpoint)
+   */
+  executeInCloud: protectedProcedure
+    .input(cloudExecuteSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await cloudChatAgentService.executeWithTools(
+        input.message,
+        input.agentType as AgentType,
+        input.projectId,
+        ctx.user.id,
+        input.conversationHistory
+      );
+
+      return {
+        success: result.success,
+        response: result.response,
+        error: result.error,
+        toolCalls: result.toolCalls,
+        executionId: result.executionId,
+        durationMs: result.durationMs,
+      };
+    }),
+
+  /**
+   * Confirm a pending tool execution
+   */
+  confirmToolExecution: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      toolName: z.string(),
+      approved: z.boolean(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const engine = cloudChatAgentService.getExecutionEngine(ctx.user.id, input.projectId);
+      if (!engine) {
+        return { success: false, error: 'No active execution engine found' };
+      }
+
+      if (input.approved) {
+        engine.resume();
+      } else {
+        engine.cancel();
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Get execution engine status for a project
+   */
+  getExecutionStatus: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const engine = cloudChatAgentService.getExecutionEngine(ctx.user.id, input.projectId);
+      if (!engine) {
+        return { active: false };
+      }
+
+      return {
+        active: true,
+        state: engine.getState(),
+        history: engine.getHistory(),
+        pendingConfirmation: engine.getPendingConfirmation(),
+      };
+    }),
+
+  /**
+   * Cancel an active execution
+   */
+  cancelExecution: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const engine = cloudChatAgentService.getExecutionEngine(ctx.user.id, input.projectId);
+      if (!engine) {
+        return { success: false, error: 'No active execution engine found' };
+      }
+
+      engine.cancel();
+      return { success: true };
     }),
 
   /**
@@ -114,6 +248,23 @@ export const chatAgentRouter = router({
       return {
         valid: chatAgentService.isValidAgentType(input.type),
         type: input.type,
+      };
+    }),
+
+  /**
+   * Check if a project has cloud sandbox enabled
+   */
+  isCloudEnabled: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const project = await db.getProjectById(input.projectId, ctx.user.id);
+      if (!project) {
+        return { enabled: false, error: 'Project not found' };
+      }
+      return { 
+        enabled: project.useCloudSandbox || false,
+        repoOwner: project.repoOwner,
+        repoName: project.repoName,
       };
     }),
 });

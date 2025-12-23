@@ -256,17 +256,19 @@ class SandboxManager {
    * Remove the oldest sandbox to make room for new ones
    */
   private async removeOldestSandbox(): Promise<void> {
-    let oldest: { projectId: string; lastAccessedAt: Date } | null = null;
+    let oldestProjectId: string | null = null;
+    let oldestTime: Date | null = null;
 
     this.activeSandboxes.forEach((entry, projectId) => {
-      if (!oldest || entry.lastAccessedAt < oldest.lastAccessedAt) {
-        oldest = { projectId, lastAccessedAt: entry.lastAccessedAt };
+      if (!oldestTime || entry.lastAccessedAt < oldestTime) {
+        oldestProjectId = projectId;
+        oldestTime = entry.lastAccessedAt;
       }
     });
 
-    if (oldest) {
-      console.log(`Removing oldest sandbox for project ${oldest.projectId} to make room`);
-      await this.removeSandbox(oldest.projectId);
+    if (oldestProjectId) {
+      console.log(`Removing oldest sandbox for project ${oldestProjectId} to make room`);
+      await this.removeSandbox(oldestProjectId);
     }
   }
 
