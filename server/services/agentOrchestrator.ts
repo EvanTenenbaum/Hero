@@ -7,6 +7,7 @@
 
 import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
+import { logger } from '../_core/logger';
 
 /**
  * Defines the types of agents available in the HERO IDE ecosystem.
@@ -153,7 +154,7 @@ export class AgentOrchestrator extends EventEmitter {
             maxRetries: 3,
             ...config,
         };
-        console.log('[AgentOrchestrator] Initialized');
+        logger.info('[AgentOrchestrator] Initialized');
     }
 
     /**
@@ -312,7 +313,7 @@ export class AgentOrchestrator extends EventEmitter {
      * @returns A promise resolving to the result of the delegated task.
      */
     public async delegate(request: DelegationRequest): Promise<TaskResult> {
-        console.log(`[AgentOrchestrator] Delegation: ${request.fromAgent} -> ${request.toAgent} (Task: ${request.task})`);
+        logger.info({ from: request.fromAgent, to: request.toAgent, task: request.task }, '[AgentOrchestrator] Delegation requested');
         this.emit('delegationRequested', request);
 
         try {
@@ -441,7 +442,7 @@ export class AgentOrchestrator extends EventEmitter {
                 }
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
-                console.warn(`[AgentOrchestrator] Step ${step.id} failed on attempt ${attempts}. Error: ${lastError.message}`);
+                logger.warn({ stepId: step.id, attempt: attempts, error: lastError.message }, '[AgentOrchestrator] Step failed, retrying');
                 this.emit('stepRetrying', workflowId, step, attempts, lastError);
 
                 if (attempts < this.config.maxRetries) {

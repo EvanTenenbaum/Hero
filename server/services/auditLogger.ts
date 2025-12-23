@@ -15,8 +15,9 @@ import {
   text,
   index,
 } from 'drizzle-orm/mysql-core';
-import { InferSelectModel, InferInsertModel, sql, and, eq } from 'drizzle-orm';
+import { InferSelectModel, InferInsertModel, sql, and, eq, desc } from 'drizzle-orm';
 import { getDb } from '../db';
+import { logger } from '../_core/logger';
 
 // --- Drizzle ORM Schema ---
 
@@ -120,7 +121,7 @@ export class AuditLogger {
     try {
       const db = await getDb();
       if (!db) {
-        console.error('[AuditLogger] Database not available');
+        logger.error('AuditLogger: Database not available');
         return;
       }
 
@@ -139,7 +140,7 @@ export class AuditLogger {
 
       await db.insert(auditLogs).values(newLog);
     } catch (error) {
-      console.error('[AuditLogger] Failed to insert audit log entry:', error);
+      logger.error({ error }, 'AuditLogger: Failed to insert audit log entry');
     }
   }
 
@@ -232,7 +233,7 @@ export class AuditLogger {
     try {
       const db = await getDb();
       if (!db) {
-        console.error('[AuditLogger] Database not available');
+        logger.error('AuditLogger: Database not available');
         return [];
       }
 
@@ -265,13 +266,13 @@ export class AuditLogger {
       }
 
       const logs = await query
-        .orderBy(sql`${auditLogs.timestamp} DESC`)
+        .orderBy(desc(auditLogs.timestamp))
         .limit(filters.limit ?? 100)
         .offset(filters.offset ?? 0);
 
       return logs;
     } catch (error) {
-      console.error('[AuditLogger] Error querying audit logs:', error);
+      logger.error({ error }, '[AuditLogger] Error querying audit logs');
       return [];
     }
   }

@@ -5,8 +5,18 @@
  * selects appropriate strategies, and manages fallback mechanisms.
  */
 
+import { z } from 'zod';
 import { invokeLLM } from '../_core/llm';
 import { logger } from '../_core/logger';
+
+// --- Input Validation Schemas ---
+
+const AgentTaskSchema = z.object({
+    id: z.string().min(1).max(128),
+    description: z.string().min(1).max(50000),
+    type: z.string().min(1).max(100),
+    context: z.string().max(100000).optional(),
+});
 
 // --- Enums and Types ---
 
@@ -69,6 +79,8 @@ export class TaskComplexityAnalyzer {
      * Estimates the complexity of a given task.
      */
     public async analyze(task: AgentTask): Promise<TaskComplexity> {
+        // Validate input
+        const validatedTask = AgentTaskSchema.parse(task);
         const prompt = `Analyze the following task and respond with ONLY one word: SIMPLE, MODERATE, COMPLEX, or CRITICAL.
 
 Task Type: ${task.type}

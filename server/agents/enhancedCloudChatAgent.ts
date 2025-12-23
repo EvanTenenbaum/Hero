@@ -5,6 +5,7 @@
  * intelligent agent system with memory, learning, and adaptive behavior.
  */
 
+import { z } from 'zod';
 import { invokeLLM, InvokeResult, Message, Tool } from '../_core/llm';
 import { logger } from '../_core/logger';
 
@@ -17,10 +18,46 @@ import { auditLogger } from '../services/auditLogger';
 import { AgentOrchestrator, WorkflowStepInput } from '../services/agentOrchestrator';
 
 // Import Phase 2 services
-import { PromptBuilder, PromptContext, AgentTaskType } from './enhancedPromptSystem';
+import { PromptBuilder, PromptContext as EnhancedPromptContext, AgentTaskType } from './enhancedPromptSystem';
 import { selfReflectionService, ExecutionResult, AgentAction } from './selfReflectionService';
 import { executionPatternLearner, ExecutionRecord, ToolCall } from './executionPatternLearner';
 import { adaptiveAgentController, AgentTask, AgentStrategy, AgentResult } from './adaptiveAgentController';
+
+// --- Input Validation Schemas ---
+
+/**
+ * Zod schema for validating EnhancedAgentConfig.
+ */
+const EnhancedAgentConfigSchema = z.object({
+    userId: z.number().int().positive(),
+    projectId: z.number().int().positive(),
+    sessionId: z.string().min(1).max(128),
+    model: z.string().optional(),
+    maxTokens: z.number().int().positive().max(32768).optional(),
+    enableMemory: z.boolean().optional(),
+    enableLearning: z.boolean().optional(),
+    enableReflection: z.boolean().optional(),
+    enableAdaptive: z.boolean().optional(),
+});
+
+/**
+ * Zod schema for validating ChatContext.
+ */
+const ChatContextSchema = z.object({
+    projectFiles: z.array(z.string()).max(1000),
+    currentFile: z.string().max(500).optional(),
+    currentFileContent: z.string().max(1000000).optional(), // 1MB max
+    techStack: z.string().max(500),
+    recentMessages: z.array(z.object({
+        role: z.enum(['system', 'user', 'assistant']),
+        content: z.string(),
+    })).max(100),
+});
+
+/**
+ * Zod schema for validating user messages.
+ */
+const UserMessageSchema = z.string().min(1).max(100000); // 100KB max
 
 // --- Type Definitions ---
 
@@ -47,7 +84,7 @@ export interface ChatContext {
     currentFile?: string;
     currentFileContent?: string;
     techStack: string;
-    recentMessages: Message[];
+    recentMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
 }
 
 /**
@@ -76,6 +113,9 @@ export class EnhancedCloudChatAgent {
     private startTime: number = 0;
 
     constructor(config: EnhancedAgentConfig) {
+        // Validate config
+        const validatedConfig = EnhancedAgentConfigSchema.parse(config);
+        
         this.config = {
             model: 'gpt-4o',
             maxTokens: 4096,
@@ -83,9 +123,9 @@ export class EnhancedCloudChatAgent {
             enableLearning: true,
             enableReflection: true,
             enableAdaptive: true,
-            ...config,
+            ...validatedConfig,
         };
-        this.promptBuilder = new PromptBuilder(this.config.model as any);
+        this.promptBuilder = new PromptBuilder(this.config.model as 'GPT-4-Turbo');
         this.orchestrator = new AgentOrchestrator();
     }
 
@@ -97,19 +137,23 @@ export class EnhancedCloudChatAgent {
         context: ChatContext,
         taskType: AgentTaskType = 'CODE_GENERATION'
     ): Promise<ChatAgentResult> {
+        // Validate inputs
+        const validatedMessage = UserMessageSchema.parse(userMessage);
+        const validatedContext = ChatContextSchema.parse(context);
+        
         this.startTime = Date.now();
         this.actions = [];
         let learningApplied = false;
         let memoryUsed = false;
 
-        logger.info(`Processing message for user ${this.config.userId}, project ${this.config.projectId}`);
+        logger.info({ userId: this.config.userId, projectId: this.config.projectId }, 'Processing message');
 
         try {
             // 1. Check for learned patterns (if enabled)
             if (this.config.enableLearning) {
-                const suggestedSequence = executionPatternLearner.suggestSequence(userMessage);
+                const suggestedSequence = executionPatternLearner.suggestSequence(validatedMessage);
                 if (suggestedSequence) {
-                    logger.info(`Found learned pattern with ${suggestedSequence.length} steps`);
+                    logger.info({ steps: suggestedSequence.length }, 'Found learned pattern');
                     learningApplied = true;
                 }
             }
@@ -117,7 +161,7 @@ export class EnhancedCloudChatAgent {
             // 2. Recall relevant memories (if enabled)
             let memoryContext = '';
             if (this.config.enableMemory) {
-                const memories = await agentMemoryService.recall(userMessage, {
+                const memories = await agentMemoryService.recall(validatedMessage, {
                     userId: this.config.userId,
                     projectId: this.config.projectId,
                     sessionId: this.config.sessionId,
@@ -131,12 +175,12 @@ export class EnhancedCloudChatAgent {
                         `[Memory: ${m.memoryKey}] ${JSON.stringify(m.memoryValue)}`
                     ).join('\n');
                     memoryUsed = true;
-                    logger.info(`Retrieved ${memories.length} relevant memories`);
+                    logger.info({ count: memories.length }, 'Retrieved relevant memories');
                 }
             }
 
             // 3. Build intelligent context
-            const contextSources = this.buildContextSources(context, memoryContext);
+            const contextSources = this.buildContextSources(validatedContext, memoryContext);
             const budget: ContextBudget = {
                 maxTokens: 128000,
                 reservedForResponse: this.config.maxTokens || 4096,
@@ -144,120 +188,132 @@ export class EnhancedCloudChatAgent {
                 availableForContext: 128000 - (this.config.maxTokens || 4096) - 2000,
             };
             const builtContext = intelligentContextManager.buildOptimalContext(
-                userMessage,
+                validatedMessage,
                 contextSources,
                 budget
             );
 
             // 4. Build the prompt
-            const promptContext: PromptContext = {
-                techStack: context.techStack,
+            const promptContext: EnhancedPromptContext = {
+                techStack: validatedContext.techStack,
                 codingConventions: 'Follow TypeScript best practices',
-                fileStructureSummary: context.projectFiles.slice(0, 20).join('\n'),
-                currentFileContent: context.currentFileContent || '',
+                fileStructureSummary: validatedContext.projectFiles.slice(0, 20).join('\n'),
+                currentFileContent: validatedContext.currentFileContent || '',
                 relatedCodeSnippets: builtContext.prompt.project || '',
                 executionState: '',
                 userPreferences: {},
             };
 
-            // 5. Execute with adaptive controller (if enabled)
+            const prompt = this.promptBuilder.buildPrompt(taskType, validatedMessage, promptContext);
+
+            // 5. Execute with adaptive strategy (if enabled)
             let response: string;
-            let confidence: number;
+            let confidence = 0.5;
+            const toolsUsed: string[] = [];
+            const filesModified: string[] = [];
 
             if (this.config.enableAdaptive) {
-                const agentTask: AgentTask = {
+                const task: AgentTask = {
                     id: `task-${Date.now()}`,
-                    description: userMessage,
+                    description: validatedMessage,
                     type: taskType,
-                    context: context.currentFileContent,
+                    context: JSON.stringify(promptContext),
                 };
 
-                const { result, metrics } = await adaptiveAgentController.executeTask(
-                    agentTask,
-                    async (task, strategy) => this.executeWithStrategy(task, strategy, promptContext, context)
+                const adaptiveResult = await adaptiveAgentController.executeTask(
+                    task,
+                    async (t, strategy) => this.executeWithStrategy(t, strategy, prompt)
                 );
 
-                response = result.output;
-                confidence = metrics.confidence;
+                response = adaptiveResult.result.output || 'Task completed';
+                confidence = adaptiveResult.metrics.confidence;
             } else {
-                // Direct execution without adaptive controller
-                const result = await this.executeDirect(userMessage, promptContext, context);
-                response = result.output;
-                confidence = 0.7;
+                // Direct execution without adaptive strategy
+                const result = await this.directExecution(prompt, validatedContext.recentMessages);
+                response = result.response;
+                toolsUsed.push(...result.toolsUsed);
+                filesModified.push(...result.filesModified);
             }
 
-            // 6. Log the execution
-            await auditLogger.logAgentExecution(
-                this.config.userId,
-                this.config.projectId,
-                taskType,
-                userMessage,
-                response,
-                this.config.sessionId
-            );
-
-            // 7. Record execution for learning
-            if (this.config.enableLearning) {
-                const executionRecord: ExecutionRecord = {
-                    id: `exec-${Date.now()}`,
-                    userQuery: userMessage,
-                    toolSequence: this.actions.map(a => a.toolName),
-                    toolCalls: this.actions.map(a => ({
-                        toolName: a.toolName,
-                        input: a.input,
-                        output: a.output,
-                        success: a.isSuccessful,
-                        durationMs: a.durationMs,
-                        timestamp: a.timestamp,
-                    })),
-                    success: true,
-                    totalDurationMs: Date.now() - this.startTime,
-                    timestamp: new Date(),
-                };
-                executionPatternLearner.recordExecution(executionRecord);
-            }
-
-            // 8. Perform self-reflection (if enabled)
+            // 6. Self-reflection (if enabled)
             if (this.config.enableReflection) {
                 const executionResult: ExecutionResult = {
                     taskId: `task-${Date.now()}`,
-                    taskDescription: userMessage,
+                    taskDescription: validatedMessage,
+                    isSuccessful: true,
                     actions: this.actions,
                     finalOutput: response,
-                    isSuccessful: true,
                     totalDurationMs: Date.now() - this.startTime,
+                    errorMessage: undefined,
                     timestamp: new Date(),
                 };
-                
-                // Fire and forget - don't block the response
+
+                // Fire and forget - don't block on reflection
                 selfReflectionService.reflect(executionResult).catch(err => 
                     logger.warn({ error: err }, 'Self-reflection failed')
                 );
             }
 
-            // 9. Store short-term memory
+            // 7. Record execution pattern (if enabled)
+            if (this.config.enableLearning) {
+                const record: ExecutionRecord = {
+                    id: `exec-${Date.now()}`,
+                    userQuery: validatedMessage,
+                    toolSequence: toolsUsed,
+                    toolCalls: toolsUsed.map((name, i) => ({
+                        toolName: name,
+                        input: {},
+                        output: 'success',
+                        success: true,
+                        durationMs: 100,
+                        timestamp: new Date(this.startTime + i * 100),
+                    })),
+                    success: true,
+                    totalDurationMs: Date.now() - this.startTime,
+                    timestamp: new Date(),
+                };
+
+                executionPatternLearner.recordExecution(record);
+            }
+
+            // 8. Store in short-term memory (if enabled)
             if (this.config.enableMemory) {
-                const memoryItem: ShortTermMemoryItem = {
+                await agentMemoryService.remember({
                     sessionId: this.config.sessionId,
                     userId: this.config.userId,
                     projectId: this.config.projectId,
                     memoryKey: `interaction-${Date.now()}`,
                     memoryValue: {
-                        query: userMessage.substring(0, 200),
-                        responsePreview: response.substring(0, 200),
+                        query: validatedMessage.substring(0, 500),
+                        response: response.substring(0, 500),
                         taskType,
                     },
                     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-                };
-                agentMemoryService.remember(memoryItem).catch(err =>
-                    logger.warn({ error: err }, 'Failed to store memory')
-                );
+                });
             }
+
+            // 9. Audit log
+            await auditLogger.logAction({
+                userId: this.config.userId,
+                projectId: this.config.projectId,
+                executionId: `exec-${Date.now()}`,
+                action: 'CHAT_COMPLETION',
+                category: 'agent',
+                severity: 'info',
+                details: {
+                    taskType,
+                    toolsUsed: toolsUsed.length,
+                    filesModified: filesModified.length,
+                    executionTimeMs: Date.now() - this.startTime,
+                    learningApplied,
+                    memoryUsed,
+                },
+            });
 
             return {
                 response,
-                toolsUsed: this.actions.map(a => a.toolName),
-                filesModified: this.extractModifiedFiles(),
+                toolsUsed,
+                filesModified,
                 executionTimeMs: Date.now() - this.startTime,
                 confidence,
                 learningApplied,
@@ -265,31 +321,73 @@ export class EnhancedCloudChatAgent {
             };
 
         } catch (error) {
-            logger.error({ error }, 'Error processing message');
-            
-            // Record failure for learning
-            if (this.config.enableLearning) {
-                const executionRecord: ExecutionRecord = {
-                    id: `exec-${Date.now()}`,
-                    userQuery: userMessage,
-                    toolSequence: this.actions.map(a => a.toolName),
-                    toolCalls: this.actions.map(a => ({
-                        toolName: a.toolName,
-                        input: a.input,
-                        output: a.output,
-                        success: a.isSuccessful,
-                        durationMs: a.durationMs,
-                        timestamp: a.timestamp,
-                    })),
-                    success: false,
-                    totalDurationMs: Date.now() - this.startTime,
-                    timestamp: new Date(),
-                };
-                executionPatternLearner.recordExecution(executionRecord);
-            }
+            logger.error({ error, userId: this.config.userId }, 'Error processing message');
+
+            // Audit log the error
+            await auditLogger.logAction({
+                userId: this.config.userId,
+                projectId: this.config.projectId,
+                action: 'CHAT_ERROR',
+                category: 'agent',
+                severity: 'error',
+                details: {
+                    error: error instanceof Error ? error.message : String(error),
+                    taskType,
+                },
+            });
 
             throw error;
         }
+    }
+
+    /**
+     * Builds context sources from the chat context.
+     */
+    private buildContextSources(context: ChatContext, memoryContext: string): ContextSource[] {
+        const sources: ContextSource[] = [];
+
+        if (context.currentFileContent) {
+            sources.push({
+                type: 'code',
+                content: context.currentFileContent,
+                priority: 10,
+                tokens: countTokens(context.currentFileContent),
+                metadata: { file: context.currentFile },
+            });
+        }
+
+        if (context.projectFiles.length > 0) {
+            const projectContent = context.projectFiles.join('\n');
+            sources.push({
+                type: 'project',
+                content: projectContent,
+                priority: 5,
+                tokens: countTokens(projectContent),
+            });
+        }
+
+        if (memoryContext) {
+            sources.push({
+                type: 'session_log',
+                content: memoryContext,
+                priority: 7,
+                tokens: countTokens(memoryContext),
+            });
+        }
+
+        if (context.recentMessages.length > 0) {
+            const conversationContent = context.recentMessages.map(m => 
+                `${m.role}: ${typeof m.content === 'string' ? m.content : '[complex]'}`
+            ).join('\n');
+            sources.push({
+                type: 'session_log',
+                content: conversationContent,
+                priority: 8,
+                tokens: countTokens(conversationContent),
+            });
+        }
+
+        return sources;
     }
 
     /**
@@ -298,258 +396,85 @@ export class EnhancedCloudChatAgent {
     private async executeWithStrategy(
         task: AgentTask,
         strategy: AgentStrategy,
-        promptContext: PromptContext,
-        chatContext: ChatContext
+        prompt: string
     ): Promise<AgentResult> {
-        logger.info(`Executing with strategy: ${strategy}`);
-
-        switch (strategy) {
-            case AgentStrategy.DirectExecution:
-                return this.executeDirect(task.description, promptContext, chatContext);
-
-            case AgentStrategy.PlanAndExecute:
-                return this.executePlanAndExecute(task, promptContext, chatContext);
-
-            case AgentStrategy.ReflectiveAnalysis:
-                return this.executeReflective(task, promptContext, chatContext);
-
-            case AgentStrategy.MultiAgentCollaboration:
-                return this.executeMultiAgent(task, promptContext, chatContext);
-
-            default:
-                return this.executeDirect(task.description, promptContext, chatContext);
-        }
-    }
-
-    /**
-     * Direct execution strategy - single LLM call.
-     */
-    private async executeDirect(
-        query: string,
-        promptContext: PromptContext,
-        chatContext: ChatContext
-    ): Promise<AgentResult> {
-        const tools = dynamicToolRegistry.getToolsForLLM();
+        const result = await this.directExecution(prompt, []);
         
-        const messages: Message[] = [
-            {
-                role: 'system',
-                content: `You are HERO, an expert AI coding assistant. Help the user with their request.
-                
-Project Context:
-- Tech Stack: ${promptContext.techStack}
-- Current File: ${chatContext.currentFile || 'None'}
-
-Available tools: ${tools.map(t => t.function.name).join(', ')}`,
-            },
-            ...chatContext.recentMessages.slice(-10),
-            { role: 'user', content: query },
-        ];
-
-        const startTime = Date.now();
-        const response = await invokeLLM({
-            messages,
-            tools: tools as Tool[],
-            maxTokens: this.config.maxTokens,
-        });
-
-        const content = response.choices[0]?.message?.content;
-        const output = typeof content === 'string' ? content : '';
-
-        this.recordAction('llm_call', { query }, output, true, Date.now() - startTime);
-
         return {
-            output,
             success: true,
-            message: 'Direct execution completed',
+            output: result.response,
+            message: 'Execution completed',
         };
     }
 
     /**
-     * Plan and execute strategy - creates a plan first, then executes.
+     * Performs direct LLM execution.
      */
-    private async executePlanAndExecute(
-        task: AgentTask,
-        promptContext: PromptContext,
-        chatContext: ChatContext
-    ): Promise<AgentResult> {
-        // Step 1: Generate a plan
-        const planMessages: Message[] = [
-            {
-                role: 'system',
-                content: `You are a planning agent. Create a step-by-step plan to accomplish the task.
-Output a JSON array of steps, each with: { "step": number, "action": string, "tool": string | null }`,
-            },
-            { role: 'user', content: task.description },
+    private async directExecution(
+        prompt: string,
+        recentMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
+    ): Promise<{ response: string; toolsUsed: string[]; filesModified: string[] }> {
+        const messages: Message[] = [
+            { role: 'system', content: prompt },
+            ...recentMessages.slice(-10).map(m => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
         ];
 
-        const planResponse = await invokeLLM({ messages: planMessages, maxTokens: 1000 });
-        const planContent = planResponse.choices[0]?.message?.content;
-        const planText = typeof planContent === 'string' ? planContent : '[]';
+        const tools = dynamicToolRegistry.getToolsForLLM();
 
-        this.recordAction('plan_generation', { task: task.description }, planText, true, 0);
-
-        // Step 2: Execute the plan
-        return this.executeDirect(
-            `Execute this plan: ${planText}\n\nOriginal task: ${task.description}`,
-            promptContext,
-            chatContext
-        );
-    }
-
-    /**
-     * Reflective analysis strategy - analyzes before acting.
-     */
-    private async executeReflective(
-        task: AgentTask,
-        promptContext: PromptContext,
-        chatContext: ChatContext
-    ): Promise<AgentResult> {
-        // Step 1: Analyze the task
-        const analysisMessages: Message[] = [
-            {
-                role: 'system',
-                content: `You are an analysis agent. Before taking action, analyze the task to identify:
-1. Key requirements
-2. Potential challenges
-3. Best approach
-4. Risk factors`,
-            },
-            { role: 'user', content: task.description },
-        ];
-
-        const analysisResponse = await invokeLLM({ messages: analysisMessages, maxTokens: 500 });
-        const analysisContent = analysisResponse.choices[0]?.message?.content;
-        const analysis = typeof analysisContent === 'string' ? analysisContent : '';
-
-        this.recordAction('task_analysis', { task: task.description }, analysis, true, 0);
-
-        // Step 2: Execute with analysis context
-        return this.executeDirect(
-            `Based on this analysis:\n${analysis}\n\nComplete the task: ${task.description}`,
-            promptContext,
-            chatContext
-        );
-    }
-
-    /**
-     * Multi-agent collaboration strategy - uses orchestrator.
-     */
-    private async executeMultiAgent(
-        task: AgentTask,
-        promptContext: PromptContext,
-        chatContext: ChatContext
-    ): Promise<AgentResult> {
-        // Create a workflow with multiple agent steps
-        const steps: WorkflowStepInput[] = [
-            {
-                id: 'analyze',
-                agentType: 'pm',
-                task: `Analyze requirements: ${task.description}`,
-                inputs: { context: promptContext },
-                dependsOn: [],
-            },
-            {
-                id: 'implement',
-                agentType: 'developer',
-                task: `Implement solution: ${task.description}`,
-                inputs: { context: promptContext },
-                dependsOn: ['analyze'],
-            },
-            {
-                id: 'review',
-                agentType: 'qa',
-                task: 'Review implementation for quality',
-                inputs: {},
-                dependsOn: ['implement'],
-            },
-        ];
-
-        const workflow = this.orchestrator.createWorkflow(`Task: ${task.id}`, steps);
-        
-        // For now, fall back to direct execution
-        // Full orchestration would require more infrastructure
-        logger.info(`Created workflow ${workflow.id} with ${steps.length} steps`);
-        
-        return this.executeDirect(task.description, promptContext, chatContext);
-    }
-
-    /**
-     * Builds context sources for intelligent context management.
-     */
-    private buildContextSources(context: ChatContext, memoryContext: string): ContextSource[] {
-        const sources: ContextSource[] = [];
-
-        if (context.currentFileContent) {
-            sources.push({
-                type: 'project_file',
-                priority: 10,
-                content: context.currentFileContent,
-                tokens: countTokens(context.currentFileContent),
-            });
-        }
-
-        if (memoryContext) {
-            sources.push({
-                type: 'session_log',
-                priority: 8,
-                content: memoryContext,
-                tokens: countTokens(memoryContext),
-            });
-        }
-
-        // Add recent messages as context
-        const messagesText = context.recentMessages
-            .map(m => `${m.role}: ${typeof m.content === 'string' ? m.content : ''}`)
-            .join('\n');
-        
-        if (messagesText) {
-            sources.push({
-                type: 'session_log',
-                priority: 7,
-                content: messagesText,
-                tokens: countTokens(messagesText),
-            });
-        }
-
-        return sources;
-    }
-
-    /**
-     * Records an action for tracking and learning.
-     */
-    private recordAction(
-        toolName: string,
-        input: Record<string, unknown>,
-        output: unknown,
-        success: boolean,
-        durationMs: number
-    ): void {
-        this.actions.push({
-            toolName,
-            input,
-            output,
-            isSuccessful: success,
-            durationMs,
-            timestamp: new Date(),
+        const result = await invokeLLM({
+            messages,
+            tools: tools.length > 0 ? tools : undefined,
+            maxTokens: this.config.maxTokens,
         });
-    }
 
-    /**
-     * Extracts modified files from actions.
-     */
-    private extractModifiedFiles(): string[] {
-        const files: string[] = [];
-        for (const action of this.actions) {
-            if (action.toolName === 'write_file' && action.input.path) {
-                files.push(action.input.path as string);
+        const toolsUsed: string[] = [];
+        const filesModified: string[] = [];
+
+        // Process tool calls if any
+        const toolCalls = result.choices[0]?.message?.tool_calls;
+        if (toolCalls && toolCalls.length > 0) {
+            for (const toolCall of toolCalls) {
+                toolsUsed.push(toolCall.function.name);
+                
+                this.actions.push({
+                    toolName: toolCall.function.name,
+                    input: JSON.parse(toolCall.function.arguments || '{}'),
+                    output: 'executed',
+                    isSuccessful: true,
+                    timestamp: new Date(),
+                    durationMs: 0,
+                });
+
+                // Track file modifications
+                if (toolCall.function.name.includes('write') || 
+                    toolCall.function.name.includes('create') ||
+                    toolCall.function.name.includes('modify')) {
+                    try {
+                        const args = JSON.parse(toolCall.function.arguments || '{}');
+                        if (args.path || args.filePath) {
+                            filesModified.push(args.path || args.filePath);
+                        }
+                    } catch {
+                        // Ignore JSON parse errors
+                    }
+                }
             }
         }
-        return files;
+
+        const messageContent = result.choices[0]?.message?.content;
+        const response = typeof messageContent === 'string' 
+            ? messageContent 
+            : Array.isArray(messageContent) 
+                ? messageContent.map((c: { type: string; text?: string }) => c.type === 'text' ? c.text : '').join('') 
+                : '';
+
+        return { response, toolsUsed, filesModified };
     }
 }
 
-// Factory function for creating enhanced agents
+/**
+ * Factory function to create an enhanced agent with validated config.
+ */
 export function createEnhancedAgent(config: EnhancedAgentConfig): EnhancedCloudChatAgent {
     return new EnhancedCloudChatAgent(config);
 }

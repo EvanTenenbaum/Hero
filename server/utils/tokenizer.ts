@@ -6,6 +6,7 @@
  */
 
 import { Tiktoken, TiktokenEncoding, get_encoding } from 'tiktoken';
+import { logger } from '../_core/logger';
 
 /**
  * Defines the mapping of internal model names to the Tiktoken encoding names.
@@ -52,7 +53,7 @@ function getTokenizer(model: SupportedModel): Tiktoken | null {
         tokenizerCache.set(encodingName, tokenizer);
         return tokenizer;
     } catch (error) {
-        console.warn(`[Tokenizer] Failed to load encoding ${encodingName}. Using estimation fallback.`, error);
+        logger.warn({ encoding: encodingName }, 'Failed to load encoding. Using estimation fallback.');
         return null;
     }
 }
@@ -90,7 +91,7 @@ export function countTokens(text: string, model: SupportedModel = 'default'): nu
         const tokens = tokenizer.encode(text);
         return tokens.length;
     } catch (error) {
-        console.error(`[Tokenizer] Error counting tokens for model ${model}. Falling back to estimation.`, error);
+        logger.error({ model }, 'Error counting tokens. Falling back to estimation.');
         return estimateTokens(text);
     }
 }
@@ -132,7 +133,7 @@ export function truncateToTokenLimit(text: string, maxTokens: number, model: Sup
         return truncatedText;
 
     } catch (error) {
-        console.error(`[Tokenizer] Error truncating text to ${maxTokens} tokens.`, error);
+        logger.error({ maxTokens }, 'Error truncating text. Using character-based fallback.');
         // Fallback to character-based truncation
         const estimatedChars = maxTokens * 4;
         return text.length <= estimatedChars ? text : text.substring(0, estimatedChars) + '...';

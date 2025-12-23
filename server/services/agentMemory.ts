@@ -15,8 +15,9 @@ import {
   float,
   index,
 } from 'drizzle-orm/mysql-core';
-import { eq, and, sql, gte } from 'drizzle-orm';
+import { eq, and, sql, gte, desc } from 'drizzle-orm';
 import { getDb } from '../db';
+import { logger } from '../_core/logger';
 
 // --- Database Schema ---
 
@@ -137,7 +138,7 @@ export class AgentMemoryService {
         try {
             const db = await getDb();
             if (!db) {
-                console.error('[AgentMemoryService] Database not available');
+                logger.error('Database not available');
                 return;
             }
 
@@ -166,7 +167,7 @@ export class AgentMemoryService {
                 throw new Error('Invalid memory item structure.');
             }
         } catch (error) {
-            console.error('[AgentMemoryService] Error storing memory:', error);
+            logger.error({ error }, 'Error storing memory');
             throw new Error('Failed to store memory item.');
         }
     }
@@ -181,7 +182,7 @@ export class AgentMemoryService {
         try {
             const db = await getDb();
             if (!db) {
-                console.error('[AgentMemoryService] Database not available');
+                logger.error('Database not available');
                 return [];
             }
 
@@ -218,7 +219,7 @@ export class AgentMemoryService {
                     .select()
                     .from(agentMemoryLongTerm)
                     .where(and(...conditions))
-                    .orderBy(sql`${agentMemoryLongTerm.relevanceScore} DESC`)
+                    .orderBy(desc(agentMemoryLongTerm.relevanceScore))
                     .limit(limit - results.length);
 
                 // Filter by memory types if specified
@@ -236,11 +237,11 @@ export class AgentMemoryService {
                 for (const item of filtered) {
                     db.update(agentMemoryLongTerm)
                         .set({
-                            accessCount: sql`${agentMemoryLongTerm.accessCount} + 1`,
+                            accessCount: sql`access_count + 1`,
                             lastAccessedAt: new Date(),
                         })
                         .where(eq(agentMemoryLongTerm.id, item.id))
-                        .catch(err => console.warn(`[AgentMemoryService] Failed to update access count:`, err));
+                        .catch(err => logger.warn({ error: err }, 'Failed to update access count'));
                 }
             }
 
@@ -253,7 +254,7 @@ export class AgentMemoryService {
             return filteredResults.slice(0, limit);
 
         } catch (error) {
-            console.error('[AgentMemoryService] Error recalling memory:', error);
+            logger.error({ error }, 'Error recalling memory');
             return [];
         }
     }
@@ -265,7 +266,7 @@ export class AgentMemoryService {
         try {
             const db = await getDb();
             if (!db) {
-                console.error('[AgentMemoryService] Database not available');
+                logger.error('Database not available');
                 return;
             }
 
@@ -274,7 +275,7 @@ export class AgentMemoryService {
             // Then try long-term
             await db.delete(agentMemoryLongTerm).where(eq(agentMemoryLongTerm.id, itemId));
         } catch (error) {
-            console.error(`[AgentMemoryService] Error forgetting memory ID ${itemId}:`, error);
+            logger.error({ error, itemId }, 'Error forgetting memory');
             throw new Error('Failed to delete memory item.');
         }
     }
@@ -301,11 +302,11 @@ export class AgentMemoryService {
                         eq(agentMemoryLongTerm.memoryType, 'project_knowledge')
                     )
                 )
-                .orderBy(sql`${agentMemoryLongTerm.relevanceScore} DESC`);
+                .orderBy(desc(agentMemoryLongTerm.relevanceScore));
 
             return results as Knowledge[];
         } catch (error) {
-            console.error(`[AgentMemoryService] Error retrieving project knowledge:`, error);
+            logger.error({ error }, 'Error retrieving project knowledge');
             return [];
         }
     }
@@ -343,7 +344,7 @@ export class AgentMemoryService {
             } as UserPreferences;
 
         } catch (error) {
-            console.error(`[AgentMemoryService] Error retrieving user preferences:`, error);
+            logger.error({ error }, 'Error retrieving user preferences');
             return { theme: 'dark', editorSettings: {}, preferredLanguage: 'typescript' };
         }
     }
@@ -379,12 +380,12 @@ export class AgentMemoryService {
             const now = new Date();
             const result = await db
                 .delete(agentMemoryShortTerm)
-                .where(sql`${agentMemoryShortTerm.expiresAt} < ${now}`);
+                .where(sql`expires_at < NOW()`);
 
             // Return 0 since we can't easily get affected rows count
             return 0;
         } catch (error) {
-            console.error('[AgentMemoryService] Error during memory cleanup:', error);
+            logger.error({ error }, 'Error during memory cleanup');
             return 0;
         }
     }

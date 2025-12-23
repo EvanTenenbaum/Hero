@@ -5,8 +5,32 @@
  * success pattern identification, and automatic prompt improvement suggestions.
  */
 
+import { z } from 'zod';
 import { invokeLLM, InvokeResult } from '../_core/llm';
 import { logger } from '../_core/logger';
+
+// --- Input Validation Schemas ---
+
+const AgentActionSchema = z.object({
+    toolName: z.string().min(1).max(100),
+    input: z.record(z.string(), z.any()),
+    output: z.unknown(),
+    isSuccessful: z.boolean(),
+    error: z.string().max(10000).optional(),
+    durationMs: z.number().nonnegative(),
+    timestamp: z.date(),
+});
+
+const ExecutionResultSchema = z.object({
+    taskId: z.string().min(1).max(128),
+    taskDescription: z.string().min(1).max(50000),
+    actions: z.array(AgentActionSchema).max(1000),
+    finalOutput: z.unknown(),
+    isSuccessful: z.boolean(),
+    totalDurationMs: z.number().nonnegative(),
+    errorMessage: z.string().max(10000).optional(),
+    timestamp: z.date(),
+});
 
 // --- Type Definitions ---
 
